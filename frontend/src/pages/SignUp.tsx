@@ -406,42 +406,69 @@ function SignUp() {
 
       case 6:
         return (
-          <form onSubmit={handleStep6} className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Step 6: Phone Number</h2>
+          <form onSubmit={handleStep6} className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Phone Verification</h2>
+              <p className="text-gray-600">We'll send you a verification code</p>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Phone Number *
               </label>
-              <PhoneInput
-                international
-                defaultCountry="US"
-                value={step6Data.phoneNumber}
-                onChange={(value) =>
-                  setStep6Data({ ...step6Data, phoneNumber: value || '' })
-                }
-                className="phone-input"
-                style={{
-                  '--PhoneInput-color--focus': '#6366f1',
-                }}
-              />
+              <div className="phone-input-wrapper">
+                <PhoneInput
+                  international
+                  defaultCountry="US"
+                  value={step6Data.phoneNumber}
+                  onChange={(value) =>
+                    setStep6Data({ ...step6Data, phoneNumber: value || '' })
+                  }
+                  className="phone-input-modern"
+                />
+              </div>
               <style>{`
-                .phone-input input {
+                .phone-input-wrapper {
+                  border: 1px solid #d1d5db;
+                  border-radius: 0.5rem;
+                  padding: 0.25rem;
+                  transition: all 0.2s;
+                }
+                .phone-input-wrapper:focus-within {
+                  border-color: #3b82f6;
+                  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                }
+                .phone-input-modern .PhoneInputInput {
                   width: 100%;
-                  padding: 0.5rem 0.75rem;
-                  border: 1px solid #374151;
-                  background-color: #1f2937;
-                  color: white;
+                  padding: 0.75rem 1rem;
+                  border: none;
+                  background-color: transparent;
+                  color: #111827;
                   border-radius: 0.375rem;
-                }
-                .phone-input input:focus {
+                  font-size: 1rem;
                   outline: none;
-                  ring: 2px;
-                  ring-color: #6366f1;
-                  border-color: #6366f1;
                 }
-                .PhoneInputInput {
-                  background-color: #1f2937 !important;
-                  color: white !important;
+                .phone-input-modern .PhoneInputInput::placeholder {
+                  color: #9ca3af;
+                }
+                .phone-input-modern .PhoneInputInput:focus {
+                  outline: none;
+                }
+                .phone-input-modern .PhoneInputCountry {
+                  padding: 0.75rem 0.5rem;
+                  border-right: 1px solid #e5e7eb;
+                  margin-right: 0.5rem;
+                }
+                .phone-input-modern .PhoneInputCountryIcon {
+                  width: 1.5rem;
+                  height: 1.5rem;
+                  box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+                }
+                .phone-input-modern .PhoneInputCountrySelect {
+                  font-size: 0.875rem;
+                  color: #111827;
+                  background: transparent;
+                  border: none;
+                  padding: 0.25rem;
                 }
               `}</style>
             </div>
