@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { AdminModule } from './admin/admin.module';
 import { User } from './entities/user.entity';
 
 @Module({
@@ -19,6 +20,7 @@ import { User } from './entities/user.entity';
       logging: true,
     }),
     AuthModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
