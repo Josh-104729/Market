@@ -25,6 +25,24 @@ export interface AdminSignInData {
   password: string;
 }
 
+export interface Category {
+  id: string;
+  title: string;
+  icon?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCategoryData {
+  title: string;
+  icon?: string;
+}
+
+export interface UpdateCategoryData {
+  title?: string;
+  icon?: string;
+}
+
 export const adminApi = {
   signIn: async (data: AdminSignInData) => {
     const response = await api.post('/admin/signin', data);
@@ -34,6 +52,32 @@ export const adminApi = {
   getProfile: async () => {
     const response = await api.get('/admin/profile');
     return response.data;
+  },
+};
+
+export const categoryApi = {
+  getAll: async (): Promise<Category[]> => {
+    const response = await api.get('/categories');
+    return response.data;
+  },
+
+  getById: async (id: string): Promise<Category> => {
+    const response = await api.get(`/categories/${id}`);
+    return response.data;
+  },
+
+  create: async (data: CreateCategoryData): Promise<Category> => {
+    const response = await api.post('/categories', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: UpdateCategoryData): Promise<Category> => {
+    const response = await api.patch(`/categories/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/categories/${id}`);
   },
 };
 

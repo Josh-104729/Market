@@ -1,5 +1,7 @@
 import { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faSignOutAlt } from '@fortawesome/free-solid-svg-icons'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { logout } from '../store/slices/authSlice'
 
@@ -18,20 +20,21 @@ function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="min-h-screen">
-      <nav className="bg-blue-600 border-b border-blue-700">
-        <div className="container mx-auto px-4 py-4">
+    <div className="min-h-screen bg-gray-50">
+      <nav className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white shadow-lg">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-white">Black Market Admin</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-white drop-shadow-lg">Black Market Admin</h2>
             <div className="flex items-center space-x-4">
-              <span className="text-blue-100">
+              <span className="text-blue-100 text-sm md:text-base">
                 {user?.email || 'Admin'}
               </span>
               <button
                 onClick={handleLogout}
-                className="text-blue-100 hover:text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
+                className="text-white bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg flex items-center space-x-2"
               >
-                Logout
+                <FontAwesomeIcon icon={faSignOutAlt} />
+                <span>Logout</span>
               </button>
             </div>
           </div>
