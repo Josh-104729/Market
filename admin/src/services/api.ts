@@ -29,6 +29,7 @@ export interface Category {
   id: string;
   title: string;
   icon?: string;
+  serviceCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -112,8 +113,22 @@ export interface Service {
   updatedAt: string;
 }
 
+export interface ServiceListResponse {
+  data: Service[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const serviceApi = {
-  getAll: async (params?: { status?: string; categoryId?: string; search?: string }): Promise<Service[]> => {
+  getAll: async (params?: {
+    status?: string;
+    categoryId?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ServiceListResponse> => {
     const response = await api.get('/services', { params });
     return response.data;
   },

@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSearch, faSpinner, faCheck, faBan, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons'
-import { serviceApi, Service } from '../services/api'
+import {
+  faSearch,
+  faSpinner,
+  faCheck,
+  faBan,
+  faExclamationTriangle,
+  faChevronLeft,
+  faChevronRight,
+} from '@fortawesome/free-solid-svg-icons'
+import { serviceApi, categoryApi, Service, Category } from '../services/api'
+import { renderIcon } from '../utils/iconHelper'
 
 interface ConfirmDialog {
   serviceId: string
@@ -14,34 +23,71 @@ interface ConfirmDialog {
 function Services() {
   const navigate = useNavigate()
   const [services, setServices] = useState<Service[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const itemsPerPage = 10
+
+  // Calculate total service count (sum of all category service counts)
+  const totalServiceCount = categories.reduce((sum, category) => {
+    return sum + (category.serviceCount || 0)
+  }, 0)
 
   useEffect(() => {
-    fetchServices()
-  }, [statusFilter])
+    fetchCategories()
+  }, [])
+
+  useEffect(() => {
+    setCurrentPage(1) // Reset to first page when filters change
+  }, [statusFilter, selectedCategory])
+
+  useEffect(() => {
+    setCurrentPage(1) // Reset to first page when search changes
+  }, [searchTerm])
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchServices()
-    }, 300)
+    }, searchTerm ? 300 : 0) // Only delay if there's a search term
     return () => clearTimeout(timeoutId)
-  }, [searchTerm])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, statusFilter, selectedCategory, searchTerm])
+
+  const fetchCategories = async () => {
+    try {
+      const data = await categoryApi.getAll()
+      setCategories(data)
+    } catch (error) {
+      console.error('Failed to fetch categories:', error)
+    }
+  }
 
   const fetchServices = async () => {
     try {
       setLoading(true)
-      const params: any = {}
+      const params: any = {
+        page: currentPage,
+        limit: itemsPerPage,
+      }
       if (statusFilter) {
         params.status = statusFilter
+      }
+      if (selectedCategory) {
+        params.categoryId = selectedCategory
       }
       if (searchTerm.trim()) {
         params.search = searchTerm.trim()
       }
-      const data = await serviceApi.getAll(params)
-      setServices(data)
+      const response = await serviceApi.getAll(params)
+      setServices(response.data)
+      setTotal(response.total)
+      setTotalPages(response.totalPages)
     } catch (error) {
       console.error('Failed to fetch services:', error)
       alert('Failed to load services')
@@ -98,8 +144,8 @@ function Services() {
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search and Filter */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+        {/* Search and Status Filter */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Search */}
             <div className="relative">
@@ -127,6 +173,62 @@ function Services() {
               <option value="active">Active</option>
               <option value="blocked">Blocked</option>
             </select>
+          </div>
+        </div>
+
+        {/* Category Filter Bar */}
+        <div className="bg-white rounded-xl shadow-md p-4 mb-8 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <div className="flex items-center space-x-2 min-w-max">
+            <button
+              onClick={() => setSelectedCategory('')}
+              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all flex items-center space-x-2 ${
+                selectedCategory === ''
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <span>All Categories</span>
+              {totalServiceCount > 0 && (
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    selectedCategory === ''
+                      ? 'bg-white/20 text-white'
+                      : 'bg-blue-100 text-blue-700'
+                  }`}
+                >
+                  {totalServiceCount}
+                </span>
+              )}
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all flex items-center space-x-2 ${
+                  selectedCategory === category.id
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {category.icon && (
+                  <span className={selectedCategory === category.id ? 'text-white' : 'text-blue-600'}>
+                    {renderIcon(category.icon, 'text-lg')}
+                  </span>
+                )}
+                <span>{category.title}</span>
+                {category.serviceCount !== undefined && category.serviceCount > 0 && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                      selectedCategory === category.id
+                        ? 'bg-white/20 text-white'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}
+                  >
+                    {category.serviceCount}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -221,7 +323,9 @@ function Services() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-semibold text-gray-900">
-                          ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}
+                          ${typeof service.balance === 'number' 
+                            ? (Math.round(service.balance * 100) / 100).toFixed(2)
+                            : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -278,6 +382,66 @@ function Services() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="bg-white rounded-xl shadow-md p-6 mt-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-gray-600">
+                Showing {services.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to{' '}
+                {Math.min(currentPage * itemsPerPage, total)} of {total} services
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  <FontAwesomeIcon icon={faChevronLeft} />
+                  <span>Previous</span>
+                </button>
+
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum: number
+                    if (totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i
+                    } else {
+                      pageNum = currentPage - 2 + i
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  <span>Next</span>
+                  <FontAwesomeIcon icon={faChevronRight} />
+                </button>
+              </div>
             </div>
           </div>
         )}

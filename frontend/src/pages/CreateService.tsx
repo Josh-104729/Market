@@ -111,7 +111,8 @@ function CreateService() {
     if (!formData.categoryId) newErrors.categoryId = 'Category is required'
     if (!formData.title.trim()) newErrors.title = 'Title is required'
     if (!formData.adText.trim()) newErrors.adText = 'Description is required'
-    if (!formData.balance || parseFloat(formData.balance) <= 0) {
+    const balanceValue = parseFloat(formData.balance)
+    if (!formData.balance || isNaN(balanceValue) || balanceValue <= 0) {
       newErrors.balance = 'Balance must be greater than 0'
     }
     if (!imageFile) newErrors.image = 'Image is required'
@@ -124,12 +125,13 @@ function CreateService() {
 
     try {
       setSubmitting(true)
+      const balanceValue = parseFloat(formData.balance)
       await serviceApi.create(
         {
           categoryId: formData.categoryId,
           title: formData.title.trim(),
           adText: formData.adText.trim(),
-          balance: parseFloat(formData.balance),
+          balance: Math.round(balanceValue * 100) / 100, // Round to 2 decimal places to avoid floating point issues
           tags: formData.tags,
         },
         imageFile!,

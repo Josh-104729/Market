@@ -5,6 +5,7 @@ import { faSearch, faPlus, faStar, faSpinner } from '@fortawesome/free-solid-svg
 import { faStar as faStarRegular, faStarHalfStroke } from '@fortawesome/free-regular-svg-icons'
 import { useAppSelector } from '../store/hooks'
 import { categoryApi, serviceApi, Service, Category } from '../services/api'
+import { renderIcon } from '../utils/iconHelper'
 
 const StarRating = ({ rating }: { rating: number }) => {
   const fullStars = Math.floor(rating)
@@ -31,6 +32,11 @@ function Services() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('')
+
+  // Calculate total service count (sum of all category service counts)
+  const totalServiceCount = categories.reduce((sum, category) => {
+    return sum + (category.serviceCount || 0)
+  }, 0)
 
   useEffect(() => {
     fetchCategories()
@@ -77,56 +83,100 @@ function Services() {
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex flex-col sm:flex-row justify-between items-center">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-2 drop-shadow-lg">Services</h1>
-              <p className="text-blue-100">Browse and discover amazing services</p>
+          <div className="">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+              {/* Title */}
+              <div className="flex-shrink-0">
+                <h1 className="text-4xl md:text-5xl font-bold mb-2 drop-shadow-lg">Services</h1>
+                <p className="text-blue-100">Browse and discover amazing services</p>
+              </div>
+
+              {/* Search Input - Centered */}
+              <div className="relative flex-1 max-w-2xl w-full lg:mx-8">
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-200"
+                />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search services by title, description, or tags..."
+                  className="w-full pl-12 pr-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white focus:bg-white/20 transition-all"
+                />
+              </div>
+
+              {/* Create Service Button */}
+              {isAuthenticated && (
+                <div className="flex-shrink-0">
+                  <Link
+                    to="/services/new"
+                    className="px-8 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center space-x-2 whitespace-nowrap"
+                  >
+                    <FontAwesomeIcon icon={faPlus} />
+                    <span>Create Service</span>
+                  </Link>
+                </div>
+              )}
             </div>
-            {isAuthenticated && (
-              <Link
-                to="/services/new"
-                className="mt-4 sm:mt-0 px-8 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center space-x-2"
-              >
-                <FontAwesomeIcon icon={faPlus} />
-                <span>Create Service</span>
-              </Link>
-            )}
           </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search and Filter */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Search */}
-            <div className="relative">
-              <FontAwesomeIcon
-                icon={faSearch}
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search services by title, description, or tags..."
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Category Filter */}
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        {/* Category Filter Bar */}
+        <div className="bg-white rounded-xl shadow-md p-4 mb-8 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <div className="flex items-center space-x-2 min-w-max">
+            <button
+              onClick={() => setSelectedCategory('')}
+              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all flex items-center space-x-2 ${
+                selectedCategory === ''
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
-              <option value="">All Categories</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.title}
-                </option>
-              ))}
-            </select>
+              <span>All Categories</span>
+              {totalServiceCount > 0 && (
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    selectedCategory === ''
+                      ? 'bg-white/20 text-white'
+                      : 'bg-blue-100 text-blue-700'
+                  }`}
+                >
+                  {totalServiceCount}
+                </span>
+              )}
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all flex items-center space-x-2 ${
+                  selectedCategory === category.id
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {category.icon && (
+                  <span className={selectedCategory === category.id ? 'text-white' : 'text-blue-600'}>
+                    {renderIcon(category.icon, 'text-lg')}
+                  </span>
+                )}
+                <span>{category.title}</span>
+                {category.serviceCount !== undefined && category.serviceCount > 0 && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                      selectedCategory === category.id
+                        ? 'bg-white/20 text-white'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}
+                  >
+                    {category.serviceCount}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -201,7 +251,9 @@ function Services() {
                       />
                     </div>
                     <span className="text-2xl font-bold text-blue-600">
-                      ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}
+                      ${typeof service.balance === 'number' 
+                        ? (Math.round(service.balance * 100) / 100).toFixed(2)
+                        : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
                     </span>
                   </div>
                   {service.category && (

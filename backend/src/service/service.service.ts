@@ -42,7 +42,13 @@ export class ServiceService {
     return this.findOne(savedService.id);
   }
 
-  async findAll(status?: ServiceStatus, categoryId?: string, search?: string): Promise<Service[]> {
+  async findAll(
+    status?: ServiceStatus,
+    categoryId?: string,
+    search?: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ data: Service[]; total: number; page: number; limit: number; totalPages: number }> {
     const queryBuilder = this.serviceRepository
       .createQueryBuilder('service')
       .leftJoinAndSelect('service.category', 'category')
@@ -65,7 +71,26 @@ export class ServiceService {
       );
     }
 
-    return queryBuilder.orderBy('service.createdAt', 'DESC').getMany();
+    // Get total count
+    const total = await queryBuilder.getCount();
+
+    // Apply pagination
+    const skip = (page - 1) * limit;
+    const data = await queryBuilder
+      .orderBy('service.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getMany();
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
   }
 
   async findOne(id: string): Promise<Service> {

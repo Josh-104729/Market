@@ -198,7 +198,9 @@ function ServiceDetail() {
               <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-200">
                 <div className="text-right">
                   <div className="text-4xl font-bold text-blue-600">
-                    ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}
+                    ${typeof service.balance === 'number' 
+                      ? (Math.round(service.balance * 100) / 100).toFixed(2)
+                      : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
                   </div>
                   <div className="text-sm text-gray-500">Price</div>
                 </div>

@@ -73,8 +73,12 @@ export class ServiceController {
     @Query('status') status?: ServiceStatus,
     @Query('categoryId') categoryId?: string,
     @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.serviceService.findAll(status, categoryId, search);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.serviceService.findAll(status, categoryId, search, pageNum, limitNum);
   }
 
   @Get(':id')
