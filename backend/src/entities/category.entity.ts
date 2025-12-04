@@ -9,12 +9,6 @@ export class Category extends BaseEntity {
   @Column({ nullable: true })
   icon?: string;
 
-  @Column({ name: 'ad_image', nullable: true })
-  adImage?: string;
-
-  @Column({ name: 'ad_text', nullable: true, type: 'text' })
-  adText?: string;
-
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt?: Date;
 }

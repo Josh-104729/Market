@@ -56,8 +56,6 @@ export interface Category {
   id: string;
   title: string;
   icon?: string;
-  adImage?: string;
-  adText?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -65,15 +63,11 @@ export interface Category {
 export interface CreateCategoryData {
   title: string;
   icon?: string;
-  adImage?: string;
-  adText?: string;
 }
 
 export interface UpdateCategoryData {
   title?: string;
   icon?: string;
-  adImage?: string;
-  adText?: string;
 }
 
 export const authApi = {

@@ -76,29 +76,14 @@ function Home() {
             {categories.map((category) => (
               <div
                 key={category.id}
-                className="bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all cursor-pointer border-2 border-transparent hover:border-blue-500 relative overflow-hidden"
-                style={{
-                  backgroundImage: category.adImage ? `url(${category.adImage})` : undefined,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}
+                className="bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all cursor-pointer border-2 border-transparent hover:border-blue-500"
               >
-                {category.adImage && (
-                  <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+                {category.icon && (
+                  <div className="text-4xl mb-3">{category.icon}</div>
                 )}
-                <div className="relative z-10">
-                  {category.icon && (
-                    <div className="text-4xl mb-3">{category.icon}</div>
-                  )}
-                  <h3 className="font-semibold text-gray-900 mb-1" style={{ color: category.adImage ? 'white' : undefined }}>
-                    {category.title}
-                  </h3>
-                  {category.adText && (
-                    <p className="text-sm" style={{ color: category.adImage ? 'rgba(255,255,255,0.9)' : '#6b7280' }}>
-                      {category.adText}
-                    </p>
-                  )}
-                </div>
+                <h3 className="font-semibold text-gray-900 mb-1">
+                  {category.title}
+                </h3>
               </div>
             ))}
           </div>

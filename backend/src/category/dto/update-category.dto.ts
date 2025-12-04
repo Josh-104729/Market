@@ -8,13 +8,5 @@ export class UpdateCategoryDto {
   @IsString()
   @IsOptional()
   icon?: string;
-
-  @IsString()
-  @IsOptional()
-  adImage?: string;
-
-  @IsString()
-  @IsOptional()
-  adText?: string;
 }
 

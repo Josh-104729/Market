@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faFolder, faTimes, faExclamationTriangle, faLaptopCode, faCheck } from '@fortawesome/free-solid-svg-icons'
+import { faFolder, faTimes, faExclamationTriangle, faLaptopCode } from '@fortawesome/free-solid-svg-icons'
 import { categoryApi, Category, CreateCategoryData, UpdateCategoryData } from '../services/api'
 
 function Categories() {
@@ -11,8 +11,6 @@ function Categories() {
   const [formData, setFormData] = useState<CreateCategoryData>({
     title: '',
     icon: '',
-    adImage: '',
-    adText: '',
   })
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
@@ -39,16 +37,12 @@ function Categories() {
       setFormData({
         title: category.title,
         icon: category.icon || '',
-        adImage: category.adImage || '',
-        adText: category.adText || '',
       })
     } else {
       setEditingCategory(null)
       setFormData({
         title: '',
         icon: '',
-        adImage: '',
-        adText: '',
       })
     }
     setShowModal(true)
@@ -60,8 +54,6 @@ function Categories() {
     setFormData({
       title: '',
       icon: '',
-      adImage: '',
-      adText: '',
     })
   }
 
@@ -72,8 +64,6 @@ function Categories() {
         const updateData: UpdateCategoryData = {
           title: formData.title || undefined,
           icon: formData.icon || undefined,
-          adImage: formData.adImage || undefined,
-          adText: formData.adText || undefined,
         }
         await categoryApi.update(editingCategory.id, updateData)
       } else {
@@ -153,9 +143,6 @@ function Categories() {
                       Icon
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Ad Image
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Created
                     </th>
                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -168,15 +155,10 @@ function Categories() {
                     <tr key={category.id} className="hover:bg-blue-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div
-                          className="w-16 h-16 rounded-lg overflow-hidden shadow-sm border-2 border-gray-200"
-                          style={{
-                            backgroundImage: category.adImage ? `url(${category.adImage})` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                          }}
+                          className="w-16 h-16 rounded-lg overflow-hidden shadow-sm border-2 border-gray-200 bg-gradient-to-br from-blue-100 to-purple-100"
                         >
-                          {category.icon && !category.adImage && (
-                            <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-blue-100 to-purple-100">
+                          {category.icon && (
+                            <div className="w-full h-full flex items-center justify-center text-2xl">
                               {category.icon}
                             </div>
                           )}
@@ -184,27 +166,10 @@ function Categories() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-semibold text-gray-900">{category.title}</div>
-                        {category.adText && (
-                          <div className="text-xs text-gray-500 mt-1 truncate max-w-xs">
-                            {category.adText}
-                          </div>
-                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {category.icon ? (
                           <span className="text-3xl">{category.icon}</span>
-                        ) : (
-                          <span className="text-gray-300 text-sm">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {category.adImage ? (
-                          <div className="flex items-center space-x-2">
-                            <FontAwesomeIcon icon={faCheck} className="text-green-500 text-xs" />
-                            <span className="text-xs text-gray-500 truncate max-w-xs">
-                              Image URL
-                            </span>
-                          </div>
                         ) : (
                           <span className="text-gray-300 text-sm">—</span>
                         )}
@@ -263,33 +228,20 @@ function Categories() {
                 <form onSubmit={handleSubmit}>
                   <div className="space-y-6">
                     {/* Preview */}
-                    {(formData.adImage || formData.icon || formData.title) && (
+                    {(formData.icon || formData.title) && (
                       <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-200">
                         <p className="text-xs font-semibold text-gray-500 mb-3 uppercase">Preview</p>
                         <div
-                          className="w-full h-32 rounded-lg overflow-hidden shadow-sm relative"
-                          style={{
-                            backgroundImage: formData.adImage ? `url(${formData.adImage})` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                          }}
+                          className="w-full h-32 rounded-lg overflow-hidden shadow-sm relative bg-gradient-to-br from-blue-100 to-purple-100"
                         >
-                          {formData.adImage && (
-                            <div className="absolute inset-0 bg-black bg-opacity-30"></div>
-                          )}
                           <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
                             {formData.icon && (
                               <div className="text-4xl mb-2">{formData.icon}</div>
                             )}
                             {formData.title && (
-                              <h3 className="font-semibold text-white text-center drop-shadow-lg">
+                              <h3 className="font-semibold text-gray-900 text-center">
                                 {formData.title}
                               </h3>
-                            )}
-                            {formData.adText && (
-                              <p className="text-xs text-white text-center mt-1 drop-shadow">
-                                {formData.adText}
-                              </p>
                             )}
                           </div>
                         </div>
@@ -327,34 +279,6 @@ function Categories() {
                         </div>
                       </div>
                       <p className="text-xs text-gray-500 mt-1">Enter Font Awesome icon class (e.g., fa-laptop-code) or emoji</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Ad Image URL
-                      </label>
-                      <input
-                        type="url"
-                        value={formData.adImage}
-                        onChange={(e) => setFormData({ ...formData, adImage: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                        placeholder="https://example.com/image.jpg"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">URL for the background image of the category card</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Ad Text
-                      </label>
-                      <textarea
-                        value={formData.adText}
-                        onChange={(e) => setFormData({ ...formData, adText: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"
-                        placeholder="Short description or promotional text"
-                        rows={3}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Optional promotional text displayed on the category card</p>
                     </div>
                   </div>
 
