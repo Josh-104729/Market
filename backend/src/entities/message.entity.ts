@@ -24,6 +24,9 @@ export class Message extends BaseEntity {
   @Column({ name: 'attachment_files', type: 'json', nullable: true })
   attachmentFiles?: string[];
 
+  @Column({ name: 'read_at', type: 'timestamp', nullable: true })
+  readAt?: Date;
+
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt?: Date;
 }

@@ -11,7 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { Injectable, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { Conversation } from '../entities/conversation.entity';
 import { Message } from '../entities/message.entity';
@@ -181,6 +181,113 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (error) {
       console.error('Error sending message:', error);
       client.emit('error', { message: 'Failed to send message' });
+    }
+  }
+
+  @SubscribeMessage('typing')
+  async handleTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string },
+  ) {
+    try {
+      const userId = client.data.userId;
+      if (!userId) return;
+
+      const user = client.data.user;
+      const userName = user?.firstName || user?.userName || 'Someone';
+
+      // Emit typing indicator to all other users in the conversation
+      client.to(`conversation:${data.conversationId}`).emit('user_typing', {
+        userId,
+        userName,
+      });
+    } catch (error) {
+      console.error('Error handling typing:', error);
+    }
+  }
+
+  @SubscribeMessage('stop_typing')
+  async handleStopTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string },
+  ) {
+    try {
+      const userId = client.data.userId;
+      if (!userId) return;
+
+      // Emit stop typing to all other users in the conversation
+      client.to(`conversation:${data.conversationId}`).emit('user_stopped_typing', {
+        userId,
+      });
+    } catch (error) {
+      console.error('Error handling stop typing:', error);
+    }
+  }
+
+  @SubscribeMessage('mark_messages_read')
+  async handleMarkMessagesRead(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string; messageIds?: string[] },
+  ) {
+    try {
+      const userId = client.data.userId;
+      if (!userId) return;
+
+      // Verify user has access to this conversation
+      const conversation = await this.conversationRepository.findOne({
+        where: { id: data.conversationId, deletedAt: null },
+      });
+
+      if (!conversation) return;
+
+      if (conversation.clientId !== userId && conversation.providerId !== userId) {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (user?.role !== 'admin') return;
+      }
+
+      // Build query to find unread messages from other users
+      const findQuery = this.messageRepository
+        .createQueryBuilder('message')
+        .where('message.conversation_id = :conversationId', { conversationId: data.conversationId })
+        .andWhere('message.sender_id != :userId', { userId })
+        .andWhere('message.read_at IS NULL')
+        .andWhere('message.deleted_at IS NULL');
+
+      if (data.messageIds && data.messageIds.length > 0) {
+        findQuery.andWhere('message.id IN (:...messageIds)', { messageIds: data.messageIds });
+      }
+
+      // Find messages to update
+      const messagesToUpdate = await findQuery.getMany();
+
+      if (messagesToUpdate.length === 0) {
+        return; // No messages to update
+      }
+
+      const messageIdsToUpdate = messagesToUpdate.map((msg) => msg.id);
+      const readAt = new Date();
+
+      // Update messages
+      await this.messageRepository.update(
+        { id: In(messageIdsToUpdate) },
+        { readAt },
+      );
+
+      // Fetch updated messages with relations
+      const updatedMessages = await this.messageRepository.find({
+        where: { id: In(messageIdsToUpdate) },
+        relations: ['sender'],
+      });
+
+      // Emit read receipt to all users in the conversation with updated messages
+      this.server.to(`conversation:${data.conversationId}`).emit('messages_read', {
+        conversationId: data.conversationId,
+        readBy: userId,
+        messages: updatedMessages,
+        messageIds: messageIdsToUpdate,
+      });
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
     }
   }
 

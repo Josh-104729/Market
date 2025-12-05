@@ -8,6 +8,7 @@ import {
   faUser,
   faPlus,
   faCheck,
+  faCheckDouble,
   faTimes,
   faBan,
   faCheckCircle,
@@ -42,6 +43,11 @@ function Chat() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [updatingMilestone, setUpdatingMilestone] = useState<string | null>(null)
   const socketRef = useRef<Socket | null>(null)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set())
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const emojiPickerRef = useRef<HTMLDivElement>(null)
+  const markReadTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (id) {
@@ -92,10 +98,69 @@ function Chat() {
       fetchMilestones()
     }
 
+    // Listen for typing indicators
+    const handleTyping = (data: { userId: string; userName: string }) => {
+      if (data.userId !== user?.id) {
+        setTypingUsers((prev) => new Set(prev).add(data.userId))
+        // Clear typing indicator after 3 seconds
+        setTimeout(() => {
+          setTypingUsers((prev) => {
+            const newSet = new Set(prev)
+            newSet.delete(data.userId)
+            return newSet
+          })
+        }, 3000)
+      }
+    }
+
+    const handleStopTyping = (data: { userId: string }) => {
+      setTypingUsers((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(data.userId)
+        return newSet
+      })
+    }
+
+    // Listen for read receipts
+    const handleMessagesRead = (data: { 
+      conversationId: string; 
+      readBy: string; 
+      messages?: Message[];
+      messageIds?: string[];
+    }) => {
+      if (data.conversationId === id) {
+        // Update messages to show they're read
+        setMessages((prev) =>
+          prev.map((msg) => {
+            // If this message was read (it's in the messageIds array or in the messages array)
+            const wasRead = 
+              (data.messageIds && data.messageIds.includes(msg.id)) ||
+              (data.messages && data.messages.some((m) => m.id === msg.id));
+            
+            // Only update if the current user sent this message and it was just read
+            if (wasRead && msg.senderId === user?.id && !msg.readAt) {
+              // Use the readAt from the updated message if available, otherwise use current time
+              const updatedMessage = data.messages?.find((m) => m.id === msg.id);
+              return {
+                ...msg,
+                readAt: updatedMessage?.readAt || new Date().toISOString(),
+              };
+            }
+            return msg;
+          }),
+        );
+      }
+    }
+
     socket.on('new_message', handleNewMessage)
     socket.on('milestone_updated', handleMilestoneUpdate)
+    socket.on('user_typing', handleTyping)
+    socket.on('user_stopped_typing', handleStopTyping)
+    socket.on('messages_read', handleMessagesRead)
     socket.on('joined_conversation', () => {
       console.log('Joined conversation room:', id)
+      // Mark messages as read when joining
+      markMessagesAsRead()
     })
     socket.on('error', (error) => {
       console.error('Socket error:', error)
@@ -106,17 +171,51 @@ function Chat() {
       if (socket) {
         socket.off('new_message', handleNewMessage)
         socket.off('milestone_updated', handleMilestoneUpdate)
+        socket.off('user_typing', handleTyping)
+        socket.off('user_stopped_typing', handleStopTyping)
+        socket.off('messages_read', handleMessagesRead)
         socket.off('joined_conversation')
         socket.off('error')
         socket.off('connect_error')
         socket.emit('leave_conversation', { conversationId: id })
       }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+      }
+      if (markReadTimeoutRef.current) {
+        clearTimeout(markReadTimeoutRef.current)
+      }
     }
-  }, [id])
+  }, [id, user?.id])
 
   useEffect(() => {
     scrollToBottom()
+    // Mark messages as read when new messages arrive or when viewing
+    markMessagesAsRead()
   }, [messages, milestones])
+
+  // Mark messages as read when user is actively viewing (scroll or focus)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && id) {
+        markMessagesAsRead()
+      }
+    }
+
+    const handleFocus = () => {
+      if (id) {
+        markMessagesAsRead()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [id, user, messages]) // Include messages to ensure function has latest state
 
   // Auto-resize textarea
   useEffect(() => {
@@ -125,6 +224,90 @@ function Chat() {
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 128)}px`
     }
   }, [messageText])
+
+  // Prevent body scroll when chat is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [])
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false)
+      }
+    }
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showEmojiPicker])
+
+  // Mark messages as read
+  const markMessagesAsRead = () => {
+    if (!socketRef.current || !id || !user) return
+
+    // Clear previous timeout
+    if (markReadTimeoutRef.current) {
+      clearTimeout(markReadTimeoutRef.current)
+    }
+
+    // Mark as read after a short delay (when user is viewing)
+    markReadTimeoutRef.current = setTimeout(() => {
+      const unreadMessageIds = messages
+        .filter((msg) => msg.senderId !== user.id && !msg.readAt)
+        .map((msg) => msg.id)
+
+      if (unreadMessageIds.length > 0 && socketRef.current?.connected) {
+        socketRef.current.emit('mark_messages_read', {
+          conversationId: id,
+          messageIds: unreadMessageIds,
+        })
+      }
+    }, 500) // Reduced delay for faster real-time updates
+  }
+
+  // Handle typing indicator
+  const handleTyping = () => {
+    if (!socketRef.current || !id || !user) return
+
+    // Emit typing event
+    socketRef.current.emit('typing', { conversationId: id })
+
+    // Clear previous timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
+
+    // Stop typing indicator after 1 second of no typing
+    typingTimeoutRef.current = setTimeout(() => {
+      socketRef.current?.emit('stop_typing', { conversationId: id })
+    }, 1000)
+  }
+
+  // Emoji list
+  const emojis = [
+    '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰',
+    '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏',
+    '😒', '😞', '😔', '😟', '😕', '🙁', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡',
+    '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶',
+    '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴',
+    '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀',
+    '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾',
+  ]
+
+  const insertEmoji = (emoji: string) => {
+    setMessageText((prev) => prev + emoji)
+    setShowEmojiPicker(false)
+    if (textareaRef.current) {
+      textareaRef.current.focus()
+    }
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -362,11 +545,12 @@ function Chat() {
   const isClient = conversation.clientId === user?.id
 
   return (
-    <div className="min-h-screen bg-[#0e1621] flex">
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header - Telegram Style */}
-        <div className="bg-[#17212b] border-b border-[#0e1621] px-4 py-3 flex items-center justify-between">
+    <div className="bg-[#0e1621] h-[calc(100vh-4rem)]">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-full flex">
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Header - Telegram Style */}
+          <div className="bg-[#17212b] border-b border-[#0e1621] px-4 py-3 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center space-x-3 flex-1 min-w-0">
             <button
               onClick={() => navigate('/services')}
@@ -383,7 +567,21 @@ function Chat() {
                   ? `${otherUser.firstName} ${otherUser.lastName}`
                   : otherUser?.userName || 'User'}
               </h2>
-              <p className="text-xs text-[#708499] truncate">{conversation.service?.title}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-[#708499] truncate">{conversation.service?.title}</p>
+                {typingUsers.size > 0 && (
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex gap-0.5">
+                      <div className="w-1.5 h-1.5 bg-[#6bb2f0] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-1.5 h-1.5 bg-[#6bb2f0] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-1.5 h-1.5 bg-[#6bb2f0] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                    <span className="text-xs text-[#6bb2f0] italic">
+                      {Array.from(typingUsers).length === 1 ? 'typing...' : 'typing...'}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <button className="text-[#708499] hover:text-[#e4ecf0] transition-colors p-2">
@@ -451,13 +649,16 @@ function Chat() {
                           >
                             <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.message}</p>
                             
-                            {/* Timestamp */}
+                            {/* Timestamp and Read Status */}
                             <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
                               <span className={`text-[10px] ${isOwn ? 'text-[#6bb2f0]' : 'text-[#708499]'}`}>
                                 {formatTime(new Date(message.createdAt))}
                               </span>
                               {isOwn && (
-                                <FontAwesomeIcon icon={faCheck} className="text-[10px] text-[#6bb2f0]" />
+                                <FontAwesomeIcon
+                                  icon={message.readAt ? faCheckDouble : faCheck}
+                                  className={`text-[10px] ${message.readAt ? 'text-[#6bb2f0]' : 'text-[#708499]'}`}
+                                />
                               )}
                             </div>
                           </div>
@@ -513,8 +714,8 @@ function Chat() {
           </div>
         </div>
 
-        {/* Input Area - Telegram Style */}
-        <div className="bg-[#17212b] border-t border-[#0e1621] px-4 py-3">
+          {/* Input Area - Telegram Style */}
+          <div className="bg-[#17212b] border-t border-[#0e1621] px-4 py-3 flex-shrink-0">
           <div className="flex items-end gap-2">
             <button className="text-[#708499] hover:text-[#e4ecf0] transition-colors p-2 flex-shrink-0">
               <FontAwesomeIcon icon={faPaperclip} />
@@ -523,11 +724,16 @@ function Chat() {
               <textarea
                 ref={textareaRef}
                 value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
+                onChange={(e) => {
+                  setMessageText(e.target.value)
+                  handleTyping()
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
                     handleSendMessage()
+                  } else {
+                    handleTyping()
                   }
                 }}
                 placeholder="Type a message..."
@@ -535,9 +741,32 @@ function Chat() {
                 className="w-full bg-[#242f3d] text-[#e4ecf0] rounded-2xl px-4 py-2.5 pr-12 focus:outline-none focus:ring-2 focus:ring-[#2b5278] resize-none max-h-32 overflow-y-auto placeholder-[#708499] text-sm leading-5"
                 style={{ minHeight: '42px', maxHeight: '128px' }}
               />
-              <button className="text-[#708499] hover:text-[#e4ecf0] transition-colors p-2 absolute right-1 bottom-1">
-                <FontAwesomeIcon icon={faSmile} />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className="text-[#708499] hover:text-[#e4ecf0] transition-colors p-2 absolute right-1 bottom-1"
+                >
+                  <FontAwesomeIcon icon={faSmile} />
+                </button>
+                {showEmojiPicker && (
+                  <div
+                    ref={emojiPickerRef}
+                    className="absolute bottom-12 right-0 bg-[#17212b] border border-[#0e1621] rounded-lg shadow-2xl p-3 w-64 h-64 overflow-y-auto z-50"
+                  >
+                    <div className="grid grid-cols-8 gap-1">
+                      {emojis.map((emoji, index) => (
+                        <button
+                          key={index}
+                          onClick={() => insertEmoji(emoji)}
+                          className="text-2xl hover:bg-[#242f3d] rounded p-1 transition-colors"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <button
               onClick={handleSendMessage}
@@ -555,11 +784,11 @@ function Chat() {
               )}
             </button>
           </div>
+          </div>
         </div>
-      </div>
 
-      {/* Milestones Sidebar - Telegram Style */}
-      <div className="w-80 bg-[#17212b] border-l border-[#0e1621] flex flex-col">
+        {/* Milestones Sidebar - Telegram Style */}
+        <div className="w-80 bg-[#17212b] border-l border-[#0e1621] flex flex-col flex-shrink-0">
         <div className="p-4 border-b border-[#0e1621]">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-[#e4ecf0]">Milestones</h3>
@@ -729,6 +958,7 @@ function Chat() {
               </div>
             ))
           )}
+        </div>
         </div>
       </div>
     </div>

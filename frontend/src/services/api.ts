@@ -281,6 +281,7 @@ export interface Message {
   senderId: string;
   message: string;
   attachmentFiles?: string[];
+  readAt?: string;
   sender?: {
     id: string;
     firstName?: string;
