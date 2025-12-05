@@ -81,6 +81,21 @@ export class ServiceController {
     return this.serviceService.findAll(status, categoryId, search, pageNum, limitNum);
   }
 
+  @Get('my-services')
+  @UseGuards(JwtAuthGuard)
+  async findMyServices(
+    @Request() req,
+    @Query('status') status?: ServiceStatus,
+    @Query('categoryId') categoryId?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.serviceService.findAll(status, categoryId, search, pageNum, limitNum, req.user.id);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.serviceService.findOne(id);

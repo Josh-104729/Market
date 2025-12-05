@@ -48,6 +48,7 @@ export class ServiceService {
     search?: string,
     page: number = 1,
     limit: number = 10,
+    userId?: string,
   ): Promise<{ data: Service[]; total: number; page: number; limit: number; totalPages: number }> {
     const queryBuilder = this.serviceRepository
       .createQueryBuilder('service')
@@ -55,6 +56,10 @@ export class ServiceService {
       .leftJoinAndSelect('service.user', 'user')
       .leftJoinAndSelect('service.tags', 'tags')
       .where('service.deletedAt IS NULL');
+
+    if (userId) {
+      queryBuilder.andWhere('service.userId = :userId', { userId });
+    }
 
     if (status) {
       queryBuilder.andWhere('service.status = :status', { status });

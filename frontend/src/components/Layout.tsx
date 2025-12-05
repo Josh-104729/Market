@@ -1,5 +1,7 @@
-import { ReactNode } from 'react'
+import { ReactNode, useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faChevronDown, faList, faUser } from '@fortawesome/free-solid-svg-icons'
 import { useAppSelector, useAppDispatch } from '../store/hooks'
 import { logout } from '../store/slices/authSlice'
 
@@ -11,11 +13,27 @@ function Layout({ children }: LayoutProps) {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const { user, isAuthenticated } = useAppSelector((state) => state.auth)
+  const [servicesDropdownOpen, setServicesDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const handleSignOut = () => {
     dispatch(logout())
     navigate('/signin')
   }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setServicesDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -35,9 +53,40 @@ function Layout({ children }: LayoutProps) {
               <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                 Home
               </Link>
-              <Link to="/services" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
-                Services
-              </Link>
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setServicesDropdownOpen(!servicesDropdownOpen)}
+                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors flex items-center space-x-1"
+                >
+                  <span>Services</span>
+                  <FontAwesomeIcon
+                    icon={faChevronDown}
+                    className={`text-xs transition-transform ${servicesDropdownOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {servicesDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <Link
+                      to="/services"
+                      onClick={() => setServicesDropdownOpen(false)}
+                      className="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center space-x-2"
+                    >
+                      <FontAwesomeIcon icon={faList} className="text-sm" />
+                      <span>All Services</span>
+                    </Link>
+                    {isAuthenticated && (
+                      <Link
+                        to="/my-services"
+                        onClick={() => setServicesDropdownOpen(false)}
+                        className="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center space-x-2"
+                      >
+                        <FontAwesomeIcon icon={faUser} className="text-sm" />
+                        <span>My Services</span>
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center space-x-4">

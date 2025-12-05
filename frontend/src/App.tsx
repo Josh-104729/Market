@@ -4,6 +4,7 @@ import SignIn from './pages/SignIn'
 import SignUp from './pages/SignUp'
 import VerifyEmail from './pages/VerifyEmail'
 import Services from './pages/Services'
+import MyServices from './pages/MyServices'
 import CreateService from './pages/CreateService'
 import ServiceDetail from './pages/ServiceDetail'
 import Layout from './components/Layout'
@@ -22,6 +23,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/services" element={<Services />} />
+                <Route path="/my-services" element={<MyServices />} />
                 <Route path="/services/new" element={<CreateService />} />
                 <Route path="/services/:id" element={<ServiceDetail />} />
               </Routes>
