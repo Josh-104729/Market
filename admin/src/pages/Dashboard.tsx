@@ -39,7 +39,7 @@ function Dashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -56,12 +56,12 @@ function Dashboard() {
 
       {/* Menu Items */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h2 className="text-3xl font-bold text-gray-900 mb-8">Management</h2>
+        <h2 className="text-3xl font-bold text-gray-100 mb-8">Management</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {menuItems.map((item) => {
             const content = (
               <div
-                className={`bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-blue-500 ${
+                className={`bg-gray-800 rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-blue-500 ${
                   item.available
                     ? 'cursor-pointer transform hover:-translate-y-1'
                     : 'opacity-60 cursor-not-allowed'
@@ -70,10 +70,10 @@ function Dashboard() {
                 <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-4 shadow-lg`}>
                   <FontAwesomeIcon icon={item.icon} className="text-3xl text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-gray-600 text-sm">{item.description}</p>
+                <h3 className="text-xl font-bold text-gray-100 mb-2">{item.title}</h3>
+                <p className="text-gray-400 text-sm">{item.description}</p>
                 {!item.available && (
-                  <span className="inline-block mt-3 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
+                  <span className="inline-block mt-3 text-xs text-gray-500 bg-gray-700 px-2 py-1 rounded">
                     Coming Soon
                   </span>
                 )}

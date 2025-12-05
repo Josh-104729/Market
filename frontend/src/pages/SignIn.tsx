@@ -31,31 +31,31 @@ function SignIn() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-8">
+        <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 space-y-8">
           <div className="text-center">
             <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mb-4">
               <span className="text-white font-bold text-2xl">M</span>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            <h2 className="text-3xl font-bold text-gray-100 mb-2">
               Welcome Back
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-400">
               Sign in to continue to MarketPlace
             </p>
           </div>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded">
+              <div className="bg-red-900 border-l-4 border-red-500 text-red-200 px-4 py-3 rounded">
                 <p className="font-medium">{error}</p>
               </div>
             )}
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
                   Email Address
                 </label>
                 <input
@@ -64,7 +64,7 @@ function SignIn() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-3 border border-gray-600 bg-gray-700 text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={(e) =>
@@ -73,7 +73,7 @@ function SignIn() {
                 />
               </div>
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
                   Password
                 </label>
                 <input
@@ -82,7 +82,7 @@ function SignIn() {
                   type="password"
                   autoComplete="current-password"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-3 border border-gray-600 bg-gray-700 text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={(e) =>
@@ -98,14 +98,14 @@ function SignIn() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded bg-gray-700"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-300">
                   Remember me
                 </label>
               </div>
               <div className="text-sm">
-                <Link to="#" className="font-medium text-blue-600 hover:text-blue-500">
+                <Link to="#" className="font-medium text-blue-400 hover:text-blue-300">
                   Forgot password?
                 </Link>
               </div>
@@ -131,11 +131,11 @@ function SignIn() {
           </form>
 
           <div className="text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-400">
               Don't have an account?{' '}
               <Link
                 to="/signup"
-                className="font-medium text-blue-600 hover:text-blue-500"
+                className="font-medium text-blue-400 hover:text-blue-300"
               >
                 Sign up for free
               </Link>

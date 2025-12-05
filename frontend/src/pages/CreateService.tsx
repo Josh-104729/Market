@@ -150,16 +150,16 @@ function CreateService() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-900 py-8">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Create New Service</h1>
+        <div className="bg-gray-800 rounded-xl shadow-lg p-8">
+          <h1 className="text-3xl font-bold text-gray-100 mb-8">Create New Service</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Category */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Category <span className="text-red-400">*</span>
               </label>
               <select
                 value={formData.categoryId}
@@ -167,8 +167,8 @@ function CreateService() {
                   setFormData({ ...formData, categoryId: e.target.value })
                   setErrors({ ...errors, categoryId: '' })
                 }}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.categoryId ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-4 py-3 border bg-gray-700 text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.categoryId ? 'border-red-500' : 'border-gray-600'
                 }`}
               >
                 <option value="">Select a category</option>
@@ -178,13 +178,13 @@ function CreateService() {
                   </option>
                 ))}
               </select>
-              {errors.categoryId && <p className="mt-1 text-sm text-red-500">{errors.categoryId}</p>}
+              {errors.categoryId && <p className="mt-1 text-sm text-red-400">{errors.categoryId}</p>}
             </div>
 
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Title <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Title <span className="text-red-400">*</span>
               </label>
               <input
                 type="text"
@@ -193,18 +193,18 @@ function CreateService() {
                   setFormData({ ...formData, title: e.target.value })
                   setErrors({ ...errors, title: '' })
                 }}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.title ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-4 py-3 border bg-gray-700 text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.title ? 'border-red-500' : 'border-gray-600'
                 }`}
                 placeholder="Enter service title"
               />
-              {errors.title && <p className="mt-1 text-sm text-red-500">{errors.title}</p>}
+              {errors.title && <p className="mt-1 text-sm text-red-400">{errors.title}</p>}
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Description <span className="text-red-400">*</span>
               </label>
               <textarea
                 value={formData.adText}
@@ -213,18 +213,18 @@ function CreateService() {
                   setErrors({ ...errors, adText: '' })
                 }}
                 rows={6}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.adText ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-4 py-3 border bg-gray-700 text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.adText ? 'border-red-500' : 'border-gray-600'
                 }`}
                 placeholder="Describe your service in detail"
               />
-              {errors.adText && <p className="mt-1 text-sm text-red-500">{errors.adText}</p>}
+              {errors.adText && <p className="mt-1 text-sm text-red-400">{errors.adText}</p>}
             </div>
 
             {/* Balance */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Price <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Price <span className="text-red-400">*</span>
               </label>
               <input
                 type="number"
@@ -235,26 +235,26 @@ function CreateService() {
                   setFormData({ ...formData, balance: e.target.value })
                   setErrors({ ...errors, balance: '' })
                 }}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.balance ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-4 py-3 border bg-gray-700 text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.balance ? 'border-red-500' : 'border-gray-600'
                 }`}
                 placeholder="0.00"
               />
-              {errors.balance && <p className="mt-1 text-sm text-red-500">{errors.balance}</p>}
+              {errors.balance && <p className="mt-1 text-sm text-red-400">{errors.balance}</p>}
             </div>
 
             {/* Image Upload */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Service Image <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Service Image <span className="text-red-400">*</span>
               </label>
               <div
                 className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors ${
                   errors.image
-                    ? 'border-red-500 bg-red-50'
+                    ? 'border-red-500 bg-red-900'
                     : imagePreview
-                    ? 'border-green-300 bg-green-50'
-                    : 'border-gray-300 hover:border-blue-500'
+                    ? 'border-green-700 bg-green-900'
+                    : 'border-gray-600 hover:border-blue-500'
                 }`}
               >
                 <div className="space-y-1 text-center">
@@ -271,7 +271,7 @@ function CreateService() {
                             fileInputRef.current.value = ''
                           }
                         }}
-                        className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
+                        className="mt-2 text-sm text-red-400 hover:text-red-300 font-medium"
                       >
                         Remove Image
                       </button>
@@ -282,8 +282,8 @@ function CreateService() {
                         icon={faUpload}
                         className={`mx-auto h-12 w-12 ${errors.image ? 'text-red-400' : 'text-gray-400'}`}
                       />
-                      <div className="flex text-sm text-gray-600">
-                        <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                      <div className="flex text-sm text-gray-400">
+                        <label className="relative cursor-pointer bg-gray-700 rounded-md font-medium text-blue-400 hover:text-blue-500">
                           <span>Upload a file</span>
                           <input
                             ref={fileInputRef}
@@ -295,13 +295,13 @@ function CreateService() {
                         </label>
                         <p className="pl-1">or drag and drop</p>
                       </div>
-                      <p className="text-xs text-gray-500">PNG, JPG, GIF, WEBP up to 5MB</p>
+                      <p className="text-xs text-gray-400">PNG, JPG, GIF, WEBP up to 5MB</p>
                     </>
                   )}
                 </div>
               </div>
               {errors.image && (
-                <p className="mt-1 text-sm text-red-500 font-medium flex items-center">
+                <p className="mt-1 text-sm text-red-400 font-medium flex items-center">
                   <span className="mr-1">⚠</span>
                   {errors.image}
                 </p>
@@ -310,8 +310,8 @@ function CreateService() {
 
             {/* Tags */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tags <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Tags <span className="text-red-400">*</span>
               </label>
               <div className="flex gap-2 mb-2">
                 <input
@@ -324,8 +324,8 @@ function CreateService() {
                       handleAddTag()
                     }
                   }}
-                  className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.tags ? 'border-red-500' : 'border-gray-300'
+                  className={`flex-1 px-4 py-2 border bg-gray-700 text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    errors.tags ? 'border-red-500' : 'border-gray-600'
                   }`}
                   placeholder="Enter a tag and press Enter"
                 />
@@ -341,20 +341,20 @@ function CreateService() {
                 {formData.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-900 text-blue-200"
                   >
                     {tag}
                     <button
                       type="button"
                       onClick={() => handleRemoveTag(tag)}
-                      className="ml-2 text-blue-600 hover:text-blue-800"
+                      className="ml-2 text-blue-400 hover:text-blue-200"
                     >
                       <FontAwesomeIcon icon={faTimes} className="text-xs" />
                     </button>
                   </span>
                 ))}
               </div>
-              {errors.tags && <p className="mt-1 text-sm text-red-500">{errors.tags}</p>}
+              {errors.tags && <p className="mt-1 text-sm text-red-400">{errors.tags}</p>}
             </div>
 
             {/* Submit Button */}
@@ -362,7 +362,7 @@ function CreateService() {
               <button
                 type="button"
                 onClick={() => navigate('/services')}
-                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                className="flex-1 px-6 py-3 border-2 border-gray-600 text-gray-300 rounded-lg font-semibold hover:bg-gray-700 transition-colors"
               >
                 Cancel
               </button>

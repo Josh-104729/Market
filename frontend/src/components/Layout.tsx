@@ -36,8 +36,8 @@ function Layout({ children }: LayoutProps) {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-md sticky top-0 z-50">
+    <div className="min-h-screen bg-gray-900">
+      <nav className="bg-gray-800 shadow-md sticky top-0 z-50 border-b border-gray-700">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center space-x-2">
@@ -50,13 +50,13 @@ function Layout({ children }: LayoutProps) {
             </Link>
             
             <div className="hidden md:flex items-center space-x-8">
-              <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+              <Link to="/" className="text-gray-300 hover:text-blue-400 font-medium transition-colors">
                 Home
               </Link>
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setServicesDropdownOpen(!servicesDropdownOpen)}
-                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors flex items-center space-x-1"
+                  className="text-gray-300 hover:text-blue-400 font-medium transition-colors flex items-center space-x-1"
                 >
                   <span>Services</span>
                   <FontAwesomeIcon
@@ -65,11 +65,11 @@ function Layout({ children }: LayoutProps) {
                   />
                 </button>
                 {servicesDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-700 py-2 z-50">
                     <Link
                       to="/services"
                       onClick={() => setServicesDropdownOpen(false)}
-                      className="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center space-x-2"
+                      className="block px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-blue-400 transition-colors flex items-center space-x-2"
                     >
                       <FontAwesomeIcon icon={faList} className="text-sm" />
                       <span>All Services</span>
@@ -78,7 +78,7 @@ function Layout({ children }: LayoutProps) {
                       <Link
                         to="/my-services"
                         onClick={() => setServicesDropdownOpen(false)}
-                        className="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center space-x-2"
+                        className="block px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-blue-400 transition-colors flex items-center space-x-2"
                       >
                         <FontAwesomeIcon icon={faUser} className="text-sm" />
                         <span>My Services</span>
@@ -93,7 +93,7 @@ function Layout({ children }: LayoutProps) {
               {isAuthenticated && user ? (
                 <>
                   <div className="relative">
-                    <button className="p-2 text-gray-700 hover:text-blue-600 relative">
+                    <button className="p-2 text-gray-300 hover:text-blue-400 relative">
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
@@ -105,14 +105,14 @@ function Layout({ children }: LayoutProps) {
                       {user.firstName?.[0] || user.email[0].toUpperCase()}
                     </div>
                     <div className="hidden sm:block">
-                      <p className="text-sm font-medium text-gray-700">
+                      <p className="text-sm font-medium text-gray-300">
                         {user.firstName} {user.lastName}
                       </p>
-                      <p className="text-xs text-gray-500">{user.email}</p>
+                      <p className="text-xs text-gray-400">{user.email}</p>
                     </div>
                     <button
                       onClick={handleSignOut}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                      className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-blue-400 transition-colors"
                     >
                       Sign Out
                     </button>
@@ -122,7 +122,7 @@ function Layout({ children }: LayoutProps) {
                 <>
                   <Link 
                     to="/signin" 
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-blue-400 transition-colors"
                   >
                     Sign In
                   </Link>

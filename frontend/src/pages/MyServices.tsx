@@ -108,9 +108,9 @@ function MyServices() {
 
   const getStatusBadge = (status: string) => {
     const badges = {
-      draft: 'bg-gray-100 text-gray-800',
-      active: 'bg-green-100 text-green-800',
-      blocked: 'bg-red-100 text-red-800',
+      draft: 'bg-gray-700 text-gray-200',
+      active: 'bg-green-900 text-green-200',
+      blocked: 'bg-red-900 text-red-200',
     }
     return badges[status as keyof typeof badges] || badges.draft
   }
@@ -120,7 +120,7 @@ function MyServices() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -164,14 +164,14 @@ function MyServices() {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Status Filter Bar */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-6 overflow-x-auto">
+        <div className="bg-gray-800 rounded-xl shadow-md p-4 mb-6 overflow-x-auto">
           <div className="flex items-center space-x-2 min-w-max">
             <button
               onClick={() => setStatusFilter('')}
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                 statusFilter === ''
                   ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
               All Statuses
@@ -181,7 +181,7 @@ function MyServices() {
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                 statusFilter === 'draft'
                   ? 'bg-gray-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
               Draft
@@ -191,7 +191,7 @@ function MyServices() {
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                 statusFilter === 'active'
                   ? 'bg-green-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
               Active
@@ -201,7 +201,7 @@ function MyServices() {
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                 statusFilter === 'blocked'
                   ? 'bg-red-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
               Blocked
@@ -210,14 +210,14 @@ function MyServices() {
         </div>
 
         {/* Category Filter Bar */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-8 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+        <div className="bg-gray-800 rounded-xl shadow-md p-4 mb-8 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-700">
           <div className="flex items-center space-x-2 min-w-max">
             <button
               onClick={() => setSelectedCategory('')}
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all flex items-center space-x-2 ${
                 selectedCategory === ''
                   ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
               <span>All Categories</span>
@@ -226,7 +226,7 @@ function MyServices() {
                   className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                     selectedCategory === ''
                       ? 'bg-white/20 text-white'
-                      : 'bg-blue-100 text-blue-700'
+                      : 'bg-blue-600 text-blue-200'
                   }`}
                 >
                   {totalServiceCount}
@@ -240,11 +240,11 @@ function MyServices() {
                 className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all flex items-center space-x-2 ${
                   selectedCategory === category.id
                     ? 'bg-blue-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
                 {category.icon && (
-                  <span className={selectedCategory === category.id ? 'text-white' : 'text-blue-600'}>
+                  <span className={selectedCategory === category.id ? 'text-white' : 'text-blue-400'}>
                     {renderIcon(category.icon, 'text-lg')}
                   </span>
                 )}
@@ -254,7 +254,7 @@ function MyServices() {
                     className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                       selectedCategory === category.id
                         ? 'bg-white/20 text-white'
-                        : 'bg-blue-100 text-blue-700'
+                        : 'bg-blue-600 text-blue-200'
                     }`}
                   >
                     {category.serviceCount}
@@ -267,13 +267,13 @@ function MyServices() {
 
         {/* Services Grid */}
         {loading ? (
-          <div className="text-center py-20 bg-white rounded-xl shadow-md">
-            <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-600 mb-4" />
-            <p className="text-gray-500">Loading services...</p>
+          <div className="text-center py-20 bg-gray-800 rounded-xl shadow-md">
+            <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-400 mb-4" />
+            <p className="text-gray-400">Loading services...</p>
           </div>
         ) : services.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-xl shadow-md">
-            <p className="text-gray-500 mb-6 text-lg">No services found</p>
+          <div className="text-center py-20 bg-gray-800 rounded-xl shadow-md">
+            <p className="text-gray-400 mb-6 text-lg">No services found</p>
             <Link
               to="/services/new"
               className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
@@ -287,7 +287,7 @@ function MyServices() {
               {services.map((service) => (
                 <div
                   key={service.id}
-                  className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all overflow-hidden border border-gray-200 group"
+                  className="bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all overflow-hidden border border-gray-700 group"
                 >
                   <div className="h-48 relative overflow-hidden">
                     {service.adImage ? (
@@ -309,14 +309,14 @@ function MyServices() {
                         </div>
                       </>
                     ) : (
-                      <div className="h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100">
-                        <div className="text-6xl text-blue-600">📦</div>
+                      <div className="h-full flex items-center justify-center bg-gradient-to-br from-blue-900 to-purple-900">
+                        <div className="text-6xl text-blue-400">📦</div>
                       </div>
                     )}
                   </div>
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 flex-1">
+                      <h3 className="text-xl font-semibold text-gray-100 group-hover:text-blue-400 transition-colors line-clamp-2 flex-1">
                         {service.title}
                       </h3>
                       <span
@@ -325,7 +325,7 @@ function MyServices() {
                         {service.status}
                       </span>
                     </div>
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{service.adText}</p>
+                    <p className="text-gray-400 text-sm mb-4 line-clamp-2">{service.adText}</p>
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center">
                         <StarRating
@@ -338,7 +338,7 @@ function MyServices() {
                           }
                         />
                       </div>
-                      <span className="text-2xl font-bold text-blue-600">
+                      <span className="text-2xl font-bold text-blue-400">
                         ${typeof service.balance === 'number'
                           ? (Math.round(service.balance * 100) / 100).toFixed(2)
                           : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
@@ -353,7 +353,7 @@ function MyServices() {
                       </Link>
                       <button
                         onClick={() => navigate(`/services/${service.id}/edit`)}
-                        className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+                        className="px-4 py-2 border-2 border-blue-600 text-blue-400 rounded-lg font-semibold hover:bg-blue-900/30 transition-colors"
                         title="Edit"
                       >
                         <FontAwesomeIcon icon={faEdit} />
@@ -366,9 +366,9 @@ function MyServices() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="bg-white rounded-xl shadow-md p-6 mt-8">
+              <div className="bg-gray-800 rounded-xl shadow-md p-6 mt-8">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-gray-400">
                     Showing {services.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to{' '}
                     {Math.min(currentPage * itemsPerPage, total)} of {total} services
                   </div>
@@ -376,7 +376,7 @@ function MyServices() {
                     <button
                       onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                      className="px-4 py-2 border border-gray-600 rounded-lg font-medium text-gray-300 hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                     >
                       <FontAwesomeIcon icon={faChevronLeft} />
                       <span>Previous</span>
@@ -402,7 +402,7 @@ function MyServices() {
                             className={`px-4 py-2 rounded-lg font-medium transition-all ${
                               currentPage === pageNum
                                 ? 'bg-blue-600 text-white shadow-md'
-                                : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                : 'border border-gray-600 text-gray-300 hover:bg-gray-700'
                             }`}
                           >
                             {pageNum}
@@ -414,7 +414,7 @@ function MyServices() {
                     <button
                       onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
-                      className="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                      className="px-4 py-2 border border-gray-600 rounded-lg font-medium text-gray-300 hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                     >
                       <span>Next</span>
                       <FontAwesomeIcon icon={faChevronRight} />
