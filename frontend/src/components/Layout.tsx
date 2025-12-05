@@ -35,14 +35,8 @@ function Layout({ children }: LayoutProps) {
               <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                 Home
               </Link>
-              <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+              <Link to="/services" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                 Services
-              </Link>
-              <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
-                Categories
-              </Link>
-              <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
-                About
               </Link>
             </div>
 

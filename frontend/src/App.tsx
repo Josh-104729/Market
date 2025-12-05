@@ -3,6 +3,9 @@ import Home from './pages/Home'
 import SignIn from './pages/SignIn'
 import SignUp from './pages/SignUp'
 import VerifyEmail from './pages/VerifyEmail'
+import Services from './pages/Services'
+import CreateService from './pages/CreateService'
+import ServiceDetail from './pages/ServiceDetail'
 import Layout from './components/Layout'
 
 function App() {
@@ -18,6 +21,9 @@ function App() {
             <Layout>
               <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/services" element={<Services />} />
+                <Route path="/services/new" element={<CreateService />} />
+                <Route path="/services/:id" element={<ServiceDetail />} />
               </Routes>
             </Layout>
           }

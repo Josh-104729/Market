@@ -29,6 +29,7 @@ export interface Category {
   id: string;
   title: string;
   icon?: string;
+  serviceCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -78,6 +79,72 @@ export const categoryApi = {
 
   delete: async (id: string): Promise<void> => {
     await api.delete(`/categories/${id}`);
+  },
+};
+
+export interface Tag {
+  id: string;
+  serviceId: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Service {
+  id: string;
+  userId: string;
+  categoryId: string;
+  title: string;
+  adText: string;
+  adImage: string;
+  balance: number;
+  rating: number;
+  status: 'draft' | 'active' | 'blocked';
+  category?: Category;
+  user?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    userName?: string;
+    email?: string;
+  };
+  tags?: Tag[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ServiceListResponse {
+  data: Service[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export const serviceApi = {
+  getAll: async (params?: {
+    status?: string;
+    categoryId?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ServiceListResponse> => {
+    const response = await api.get('/services', { params });
+    return response.data;
+  },
+
+  getById: async (id: string): Promise<Service> => {
+    const response = await api.get(`/services/${id}`);
+    return response.data;
+  },
+
+  updateStatus: async (id: string, status: 'draft' | 'active' | 'blocked'): Promise<Service> => {
+    const response = await api.patch(`/services/${id}/status`, { status });
+    return response.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/services/${id}/admin`);
   },
 };
 

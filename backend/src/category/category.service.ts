@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from '../entities/category.entity';
+import { Service, ServiceStatus } from '../entities/service.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
@@ -10,14 +11,23 @@ export class CategoryService {
   constructor(
     @InjectRepository(Category)
     private categoryRepository: Repository<Category>,
+    @InjectRepository(Service)
+    private serviceRepository: Repository<Service>,
   ) {}
 
   async create(createCategoryDto: CreateCategoryDto): Promise<Category & { serviceCount: number }> {
     const category = this.categoryRepository.create(createCategoryDto);
     const savedCategory = await this.categoryRepository.save(category);
+    const serviceCount = await this.serviceRepository.count({
+      where: {
+        categoryId: savedCategory.id,
+        status: ServiceStatus.ACTIVE,
+        deletedAt: null,
+      },
+    });
     return {
       ...savedCategory,
-      serviceCount: 0,
+      serviceCount,
     };
   }
 
@@ -27,12 +37,23 @@ export class CategoryService {
       order: { createdAt: 'DESC' },
     });
     
-    // TODO: When services entity is created, count actual services per category
-    // For now, return 0 as placeholder
-    return categories.map((category) => ({
-      ...category,
-      serviceCount: 0,
-    }));
+    const categoriesWithCounts = await Promise.all(
+      categories.map(async (category) => {
+        const serviceCount = await this.serviceRepository.count({
+          where: {
+            categoryId: category.id,
+            status: ServiceStatus.ACTIVE,
+            deletedAt: null,
+          },
+        });
+        return {
+          ...category,
+          serviceCount,
+        };
+      }),
+    );
+    
+    return categoriesWithCounts;
   }
 
   async findOne(id: string): Promise<Category & { serviceCount: number }> {
@@ -44,11 +65,17 @@ export class CategoryService {
       throw new NotFoundException(`Category with ID ${id} not found`);
     }
 
-    // TODO: When services entity is created, count actual services for this category
-    // For now, return 0 as placeholder
+    const serviceCount = await this.serviceRepository.count({
+      where: {
+        categoryId: category.id,
+        status: ServiceStatus.ACTIVE,
+        deletedAt: null,
+      },
+    });
+
     return {
       ...category,
-      serviceCount: 0,
+      serviceCount,
     };
   }
 
@@ -64,10 +91,17 @@ export class CategoryService {
     Object.assign(category, updateCategoryDto);
     const updatedCategory = await this.categoryRepository.save(category);
     
-    // TODO: When services entity is created, count actual services for this category
+    const serviceCount = await this.serviceRepository.count({
+      where: {
+        categoryId: updatedCategory.id,
+        status: ServiceStatus.ACTIVE,
+        deletedAt: null,
+      },
+    });
+    
     return {
       ...updatedCategory,
-      serviceCount: 0,
+      serviceCount,
     };
   }
 

@@ -71,6 +71,53 @@ export interface UpdateCategoryData {
   icon?: string;
 }
 
+export interface Tag {
+  id: string;
+  serviceId: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Service {
+  id: string;
+  userId: string;
+  categoryId: string;
+  title: string;
+  adText: string;
+  adImage: string;
+  balance: number;
+  rating: number;
+  status: 'draft' | 'active' | 'blocked';
+  category?: Category;
+  user?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    userName?: string;
+  };
+  tags?: Tag[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateServiceData {
+  categoryId: string;
+  title: string;
+  adText: string;
+  balance: number;
+  tags: string[];
+}
+
+export interface UpdateServiceData {
+  categoryId?: string;
+  title?: string;
+  adText?: string;
+  balance?: number;
+  tags?: string[];
+  status?: 'draft' | 'active' | 'blocked';
+}
+
 export const authApi = {
   signUpStep1: async (data: SignUpStep1Data) => {
     const response = await api.post('/auth/signup/step1', data);
@@ -121,6 +168,66 @@ export const categoryApi = {
 
   getById: async (id: string): Promise<Category> => {
     const response = await api.get(`/categories/${id}`);
+    return response.data;
+  },
+};
+
+export const serviceApi = {
+  create: async (data: CreateServiceData, imageFile: File): Promise<Service> => {
+    const formData = new FormData();
+    formData.append('adImage', imageFile);
+    formData.append('categoryId', data.categoryId);
+    formData.append('title', data.title);
+    formData.append('adText', data.adText);
+    formData.append('balance', data.balance.toString());
+    data.tags.forEach((tag) => formData.append('tags[]', tag));
+
+    const response = await api.post('/services', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  getAll: async (params?: { status?: string; categoryId?: string; search?: string }): Promise<Service[]> => {
+    const response = await api.get('/services', { params });
+    return response.data;
+  },
+
+  getById: async (id: string): Promise<Service> => {
+    const response = await api.get(`/services/${id}`);
+    return response.data;
+  },
+
+  update: async (id: string, data: UpdateServiceData, imageFile?: File): Promise<Service> => {
+    const formData = new FormData();
+    if (imageFile) {
+      formData.append('adImage', imageFile);
+    }
+    if (data.categoryId) formData.append('categoryId', data.categoryId);
+    if (data.title) formData.append('title', data.title);
+    if (data.adText) formData.append('adText', data.adText);
+    if (data.balance !== undefined) formData.append('balance', data.balance.toString());
+    if (data.status) formData.append('status', data.status);
+    if (data.tags) {
+      data.tags.forEach((tag) => formData.append('tags[]', tag));
+    }
+
+    const response = await api.patch(`/services/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/services/${id}`);
+  },
+
+  updateStatus: async (id: string, status: 'draft' | 'active' | 'blocked'): Promise<Service> => {
+    const response = await api.patch(`/services/${id}/status`, { status });
     return response.data;
   },
 };
