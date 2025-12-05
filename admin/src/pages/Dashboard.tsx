@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faFolder, faUsers, faBox, faShoppingCart } from '@fortawesome/free-solid-svg-icons'
+import { faFolder, faUsers, faBox, faShoppingCart, faBlog } from '@fortawesome/free-solid-svg-icons'
 
 function Dashboard() {
   const menuItems = [
@@ -18,6 +18,14 @@ function Dashboard() {
       icon: faBox,
       link: '/services',
       gradient: 'from-purple-500 to-purple-600',
+      available: true,
+    },
+    {
+      title: 'Blog',
+      description: 'Manage blog posts and feed',
+      icon: faBlog,
+      link: '/blog',
+      gradient: 'from-indigo-500 to-indigo-600',
       available: true,
     },
     {

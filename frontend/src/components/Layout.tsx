@@ -53,6 +53,9 @@ function Layout({ children }: LayoutProps) {
               <Link to="/" className="text-gray-300 hover:text-blue-400 font-medium transition-colors">
                 Home
               </Link>
+              <Link to="/feed" className="text-gray-300 hover:text-blue-400 font-medium transition-colors">
+                Feed
+              </Link>
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setServicesDropdownOpen(!servicesDropdownOpen)}

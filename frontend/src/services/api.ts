@@ -327,6 +327,134 @@ export interface CreateMilestoneData {
   balance: number;
 }
 
+export interface Post {
+  id: string;
+  userId: string;
+  content: string;
+  images?: string[];
+  status: 'draft' | 'published' | 'archived';
+  user?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    userName?: string;
+    avatar?: string;
+  };
+  likeCount?: number;
+  isLiked?: boolean;
+  commentCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PostComment {
+  id: string;
+  userId: string;
+  postId: string;
+  content: string;
+  parentId?: string;
+  user?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    userName?: string;
+    avatar?: string;
+  };
+  likeCount?: number;
+  isLiked?: boolean;
+  replyCount?: number;
+  replies?: PostComment[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePostData {
+  content: string;
+  images?: string[];
+}
+
+export interface CreateCommentData {
+  content: string;
+  parentId?: string;
+}
+
+export const blogApi = {
+  create: async (data: CreatePostData, imageFiles?: File[]): Promise<Post> => {
+    const formData = new FormData();
+    formData.append('content', data.content);
+    if (imageFiles && imageFiles.length > 0) {
+      imageFiles.forEach((file) => {
+        formData.append('images', file);
+      });
+    }
+
+    const response = await api.post('/blog', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  getAll: async (params?: {
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: Post[]; total: number; page: number; limit: number; totalPages: number }> => {
+    const response = await api.get('/blog', { params });
+    return response.data;
+  },
+
+  getById: async (id: string): Promise<Post> => {
+    const response = await api.get(`/blog/${id}`);
+    return response.data;
+  },
+
+  update: async (id: string, data: CreatePostData, imageFiles?: File[]): Promise<Post> => {
+    const formData = new FormData();
+    formData.append('content', data.content);
+    if (imageFiles && imageFiles.length > 0) {
+      imageFiles.forEach((file) => {
+        formData.append('images', file);
+      });
+    }
+
+    const response = await api.patch(`/blog/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/blog/${id}`);
+  },
+
+  likePost: async (id: string): Promise<{ liked: boolean; likeCount: number }> => {
+    const response = await api.post(`/blog/${id}/like`);
+    return response.data;
+  },
+
+  createComment: async (postId: string, data: CreateCommentData): Promise<PostComment> => {
+    const response = await api.post(`/blog/${postId}/comments`, data);
+    return response.data;
+  },
+
+  getComments: async (postId: string): Promise<PostComment[]> => {
+    const response = await api.get(`/blog/${postId}/comments`);
+    return response.data;
+  },
+
+  likeComment: async (commentId: string): Promise<{ liked: boolean; likeCount: number }> => {
+    const response = await api.post(`/blog/comments/${commentId}/like`);
+    return response.data;
+  },
+
+  deleteComment: async (commentId: string): Promise<void> => {
+    await api.delete(`/blog/comments/${commentId}`);
+  },
+};
+
 export const conversationApi = {
   create: async (serviceId: string): Promise<Conversation> => {
     const response = await api.post('/conversations', { serviceId });

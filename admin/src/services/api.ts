@@ -148,5 +148,56 @@ export const serviceApi = {
   },
 };
 
+export interface Post {
+  id: string;
+  userId: string;
+  content: string;
+  images?: string[];
+  status: 'draft' | 'published' | 'archived';
+  user?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    userName?: string;
+    email?: string;
+  };
+  likeCount?: number;
+  commentCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PostListResponse {
+  data: Post[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export const blogApi = {
+  getAll: async (params?: {
+    page?: number;
+    limit?: number;
+  }): Promise<PostListResponse> => {
+    const response = await api.get('/blog', { params });
+    return response.data;
+  },
+
+  getById: async (id: string): Promise<Post> => {
+    const response = await api.get(`/blog/${id}`);
+    return response.data;
+  },
+
+  updateStatus: async (id: string, status: 'draft' | 'published' | 'archived'): Promise<Post> => {
+    const response = await api.patch(`/blog/${id}/status`, { status });
+    return response.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/blog/${id}/admin`);
+  },
+};
+
 export default api;
 

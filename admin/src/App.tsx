@@ -5,6 +5,7 @@ import Categories from './pages/Categories'
 import CategoryForm from './pages/CategoryForm'
 import Services from './pages/Services'
 import ServiceDetail from './pages/ServiceDetail'
+import Blog from './pages/Blog'
 import SignIn from './pages/SignIn'
 import Layout from './components/Layout'
 
@@ -66,6 +67,13 @@ function App() {
           <PrivateRoute>
             <Layout>
               <ServiceDetail />
+            </Layout>
+          </PrivateRoute>
+        } />
+        <Route path="/blog" element={
+          <PrivateRoute>
+            <Layout>
+              <Blog />
             </Layout>
           </PrivateRoute>
         } />
