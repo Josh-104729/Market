@@ -158,6 +158,19 @@ export const authApi = {
     const response = await api.get('/auth/profile');
     return response.data;
   },
+
+  updateProfile: async (data: {
+    userName?: string;
+    firstName?: string;
+    lastName?: string;
+    middleName?: string;
+    bio?: string;
+    address?: string;
+    phoneNumber?: string;
+  }) => {
+    const response = await api.patch('/auth/profile', data);
+    return response.data;
+  },
 };
 
 export const categoryApi = {

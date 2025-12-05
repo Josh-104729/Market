@@ -18,6 +18,7 @@ import {
   SignUpStep7Dto,
 } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { EmailService } from './email.service';
 import { SmsService } from './sms.service';
 
@@ -313,6 +314,53 @@ export class AuthService {
       phoneVerified: user.phoneVerified,
       status: user.status,
     };
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if userName is being updated and if it's already taken
+    if (dto.userName && dto.userName !== user.userName) {
+      const existingUserName = await this.userRepository.findOne({
+        where: { userName: dto.userName },
+      });
+
+      if (existingUserName && existingUserName.id !== userId) {
+        throw new ConflictException('Username already exists');
+      }
+    }
+
+    // Check if phoneNumber is being updated and if it's already taken
+    if (dto.phoneNumber && dto.phoneNumber !== user.phoneNumber) {
+      const existingPhone = await this.userRepository.findOne({
+        where: { phoneNumber: dto.phoneNumber },
+      });
+
+      if (existingPhone && existingPhone.id !== userId) {
+        throw new ConflictException('Phone number already exists');
+      }
+      // Reset phone verification if phone number changes
+      user.phoneVerified = false;
+    }
+
+    // Update fields
+    if (dto.userName !== undefined) user.userName = dto.userName;
+    if (dto.firstName !== undefined) user.firstName = dto.firstName;
+    if (dto.lastName !== undefined) user.lastName = dto.lastName;
+    if (dto.middleName !== undefined) user.middleName = dto.middleName;
+    if (dto.bio !== undefined) user.bio = dto.bio;
+    if (dto.address !== undefined) user.address = dto.address;
+    if (dto.phoneNumber !== undefined) user.phoneNumber = dto.phoneNumber;
+
+    await this.userRepository.save(user);
+
+    return this.getProfile(userId);
   }
 }
 
