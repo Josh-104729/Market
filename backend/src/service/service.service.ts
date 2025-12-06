@@ -70,10 +70,25 @@ export class ServiceService {
     }
 
     if (search) {
-      queryBuilder.andWhere(
-        '(service.title LIKE :search OR service.adText LIKE :search OR tags.title LIKE :search)',
-        { search: `%${search}%` },
-      );
+      // Split search query by spaces and trim each word
+      const searchWords = search
+        .trim()
+        .split(/\s+/)
+        .filter((word) => word.length > 0)
+        .map((word) => word.trim());
+
+      if (searchWords.length > 0) {
+        // For each word, create a condition that searches in title, description, or tags
+        // All words must match (AND logic)
+        searchWords.forEach((word, index) => {
+          const paramName = `searchWord${index}`;
+          const searchPattern = `%${word}%`;
+          queryBuilder.andWhere(
+            `(service.title LIKE :${paramName} OR service.adText LIKE :${paramName} OR tags.title LIKE :${paramName})`,
+            { [paramName]: searchPattern },
+          );
+        });
+      }
     }
 
     // Get total count

@@ -155,7 +155,7 @@ function Services() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search services..."
+              placeholder="Search services by title, description, or tags..."
               className="w-full pl-12 pr-4 py-3 border border-gray-700 bg-gray-700 text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
