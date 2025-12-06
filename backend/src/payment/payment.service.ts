@@ -37,26 +37,28 @@ export class PaymentService {
    */
   async getUSDTBalance(address: string): Promise<number> {
     try {
-      // Set a default address for read-only contract calls
-      // Use the address we're querying as the owner (it's just for the call, not a transaction)
-      const tempAccount = this.tronWeb.createAccount();
-      this.tronWeb.setAddress(tempAccount.address.base58);
+      // Set the address we're querying as the default address for read-only contract calls
+      // This is required by TronWeb for contract method calls
+      this.tronWeb.setAddress(address);
       
       const contract = await this.tronWeb.contract().at(this.USDT_CONTRACT_ADDRESS);
       const balance = await contract.balanceOf(address).call();
       
-      // Convert BigNumber to number properly
-      if (balance && typeof balance.toNumber === 'function') {
+      // Convert BigNumber/bigint to number properly
+      // TronWeb returns balance as bigint
+      if (typeof balance === 'bigint') {
+        return Number(balance) / 1000000;
+      } else if (balance && typeof balance.toNumber === 'function') {
         return balance.toNumber() / 1000000;
       } else if (balance && typeof balance.dividedBy === 'function') {
         return balance.dividedBy(1000000).toNumber();
-      } else if (typeof balance === 'bigint') {
-        return Number(balance) / 1000000;
       } else if (balance && typeof balance.toString === 'function') {
         // If it's a string representation of a number
-        return parseFloat(balance.toString()) / 1000000;
+        const numValue = parseFloat(balance.toString());
+        return isNaN(numValue) ? 0 : numValue / 1000000;
       } else {
-        return Number(balance) / 1000000;
+        const numValue = Number(balance);
+        return isNaN(numValue) ? 0 : numValue / 1000000;
       }
     } catch (error) {
       this.logger.error(`Error getting USDT balance for ${address}:`, error);

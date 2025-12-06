@@ -30,12 +30,18 @@ export class WalletController {
       return null;
     }
 
-    // Get balance
-    const balance = await this.walletService.getWalletBalance(wallet.walletAddress);
+    // Get balance - don't fail if balance fetch fails
+    let balance: number | null = null;
+    try {
+      balance = await this.walletService.getWalletBalance(wallet.walletAddress);
+    } catch (error) {
+      // Log error but don't fail the request
+      console.error('Failed to fetch wallet balance:', error);
+    }
 
     return {
       ...wallet,
-      balance,
+      balance: balance !== null ? balance : undefined,
     };
   }
 

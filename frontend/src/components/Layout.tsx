@@ -4,7 +4,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown, faList, faUser, faSignOutAlt, faUserCircle, faWallet } from '@fortawesome/free-solid-svg-icons'
 import { useAppSelector, useAppDispatch } from '../store/hooks'
 import { logout } from '../store/slices/authSlice'
-import { fetchWallet, connectWallet, refreshBalance } from '../store/slices/walletSlice'
+import { fetchWallet, connectWallet, refreshBalance, setBalance } from '../store/slices/walletSlice'
+import { walletApi } from '../services/api'
+import { getUSDTBalance } from '../utils/tronWeb'
 import { showToast } from '../utils/toast'
 import { getSocket } from '../services/socket'
 import { Message } from '../services/api'
@@ -60,6 +62,23 @@ function Layout({ children }: LayoutProps) {
       dispatch(fetchWallet())
     }
   }, [isAuthenticated, dispatch, wallet])
+
+  // Fetch balance if wallet is connected but balance is not loaded
+  useEffect(() => {
+    if (isConnected && wallet && (balance === null || balance === undefined)) {
+      // Try to get balance from backend first
+      walletApi.getMyWallet().then((w) => {
+        if (w && w.balance !== undefined && w.balance !== null) {
+          dispatch(setBalance(w.balance))
+        } else if (wallet.walletAddress) {
+          // Fallback to TronLink if backend doesn't have balance
+          getUSDTBalance(wallet.walletAddress)
+            .then((bal) => dispatch(setBalance(bal)))
+            .catch((err) => console.error('Failed to fetch balance:', err))
+        }
+      }).catch((err) => console.error('Failed to fetch wallet:', err))
+    }
+  }, [isConnected, wallet, balance, dispatch])
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -219,9 +238,13 @@ function Layout({ children }: LayoutProps) {
                           <div className="text-sm font-medium text-white">
                             {wallet.walletAddress.slice(0, 6)}...{wallet.walletAddress.slice(-4)}
                           </div>
-                          {balance !== null && (
+                          {(balance !== null && balance !== undefined) ? (
                             <div className="text-xs text-green-400">
                               {balance.toFixed(2)} USDT
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-500">
+                              Loading...
                             </div>
                           )}
                         </div>
@@ -253,7 +276,7 @@ function Layout({ children }: LayoutProps) {
                         <div className="px-4 py-2 border-b border-gray-700">
                           <div className="text-xs text-gray-400 mb-1">Balance</div>
                           <div className="text-lg font-semibold text-green-400">
-                            {balance !== null ? `${balance.toFixed(2)} USDT` : 'Loading...'}
+                            {(balance !== null && balance !== undefined) ? `${balance.toFixed(2)} USDT` : 'Loading...'}
                           </div>
                         </div>
                         <button

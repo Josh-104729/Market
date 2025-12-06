@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { walletApi, Wallet } from '../../services/api';
-import { connectTronLink, getCurrentAddress, getUSDTBalance } from '../../utils/tronWeb';
+import { connectTronLink, getUSDTBalance } from '../../utils/tronWeb';
 import { showToast } from '../../utils/toast';
 
 interface WalletState {
@@ -24,7 +24,21 @@ export const fetchWallet = createAsyncThunk(
     try {
       const wallet = await walletApi.getMyWallet();
       if (wallet && wallet.walletAddress) {
-        // Get balance from blockchain
+        // Backend already includes balance, but try to refresh from blockchain if TronLink is available
+        if (wallet.balance !== undefined) {
+          // Try to get fresh balance from TronLink if available, otherwise use backend balance
+          try {
+            if (window.tronWeb && window.tronWeb.ready) {
+              const balance = await getUSDTBalance(wallet.walletAddress);
+              return { ...wallet, balance };
+            }
+          } catch (error) {
+            console.error('Failed to fetch balance from TronLink, using backend balance:', error);
+          }
+          // Use backend balance if TronLink fails or not available
+          return wallet;
+        }
+        // If no balance from backend, try TronLink
         try {
           const balance = await getUSDTBalance(wallet.walletAddress);
           return { ...wallet, balance };
@@ -48,11 +62,20 @@ export const connectWallet = createAsyncThunk(
       // Connect to TronLink
       const address = await connectTronLink();
       
-      // Save to backend
+      // Save to backend (backend will fetch balance)
       const wallet = await walletApi.connect(address);
       
-      // Get balance
-      const balance = await getUSDTBalance(address);
+      // Try to get balance from TronLink, fallback to backend balance
+      let balance = wallet.balance;
+      try {
+        if (window.tronWeb && window.tronWeb.ready) {
+          balance = await getUSDTBalance(address);
+        }
+      } catch (error) {
+        console.error('Failed to fetch balance from TronLink, using backend balance:', error);
+        // Use backend balance if available
+        balance = wallet.balance;
+      }
       
       showToast.success('Wallet connected successfully');
       return { ...wallet, balance };
