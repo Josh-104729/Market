@@ -110,19 +110,19 @@ function Services() {
   }
 
   return (
-    <div className="bg-gray-900">
+    <div className="min-h-screen">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left Sidebar - Categories */}
           <div className="w-full lg:w-64 flex-shrink-0">
-            <div className="bg-gray-800 rounded-xl shadow-md p-4 sticky top-4">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Categories</h2>
+            <div className="glass-card rounded-2xl p-4 sticky top-20">
+              <h2 className="text-lg font-semibold text-white mb-4">Categories</h2>
               <div className="space-y-2">
                 <button
                   onClick={() => setSelectedCategory('')}
-                  className={`w-full px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-between ${selectedCategory === ''
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  className={`w-full px-4 py-3 rounded-xl font-medium transition-all flex items-center justify-between ${selectedCategory === ''
+                      ? 'bg-primary text-primary-foreground shadow-glow-primary'
+                      : 'glass-card text-slate-300 hover:bg-white/15'
                     }`}
                 >
                   <span>All Categories</span>
@@ -141,9 +141,9 @@ function Services() {
                   <button
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id)}
-                    className={`w-full px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-between ${selectedCategory === category.id
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    className={`w-full px-4 py-3 rounded-xl font-medium transition-all flex items-center justify-between ${selectedCategory === category.id
+                        ? 'bg-primary text-primary-foreground shadow-glow-primary'
+                        : 'glass-card text-slate-300 hover:bg-white/15'
                       }`}
                   >
                     <div className="flex items-center space-x-2">
@@ -184,17 +184,17 @@ function Services() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search services by title, description, or tags..."
-                  className="w-full pl-12 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full pl-12 pr-4 py-3 glass-card rounded-full text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 transition-all"
                 />
               </div>
 
               {/* View Mode Switch */}
-              <div className="flex items-center gap-2 bg-gray-800 rounded-lg p-1 border border-gray-700">
+              <div className="flex items-center gap-2 glass-card rounded-full p-1">
                 <button
                   onClick={() => setViewMode('card')}
-                  className={`p-2 rounded transition-all ${viewMode === 'card'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-400 hover:text-gray-200'
+                  className={`p-2 rounded-full transition-all ${viewMode === 'card'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-slate-400 hover:text-white'
                     }`}
                   title="Card View"
                 >
@@ -202,9 +202,9 @@ function Services() {
                 </button>
                 <button
                   onClick={() => setViewMode('table')}
-                  className={`p-2 rounded transition-all ${viewMode === 'table'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-400 hover:text-gray-200'
+                  className={`p-2 rounded-full transition-all ${viewMode === 'table'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-slate-400 hover:text-white'
                     }`}
                   title="Table View"
                 >
@@ -215,7 +215,7 @@ function Services() {
               {isAuthenticated && (
                 <Link
                   to="/services/new"
-                  className="inline-flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg whitespace-nowrap"
+                  className="inline-flex items-center justify-center space-x-2 px-6 py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1 transition-all whitespace-nowrap"
                 >
                   <FontAwesomeIcon icon={faPlus} />
                   <span>Create Service</span>
@@ -225,17 +225,17 @@ function Services() {
 
             {/* Services Display */}
             {loading ? (
-              <div className="text-center py-20 bg-gray-800 rounded-xl shadow-md">
-                <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-400 mb-4" />
-                <p className="text-gray-400">Loading services...</p>
+              <div className="text-center py-20 glass-card rounded-2xl">
+                <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-primary mb-4" />
+                <p className="text-slate-400">Loading services...</p>
               </div>
             ) : services.length === 0 ? (
-              <div className="text-center py-20 bg-gray-800 rounded-xl shadow-md">
-                <p className="text-gray-400 mb-6 text-lg">No services found</p>
+              <div className="text-center py-20 glass-card rounded-2xl">
+                <p className="text-slate-400 mb-6 text-lg">No services found</p>
                 {isAuthenticated && (
                   <Link
                     to="/services/new"
-                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
+                    className="px-8 py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1 transition-all"
                   >
                     Create First Service
                   </Link>
@@ -247,7 +247,7 @@ function Services() {
                   <Link
                     key={service.id}
                     to={`/services/${service.id}`}
-                    className="bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all overflow-hidden border border-gray-700 group"
+                    className="glass-card rounded-2xl overflow-hidden hover:border-primary/20 transition-all hover:scale-[1.02] group"
                   >
                     <div className="h-48 relative overflow-hidden">
                       {service.adImage ? (
@@ -276,11 +276,11 @@ function Services() {
                     </div>
                     <div className="p-6">
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-xl font-semibold text-gray-100 group-hover:text-blue-400 transition-colors line-clamp-2">
+                        <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors line-clamp-2">
                           {service.title}
                         </h3>
                       </div>
-                      <p className="text-gray-400 text-sm mb-4 line-clamp-2">{service.adText}</p>
+                      <p className="text-slate-400 text-sm mb-4 line-clamp-2">{service.adText}</p>
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center">
                           <StarRating
@@ -293,27 +293,27 @@ function Services() {
                             }
                           />
                         </div>
-                        <span className="text-2xl font-bold text-blue-400">
+                        <span className="text-2xl font-bold text-primary">
                           ${typeof service.balance === 'number'
                             ? (Math.round(service.balance * 100) / 100).toFixed(2)
                             : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
                         </span>
                       </div>
                       {service.category && (
-                        <div className="text-xs text-gray-400 mb-2">Category: {service.category.title}</div>
+                        <div className="text-xs text-slate-400 mb-2">Category: {service.category.title}</div>
                       )}
                       {service.tags && service.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {service.tags.slice(0, 3).map((tag) => (
                             <span
                               key={tag.id}
-                              className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full"
+                              className="px-2 py-1 glass-card text-slate-300 text-xs rounded-full"
                             >
                               {tag.title}
                             </span>
                           ))}
                           {service.tags.length > 3 && (
-                            <span className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full">
+                            <span className="px-2 py-1 glass-card text-slate-300 text-xs rounded-full">
                               +{service.tags.length - 3}
                             </span>
                           )}
@@ -324,34 +324,34 @@ function Services() {
                 ))}
               </div>
             ) : (
-              <div className="bg-gray-800 rounded-xl shadow-md overflow-hidden">
+              <div className="glass-card rounded-2xl overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-700">
-                    <thead className="bg-gradient-to-r from-gray-700 to-gray-800">
+                  <table className="min-w-full divide-y divide-white/10">
+                    <thead className="glass-card">
                       <tr>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
                           Image
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
                           Title
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
                           Category
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
                           Rating
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
                           Price
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
                           Tags
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-gray-800 divide-y divide-gray-700">
+                    <tbody className="divide-y divide-white/10">
                       {services.map((service) => (
-                        <tr key={service.id} className="hover:bg-gray-700 transition-colors">
+                        <tr key={service.id} className="hover:bg-white/5 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <Link to={`/services/${service.id}`}>
                               <div className="w-16 h-16 rounded-lg overflow-hidden relative">
@@ -381,14 +381,14 @@ function Services() {
                           </td>
                           <td className="px-6 py-4">
                             <Link to={`/services/${service.id}`} className="block">
-                              <div className="text-sm font-semibold text-gray-100 max-w-xs truncate hover:text-blue-400 transition-colors">
+                              <div className="text-sm font-semibold text-white max-w-xs truncate hover:text-primary transition-colors">
                                 {service.title}
                               </div>
-                              <div className="text-xs text-gray-400 mt-1 line-clamp-2 max-w-xs">{service.adText}</div>
+                              <div className="text-xs text-slate-400 mt-1 line-clamp-2 max-w-xs">{service.adText}</div>
                             </Link>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-100">{service.category?.title || 'N/A'}</div>
+                            <div className="text-sm text-white">{service.category?.title || 'N/A'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
@@ -404,7 +404,7 @@ function Services() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-semibold text-blue-400">
+                            <div className="text-sm font-semibold text-primary">
                               ${typeof service.balance === 'number'
                                 ? (Math.round(service.balance * 100) / 100).toFixed(2)
                                 : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
@@ -416,19 +416,19 @@ function Services() {
                                 {service.tags.slice(0, 3).map((tag) => (
                                   <span
                                     key={tag.id}
-                                    className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full"
+                                    className="px-2 py-1 glass-card text-slate-300 text-xs rounded-full"
                                   >
                                     {tag.title}
                                   </span>
                                 ))}
                                 {service.tags.length > 3 && (
-                                  <span className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full">
+                                  <span className="px-2 py-1 glass-card text-slate-300 text-xs rounded-full">
                                     +{service.tags.length - 3}
                                   </span>
                                 )}
                               </div>
                             ) : (
-                              <span className="text-xs text-gray-500">No tags</span>
+                              <span className="text-xs text-slate-500">No tags</span>
                             )}
                           </td>
                         </tr>
@@ -441,19 +441,19 @@ function Services() {
 
             {/* Pagination */}
             {!loading && (
-              <div className="bg-gray-800 rounded-xl shadow-md p-6 mt-8">
+              <div className="glass-card rounded-2xl p-6 mt-8">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-slate-400">
                       Showing {services.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to{' '}
                       {Math.min(currentPage * itemsPerPage, total)} of {total} services
                     </div>
                     <div className="flex items-center gap-2">
-                      <label className="text-sm text-gray-400">Items per page:</label>
+                      <label className="text-sm text-slate-400">Items per page:</label>
                       <select
                         value={itemsPerPage}
                         onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                        className="px-3 py-1 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="px-3 py-1 glass-card rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50"
                       >
                         <option value={6}>6</option>
                         <option value={12}>12</option>
@@ -466,7 +466,7 @@ function Services() {
                     <button
                       onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
-                      className="px-4 py-2 border border-gray-600 rounded-lg font-medium text-gray-300 hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                      className="px-4 py-2 glass-card rounded-full font-medium text-slate-300 hover:bg-white/15 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                     >
                       <FontAwesomeIcon icon={faChevronLeft} />
                       <span>Previous</span>
@@ -489,9 +489,9 @@ function Services() {
                           <button
                             key={pageNum}
                             onClick={() => setCurrentPage(pageNum)}
-                            className={`px-4 py-2 rounded-lg font-medium transition-all ${currentPage === pageNum
-                                ? 'bg-blue-600 text-white shadow-md'
-                                : 'border border-gray-600 text-gray-300 hover:bg-gray-700'
+                            className={`px-4 py-2 rounded-full font-medium transition-all ${currentPage === pageNum
+                                ? 'bg-primary text-primary-foreground shadow-glow-primary'
+                                : 'glass-card text-slate-300 hover:bg-white/15'
                               }`}
                           >
                             {pageNum}
@@ -503,7 +503,7 @@ function Services() {
                     <button
                       onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
-                      className="px-4 py-2 border border-gray-600 rounded-lg font-medium text-gray-300 hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                      className="px-4 py-2 glass-card rounded-full font-medium text-slate-300 hover:bg-white/15 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                     >
                       <span>Next</span>
                       <FontAwesomeIcon icon={faChevronRight} />

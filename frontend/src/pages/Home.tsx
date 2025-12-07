@@ -35,102 +35,114 @@ function Home() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              {isAuthenticated ? `Welcome back, ${user?.firstName || 'User'}!` : 'Find the Perfect Service for Your Business'}
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 text-blue-100">
-              Connect with talented professionals and get your projects done
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <section className="relative pt-32 md:pt-40 pb-20 overflow-hidden">
+        <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-primary/10 rounded-full blur-[120px] -z-10 animate-pulse"></div>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-tight">
+            <span className="block text-white">
+              {isAuthenticated ? `Welcome back, ${user?.firstName || 'User'}!` : 'Find the Perfect Service'}
+            </span>
+            <span className="block mt-2">
+              <span className="text-slate-300">for Your </span>
+              <span className="text-gradient-primary">Business</span>
+              <span className="text-white">.</span>
+            </span>
+          </h1>
+          <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto mb-4 font-light leading-relaxed">
+            Connect with talented professionals and get your projects done
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-2xl mx-auto mb-10">
+            <div className="relative flex-1 w-full">
+              <FontAwesomeIcon icon={faSearch} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search for services..."
-                className="px-6 py-4 rounded-lg text-gray-900 w-full sm:w-96 focus:outline-none focus:ring-2 focus:ring-white"
+                className="w-full pl-12 pr-4 py-4 glass-card rounded-full text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 transition-all"
               />
-              <button className="px-8 py-4 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors flex items-center space-x-2">
-                <FontAwesomeIcon icon={faSearch} />
-                <span>Search</span>
-              </button>
             </div>
+            <button className="px-8 py-4 bg-primary text-primary-foreground rounded-full font-bold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1 transition-all flex items-center space-x-2 whitespace-nowrap">
+              <FontAwesomeIcon icon={faSearch} />
+              <span>Search</span>
+            </button>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Categories Section */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h2 className="text-3xl font-bold text-gray-100 mb-8">Browse by Category</h2>
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-gray-400">Loading categories...</p>
-          </div>
-        ) : categories.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-400">No categories available</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-6">
-            {categories.map((category) => (
-              <div
-                key={category.id}
-                className="bg-gray-800 rounded-xl p-6 shadow-md hover:shadow-xl transition-all cursor-pointer border-2 border-transparent hover:border-blue-500"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
+      <section className="py-16 border-t border-white/5">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-center">
+            <span className="text-white">Browse by </span>
+            <span className="text-gradient-primary">Category</span>
+          </h2>
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-slate-400">Loading categories...</p>
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-slate-400">No categories available</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {categories.map((category) => (
+                <div
+                  key={category.id}
+                  className="glass-card p-6 rounded-2xl hover:border-primary/20 transition-all cursor-pointer hover:scale-[1.02]"
+                >
+                  <div className="flex flex-col items-center text-center gap-4">
                     {category.icon && (
-                      <div className="text-4xl mb-2 text-blue-400">
-                        {renderIcon(category.icon)}
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-white/10 flex items-center justify-center">
+                        <div className="text-3xl text-primary">
+                          {renderIcon(category.icon)}
+                        </div>
                       </div>
                     )}
-                    <h3 className="font-semibold text-gray-100">
+                    <h3 className="font-semibold text-white">
                       {category.title}
                     </h3>
+                    {category.serviceCount !== undefined && (
+                      <p className="text-sm text-slate-400">
+                        {category.serviceCount} {category.serviceCount === 1 ? 'service' : 'services'}
+                      </p>
+                    )}
                   </div>
-                  {category.serviceCount !== undefined && (
-                    <div className="text-right ml-4">
-                      <div className="text-3xl font-bold text-blue-400">
-                        {category.serviceCount}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        {category.serviceCount === 1 ? 'service' : 'services'}
-                      </div>
-                    </div>
-                  )}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Featured Services */}
-      <div className="bg-gray-800 py-12">
+      <section className="py-24 border-t border-white/5 relative">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-gray-100 mb-8">Featured Services</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-center">
+            <span className="text-white">Featured </span>
+            <span className="text-gradient-primary">Services</span>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {featuredServices.map((service) => (
               <div
                 key={service.id}
-                className="bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all overflow-hidden border border-gray-700"
+                className="glass-card rounded-2xl overflow-hidden hover:border-primary/20 transition-all hover:scale-[1.02]"
               >
-                <div className="h-48 bg-gradient-to-br from-blue-900 to-purple-900 flex items-center justify-center">
-                  <FontAwesomeIcon icon={service.icon} className="text-6xl text-blue-400" />
+                <div className="h-48 bg-gradient-to-br from-primary/10 to-emerald-900/5 flex items-center justify-center">
+                  <FontAwesomeIcon icon={service.icon} className="text-6xl text-primary" />
                 </div>
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-100 mb-2">{service.title}</h3>
+                  <h3 className="text-xl font-semibold text-white mb-2">{service.title}</h3>
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-1">
                       <FontAwesomeIcon icon={faStar} className="text-yellow-400" />
-                      <span className="font-semibold text-gray-100">{service.rating}</span>
-                      <span className="text-gray-400 text-sm">({service.reviews})</span>
+                      <span className="font-semibold text-white">{service.rating}</span>
+                      <span className="text-slate-400 text-sm">({service.reviews})</span>
                     </div>
-                    <span className="text-2xl font-bold text-blue-400">{service.price}</span>
+                    <span className="text-2xl font-bold text-primary">{service.price}</span>
                   </div>
-                  <button className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all">
+                  <button className="w-full py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1 transition-all">
                     View Details
                   </button>
                 </div>
@@ -138,31 +150,32 @@ function Home() {
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Stats Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-16">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-bold mb-2">10K+</div>
-              <div className="text-blue-100">Active Services</div>
+      <section className="py-24 border-t border-white/5 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent"></div>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div className="glass-card p-6 rounded-2xl">
+              <div className="text-4xl md:text-5xl font-bold mb-2 text-primary">10K+</div>
+              <div className="text-slate-400">Active Services</div>
             </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">5K+</div>
-              <div className="text-blue-100">Happy Clients</div>
+            <div className="glass-card p-6 rounded-2xl">
+              <div className="text-4xl md:text-5xl font-bold mb-2 text-primary">5K+</div>
+              <div className="text-slate-400">Happy Clients</div>
             </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">2K+</div>
-              <div className="text-blue-100">Expert Sellers</div>
+            <div className="glass-card p-6 rounded-2xl">
+              <div className="text-4xl md:text-5xl font-bold mb-2 text-primary">2K+</div>
+              <div className="text-slate-400">Expert Sellers</div>
             </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">98%</div>
-              <div className="text-blue-100">Satisfaction Rate</div>
+            <div className="glass-card p-6 rounded-2xl">
+              <div className="text-4xl md:text-5xl font-bold mb-2 text-primary">98%</div>
+              <div className="text-slate-400">Satisfaction Rate</div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   )
 }
