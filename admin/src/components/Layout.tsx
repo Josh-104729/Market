@@ -20,18 +20,18 @@ function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <nav className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white shadow-lg">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0a0f1f 0%, #0f172a 100%)' }}>
+      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/20 border-b border-white/10">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl md:text-2xl font-bold text-white drop-shadow-lg">Black Market Admin</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-white">Admin Portal</h2>
             <div className="flex items-center space-x-4">
-              <span className="text-blue-100 text-sm md:text-base">
+              <span className="text-slate-300 text-sm md:text-base">
                 {user?.email || 'Admin'}
               </span>
               <button
                 onClick={handleLogout}
-                className="text-white bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg flex items-center space-x-2"
+                className="text-white glass-card hover:bg-white/15 px-4 py-2 rounded-full font-semibold transition-all flex items-center space-x-2"
               >
                 <FontAwesomeIcon icon={faSignOutAlt} />
                 <span>Logout</span>
@@ -40,7 +40,7 @@ function Layout({ children }: LayoutProps) {
           </div>
         </div>
       </nav>
-      <main>{children}</main>
+      <main className="pt-16">{children}</main>
     </div>
   )
 }

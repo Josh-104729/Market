@@ -1,7 +1,7 @@
 import { ReactNode, useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faChevronDown, faList, faUser, faSignOutAlt, faUserCircle, faWallet } from '@fortawesome/free-solid-svg-icons'
+import { faChevronDown, faSignOutAlt, faUserCircle, faWallet, faBars } from '@fortawesome/free-solid-svg-icons'
 import { useAppSelector, useAppDispatch } from '../store/hooks'
 import { logout } from '../store/slices/authSlice'
 import { fetchWallet, connectWallet, refreshBalance, setBalance } from '../store/slices/walletSlice'
@@ -26,6 +26,7 @@ function Layout({ children }: LayoutProps) {
   const [servicesDropdownOpen, setServicesDropdownOpen] = useState(false)
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const [walletDropdownOpen, setWalletDropdownOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const servicesDropdownRef = useRef<HTMLDivElement>(null)
   const userDropdownRef = useRef<HTMLDivElement>(null)
   const walletDropdownRef = useRef<HTMLDivElement>(null)
@@ -66,12 +67,10 @@ function Layout({ children }: LayoutProps) {
   // Fetch balance if wallet is connected but balance is not loaded
   useEffect(() => {
     if (isConnected && wallet && (balance === null || balance === undefined)) {
-      // Try to get balance from backend first
       walletApi.getMyWallet().then((w) => {
         if (w && w.balance !== undefined && w.balance !== null) {
           dispatch(setBalance(w.balance))
         } else if (wallet.walletAddress) {
-          // Fallback to TronLink if backend doesn't have balance
           getUSDTBalance(wallet.walletAddress)
             .then((bal) => dispatch(setBalance(bal)))
             .catch((err) => console.error('Failed to fetch balance:', err))
@@ -100,6 +99,25 @@ function Layout({ children }: LayoutProps) {
     }
   }, [])
 
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (mobileMenuOpen) {
+        const target = event.target as HTMLElement
+        if (!target.closest('.mobile-menu-container')) {
+          setMobileMenuOpen(false)
+        }
+      }
+    }
+
+    if (mobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [mobileMenuOpen])
+
   // Set up global socket listener for incoming messages
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -113,30 +131,23 @@ function Layout({ children }: LayoutProps) {
 
     socketRef.current = socket
 
-    // Listen for new messages globally
     const handleNewMessage = (message: Message) => {
-      // Don't show notification if message is from current user
       if (message.senderId === user.id) {
         return
       }
 
-      // Check if user is currently on the chat page for this conversation
       const isOnChatPage = location.pathname.startsWith('/chat/')
       const currentChatId = location.pathname.split('/chat/')[1]
       
-      // Only show toast if not on chat page, or if on a different chat page
       if (!isOnChatPage || (isOnChatPage && message.conversationId !== currentChatId)) {
-        // Get sender name
         const senderName = message.sender
           ? `${message.sender.firstName || ''} ${message.sender.lastName || ''}`.trim() || message.sender.userName || 'Someone'
           : 'Someone'
         
-        // Truncate message if too long
         const messagePreview = message.message.length > 50 
           ? message.message.substring(0, 50) + '...'
           : message.message
 
-        // Show toast notification with click handler to navigate to chat
         const toastContent = (
           <div 
             onClick={() => navigate(`/chat/${message.conversationId}`)}
@@ -154,10 +165,8 @@ function Layout({ children }: LayoutProps) {
       }
     }
 
-    // Set up listener - socket.on can be called even if not connected yet
     socket.on('new_message', handleNewMessage)
 
-    // Cleanup on unmount
     return () => {
       if (socketRef.current) {
         socketRef.current.off('new_message', handleNewMessage)
@@ -166,205 +175,303 @@ function Layout({ children }: LayoutProps) {
   }, [isAuthenticated, user, location.pathname, navigate])
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
-      <nav className="bg-gray-800 shadow-md sticky top-0 z-50 border-b border-gray-700">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">M</span>
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                MarketPlace
-              </span>
-            </Link>
-            
-            <div className="hidden md:flex items-center space-x-8">
-              <Link to="/" className="text-gray-300 hover:text-blue-400 font-medium transition-colors">
-                Home
+    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(135deg, #0a0f1f 0%, #0f172a 100%)' }}>
+      {/* Fixed Header with Rounded Container */}
+      <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-3">
+        <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="backdrop-blur-xl bg-[rgba(2,4,8,0.7)] border border-white/10 rounded-full shadow-2xl">
+            <div className="flex items-center justify-between h-16 md:h-20 px-6">
+              {/* Logo */}
+              <Link to="/" className="flex items-center gap-2 sm:gap-3 group">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center shadow-lg shadow-primary/20 ring-1 ring-white/10 group-hover:scale-110 transition-transform">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white fill-white">
+                    <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path>
+                  </svg>
+                </div>
+                <div className="flex items-baseline gap-1.5 sm:gap-2">
+                  <span className="text-lg sm:text-xl font-bold tracking-tight text-white">MarketPlace</span>
+                </div>
               </Link>
-              <Link to="/feed" className="text-gray-300 hover:text-blue-400 font-medium transition-colors">
-                Feed
-              </Link>
-              <div className="relative" ref={servicesDropdownRef}>
-                <button
-                  onClick={() => setServicesDropdownOpen(!servicesDropdownOpen)}
-                  className="text-gray-300 hover:text-blue-400 font-medium transition-colors flex items-center space-x-1"
+              
+              {/* Navigation Links - Desktop */}
+              <div className="hidden lg:flex items-center gap-8">
+                <Link to="/" className="text-sm font-medium transition-colors text-white">
+                  Home
+                </Link>
+                <Link to="/feed" className="text-sm font-medium transition-colors text-slate-400 hover:text-white">
+                  Feed
+                </Link>
+                <div 
+                  className="relative group" 
+                  ref={servicesDropdownRef}
+                  onMouseEnter={() => setServicesDropdownOpen(true)}
+                  onMouseLeave={() => setServicesDropdownOpen(false)}
                 >
-                  <span>Services</span>
-                  <FontAwesomeIcon
-                    icon={faChevronDown}
-                    className={`text-xs transition-transform ${servicesDropdownOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
-                {servicesDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-700 py-2 z-50">
-                    <Link
-                      to="/services"
-                      onClick={() => setServicesDropdownOpen(false)}
-                      className="block px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-blue-400 transition-colors flex items-center space-x-2"
-                    >
-                      <FontAwesomeIcon icon={faList} className="text-sm" />
-                      <span>All Services</span>
-                    </Link>
-                    {isAuthenticated && (
+                  <button
+                    className="text-sm font-medium text-slate-400 hover:text-white transition-colors flex items-center gap-1"
+                  >
+                    Services
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                  <div className={`absolute top-full right-0 mt-2 w-48 transition-all duration-200 ${servicesDropdownOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                    <div className="backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
                       <Link
-                        to="/my-services"
+                        to="/services"
                         onClick={() => setServicesDropdownOpen(false)}
-                        className="block px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-blue-400 transition-colors flex items-center space-x-2"
+                        className="block px-4 py-3 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
                       >
-                        <FontAwesomeIcon icon={faUser} className="text-sm" />
-                        <span>My Services</span>
+                        All Services
                       </Link>
-                    )}
+                      {isAuthenticated && (
+                        <Link
+                          to="/my-services"
+                          onClick={() => setServicesDropdownOpen(false)}
+                          className="block px-4 py-3 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                          My Services
+                        </Link>
+                      )}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center space-x-4">
-              {isAuthenticated && user ? (
-                <>
-                  {/* Wallet Info */}
-                  <div className="relative" ref={walletDropdownRef}>
-                    {isConnected && wallet ? (
-                      <button
-                        onClick={() => setWalletDropdownOpen(!walletDropdownOpen)}
-                        className="flex items-center space-x-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                      >
-                        <FontAwesomeIcon icon={faWallet} className="text-blue-400" />
-                        <div className="text-left hidden sm:block">
-                          <div className="text-xs text-gray-400">Wallet</div>
-                          <div className="text-sm font-medium text-white">
-                            {wallet.walletAddress.slice(0, 6)}...{wallet.walletAddress.slice(-4)}
+              {/* Right Side Actions */}
+              <div className="flex items-center gap-4">
+                {isAuthenticated && user ? (
+                  <>
+                    {/* Wallet Info */}
+                    <div className="hidden md:block relative" ref={walletDropdownRef}>
+                      {isConnected && wallet ? (
+                        <button
+                          onClick={() => setWalletDropdownOpen(!walletDropdownOpen)}
+                          className="flex items-center space-x-2 px-3 py-2 glass-card rounded-full hover:bg-white/15 transition-all"
+                        >
+                          <FontAwesomeIcon icon={faWallet} className="text-primary" />
+                          <div className="text-left hidden sm:block">
+                            <div className="text-xs text-slate-400">Wallet</div>
+                            <div className="text-sm font-medium text-white">
+                              {wallet.walletAddress.slice(0, 6)}...{wallet.walletAddress.slice(-4)}
+                            </div>
+                            {(balance !== null && balance !== undefined) ? (
+                              <div className="text-xs text-primary">
+                                {balance.toFixed(2)} USDT
+                              </div>
+                            ) : (
+                              <div className="text-xs text-slate-500">
+                                Loading...
+                              </div>
+                            )}
                           </div>
-                          {(balance !== null && balance !== undefined) ? (
-                            <div className="text-xs text-green-400">
-                              {balance.toFixed(2)} USDT
+                          <FontAwesomeIcon
+                            icon={faChevronDown}
+                            className={`text-xs text-slate-400 transition-transform ${walletDropdownOpen ? 'rotate-180' : ''}`}
+                          />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleConnectWallet}
+                          disabled={isConnecting}
+                          className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:shadow-[0_0_50px_rgba(16,185,129,0.6)] hover:-translate-y-1 transition-all disabled:opacity-50 text-sm"
+                        >
+                          <FontAwesomeIcon icon={faWallet} />
+                          <span>
+                            {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                          </span>
+                        </button>
+                      )}
+                      {walletDropdownOpen && wallet && (
+                        <div className="absolute top-full right-0 mt-2 w-64 backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl py-2 z-50">
+                          <div className="px-4 py-2 border-b border-white/5">
+                            <div className="text-xs text-slate-400 mb-1">Wallet Address</div>
+                            <div className="text-sm text-white font-mono break-all">
+                              {wallet.walletAddress}
                             </div>
-                          ) : (
-                            <div className="text-xs text-gray-500">
-                              Loading...
+                          </div>
+                          <div className="px-4 py-2 border-b border-white/5">
+                            <div className="text-xs text-slate-400 mb-1">Balance</div>
+                            <div className="text-lg font-semibold text-primary">
+                              {(balance !== null && balance !== undefined) ? `${balance.toFixed(2)} USDT` : 'Loading...'}
                             </div>
-                          )}
+                          </div>
+                          <button
+                            onClick={handleRefreshBalance}
+                            className="w-full text-left px-4 py-2 text-slate-300 hover:bg-white/5 hover:text-primary transition-colors text-sm"
+                          >
+                            Refresh Balance
+                          </button>
+                          <Link
+                            to="/transactions"
+                            onClick={() => setWalletDropdownOpen(false)}
+                            className="block px-4 py-2 text-slate-300 hover:bg-white/5 hover:text-primary transition-colors text-sm"
+                          >
+                            Transaction History
+                          </Link>
+                          <a
+                            href={`https://tronscan.org/#/address/${wallet.walletAddress}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block px-4 py-2 text-slate-300 hover:bg-white/5 hover:text-primary transition-colors text-sm"
+                          >
+                            View on TronScan
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* User Menu */}
+                    <div className="hidden md:block relative" ref={userDropdownRef}>
+                      <button
+                        onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                        className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+                      >
+                        <div className="w-8 h-8 bg-gradient-to-br from-primary to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
+                          {user.firstName?.[0] || user.email[0].toUpperCase()}
+                        </div>
+                        <div className="hidden sm:block text-left">
+                          <p className="text-sm font-medium text-white">
+                            {user.firstName} {user.lastName}
+                          </p>
+                          <p className="text-xs text-slate-400">{user.email}</p>
                         </div>
                         <FontAwesomeIcon
                           icon={faChevronDown}
-                          className={`text-xs text-gray-400 transition-transform ${walletDropdownOpen ? 'rotate-180' : ''}`}
+                          className={`text-xs text-slate-400 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`}
                         />
                       </button>
-                    ) : (
-                      <button
-                        onClick={handleConnectWallet}
-                        disabled={isConnecting}
-                        className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg transition-all shadow-md disabled:opacity-50"
-                      >
-                        <FontAwesomeIcon icon={faWallet} />
-                        <span className="text-sm font-medium text-white">
-                          {isConnecting ? 'Connecting...' : 'Connect Wallet'}
-                        </span>
-                      </button>
-                    )}
-                    {walletDropdownOpen && wallet && (
-                      <div className="absolute top-full right-0 mt-2 w-64 bg-gray-800 rounded-lg shadow-lg border border-gray-700 py-2 z-50">
-                        <div className="px-4 py-2 border-b border-gray-700">
-                          <div className="text-xs text-gray-400 mb-1">Wallet Address</div>
-                          <div className="text-sm text-white font-mono break-all">
-                            {wallet.walletAddress}
-                          </div>
+                      {userDropdownOpen && (
+                        <div className="absolute top-full right-0 mt-2 w-48 backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl py-2 z-50">
+                          <Link
+                            to="/profile"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="block px-4 py-3 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors flex items-center space-x-2"
+                          >
+                            <FontAwesomeIcon icon={faUserCircle} className="text-sm" />
+                            <span>Profile</span>
+                          </Link>
+                          <button
+                            onClick={() => {
+                              setUserDropdownOpen(false)
+                              handleSignOut()
+                            }}
+                            className="w-full text-left px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 transition-colors flex items-center space-x-2"
+                          >
+                            <FontAwesomeIcon icon={faSignOutAlt} className="text-sm" />
+                            <span>Logout</span>
+                          </button>
                         </div>
-                        <div className="px-4 py-2 border-b border-gray-700">
-                          <div className="text-xs text-gray-400 mb-1">Balance</div>
-                          <div className="text-lg font-semibold text-green-400">
-                            {(balance !== null && balance !== undefined) ? `${balance.toFixed(2)} USDT` : 'Loading...'}
-                          </div>
-                        </div>
-                        <button
-                          onClick={handleRefreshBalance}
-                          className="w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-blue-400 transition-colors text-sm"
-                        >
-                          Refresh Balance
-                        </button>
-                        <Link
-                          to="/transactions"
-                          onClick={() => setWalletDropdownOpen(false)}
-                          className="block px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-blue-400 transition-colors text-sm"
-                        >
-                          Transaction History
-                        </Link>
-                        <a
-                          href={`https://tronscan.org/#/address/${wallet.walletAddress}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-blue-400 transition-colors text-sm"
-                        >
-                          View on TronScan
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <button className="p-2 text-gray-300 hover:text-blue-400 relative">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
-                    </button>
-                  </div>
-                  <div className="relative" ref={userDropdownRef}>
-                    <button
-                      onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                      className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Link 
+                      to="/signin" 
+                      className="hidden md:block text-sm font-medium text-white hover:text-primary transition-colors"
                     >
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                        {user.firstName?.[0] || user.email[0].toUpperCase()}
-                      </div>
-                      <div className="hidden sm:block text-left">
-                        <p className="text-sm font-medium text-gray-300">
-                          {user.firstName} {user.lastName}
-                        </p>
-                        <p className="text-xs text-gray-400">{user.email}</p>
-                      </div>
-                      <FontAwesomeIcon
-                        icon={faChevronDown}
-                        className={`text-xs text-gray-400 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-                    {userDropdownOpen && (
-                      <div className="absolute top-full right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-700 py-2 z-50">
-                        <Link
-                          to="/profile"
-                          onClick={() => setUserDropdownOpen(false)}
-                          className="block px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-blue-400 transition-colors flex items-center space-x-2"
-                        >
-                          <FontAwesomeIcon icon={faUserCircle} className="text-sm" />
-                          <span>Profile</span>
-                        </Link>
-                        <button
-                          onClick={() => {
-                            setUserDropdownOpen(false)
-                            handleSignOut()
-                          }}
-                          className="w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-blue-400 transition-colors flex items-center space-x-2"
-                        >
-                          <FontAwesomeIcon icon={faSignOutAlt} className="text-sm" />
-                          <span>Logout</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
+                      Log In
+                    </Link>
+                    <Link
+                      to="/signup"
+                      className="hidden md:inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:shadow-[0_0_50px_rgba(16,185,129,0.6)] hover:-translate-y-1 h-9 rounded-full px-4"
+                    >
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+                
+                {/* Mobile Menu Button */}
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="lg:hidden p-2 text-slate-400 hover:text-white transition-colors"
+                  aria-label="Toggle menu"
+                >
+                  <FontAwesomeIcon icon={faBars} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </nav>
+        
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden mt-2 mx-4 backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl overflow-hidden mobile-menu-container">
+            <div className="px-4 py-3 space-y-2">
+              <Link
+                to="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-2 text-sm font-medium text-white hover:bg-white/5 transition-colors"
+              >
+                Home
+              </Link>
+              <Link
+                to="/feed"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                Feed
+              </Link>
+              <Link
+                to="/services"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                All Services
+              </Link>
+              {isAuthenticated && (
                 <>
-                  <Link 
-                    to="/signin" 
-                    className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-blue-400 transition-colors"
+                  <Link
+                    to="/my-services"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
                   >
-                    Sign In
+                    My Services
+                  </Link>
+                  <Link
+                    to="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    Profile
+                  </Link>
+                  {!isConnected && (
+                    <button
+                      onClick={() => {
+                        handleConnectWallet()
+                        setMobileMenuOpen(false)
+                      }}
+                      disabled={isConnecting}
+                      className="w-full text-left px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+                    >
+                      {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      handleSignOut()
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              )}
+              {!isAuthenticated && (
+                <>
+                  <Link
+                    to="/signin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    Log In
                   </Link>
                   <Link
                     to="/signup"
-                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-4 py-2 text-sm font-medium text-white hover:bg-white/5 transition-colors"
                   >
                     Sign Up
                   </Link>
@@ -372,13 +479,14 @@ function Layout({ children }: LayoutProps) {
               )}
             </div>
           </div>
-        </div>
-      </nav>
-      <main className="flex-1">{children}</main>
+        )}
+      </header>
+      
+      {/* Main Content with padding for fixed header */}
+      <main className="flex-1 pt-24 md:pt-28">{children}</main>
       <Footer />
     </div>
   )
 }
 
 export default Layout
-

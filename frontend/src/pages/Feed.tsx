@@ -77,7 +77,7 @@ const PostCard = ({ post, onLike, onComment }: { post: Post; onLike: (postId: st
   }
 
   return (
-    <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 mb-4">
+    <div className="glass-card rounded-2xl p-6 mb-4">
       {/* Post Header */}
       <div className="flex items-start space-x-4 mb-4">
         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
@@ -178,12 +178,12 @@ const PostCard = ({ post, onLike, onComment }: { post: Post; onLike: (postId: st
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
                       placeholder="Write a comment..."
-                      className="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 glass-card text-white rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder-slate-400"
                     />
                     <button
                       type="submit"
                       disabled={!commentText.trim() || submittingComment}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-glow-primary hover:shadow-glow-primary-lg"
                     >
                       <FontAwesomeIcon icon={submittingComment ? faSpinner : faPaperPlane} className={submittingComment ? 'animate-spin' : ''} />
                     </button>
@@ -205,14 +205,14 @@ const PostCard = ({ post, onLike, onComment }: { post: Post; onLike: (postId: st
                           <span>{(comment.user?.userName || comment.user?.firstName || 'A').charAt(0).toUpperCase()}</span>
                         )}
                       </div>
-                      <div className="flex-1 bg-gray-700 rounded-lg p-3">
+                      <div className="flex-1 glass-card rounded-xl p-3">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-white font-semibold text-sm">
                             {comment.user?.userName || comment.user?.firstName || 'Anonymous'}
                           </span>
-                          <span className="text-gray-400 text-xs">{formatTimeAgo(comment.createdAt)}</span>
+                          <span className="text-slate-400 text-xs">{formatTimeAgo(comment.createdAt)}</span>
                         </div>
-                        <p className="text-gray-200 text-sm">{comment.content}</p>
+                        <p className="text-slate-200 text-sm">{comment.content}</p>
                       </div>
                     </div>
                   ))
@@ -344,15 +344,15 @@ function Feed() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-3xl">
         {/* Create Post Card */}
         {isAuthenticated && (
-          <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 mb-6">
+          <div className="glass-card rounded-2xl p-6 mb-6">
             {!isCreatingPost ? (
               <button
                 onClick={() => setIsCreatingPost(true)}
-                className="w-full text-left bg-gray-700 hover:bg-gray-600 rounded-lg px-4 py-3 text-gray-300 transition-all"
+                className="w-full text-left glass-card hover:bg-white/15 rounded-xl px-4 py-3 text-slate-300 transition-all"
               >
                 <span>What's on your mind?</span>
               </button>
@@ -362,7 +362,7 @@ function Feed() {
                   value={postContent}
                   onChange={(e) => setPostContent(e.target.value)}
                   placeholder="What's on your mind?"
-                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full glass-card text-white rounded-xl px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 resize-none placeholder-slate-400"
                   rows={4}
                 />
 
@@ -418,7 +418,7 @@ function Feed() {
                     <button
                       type="submit"
                       disabled={!postContent.trim() || submittingPost}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2"
+                      className="px-6 py-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1"
                     >
                       {submittingPost ? (
                         <>
@@ -441,13 +441,13 @@ function Feed() {
 
         {/* Posts Feed */}
         {loading && posts.length === 0 ? (
-          <div className="text-center py-20 bg-gray-800 rounded-xl shadow-md">
-            <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-400 mb-4" />
-            <p className="text-gray-400">Loading posts...</p>
+          <div className="text-center py-20 glass-card rounded-2xl">
+            <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-primary mb-4" />
+            <p className="text-slate-400">Loading posts...</p>
           </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-20 bg-gray-800 rounded-xl shadow-md">
-            <p className="text-gray-400 mb-6 text-lg">No posts yet. Be the first to share something!</p>
+          <div className="text-center py-20 glass-card rounded-2xl">
+            <p className="text-slate-400 mb-6 text-lg">No posts yet. Be the first to share something!</p>
           </div>
         ) : (
           <>
@@ -459,7 +459,7 @@ function Feed() {
                 <button
                   onClick={loadMore}
                   disabled={loading}
-                  className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-all"
+                  className="px-6 py-3 glass-card text-white rounded-full hover:bg-white/15 disabled:opacity-50 transition-all"
                 >
                   {loading ? (
                     <>

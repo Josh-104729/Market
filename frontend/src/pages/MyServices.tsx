@@ -109,20 +109,20 @@ function MyServices() {
   }
 
   return (
-    <div className="bg-gray-900">
+    <div className="min-h-screen">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left Sidebar - Categories */}
           <div className="w-full lg:w-64 flex-shrink-0">
-            <div className="bg-gray-800 rounded-xl shadow-md p-4 sticky top-4">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Categories</h2>
+            <div className="glass-card rounded-2xl p-4 sticky top-20">
+              <h2 className="text-lg font-semibold text-white mb-4">Categories</h2>
               <div className="space-y-2">
                 <button
                   onClick={() => setSelectedCategory('')}
-                  className={`w-full px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-between ${
+                  className={`w-full px-4 py-3 rounded-xl font-medium transition-all flex items-center justify-between ${
                     selectedCategory === ''
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      ? 'bg-primary text-primary-foreground shadow-glow-primary'
+                      : 'glass-card text-slate-300 hover:bg-white/15'
                   }`}
                 >
                   <span>All Categories</span>
@@ -142,10 +142,10 @@ function MyServices() {
                   <button
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id)}
-                    className={`w-full px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-between ${
+                    className={`w-full px-4 py-3 rounded-xl font-medium transition-all flex items-center justify-between ${
                       selectedCategory === category.id
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        ? 'bg-primary text-primary-foreground shadow-glow-primary'
+                        : 'glass-card text-slate-300 hover:bg-white/15'
                     }`}
                   >
                     <div className="flex items-center space-x-2">
@@ -178,44 +178,44 @@ function MyServices() {
             {/* Status Filter and Create Button */}
             <div className="mb-6 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
               {/* Status Filter Bar */}
-              <div className="bg-gray-800 rounded-xl shadow-md p-4 overflow-x-auto flex-1">
+              <div className="glass-card rounded-xl p-4 overflow-x-auto flex-1">
                 <div className="flex items-center space-x-2 min-w-max">
                   <button
                     onClick={() => setStatusFilter('')}
-                    className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+                    className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all ${
                       statusFilter === ''
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        ? 'bg-primary text-primary-foreground shadow-glow-primary'
+                        : 'bg-white/5 text-slate-300 hover:bg-white/10'
                     }`}
                   >
                     All Statuses
                   </button>
                   <button
                     onClick={() => setStatusFilter('draft')}
-                    className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+                    className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all ${
                       statusFilter === 'draft'
-                        ? 'bg-gray-600 text-white shadow-md'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        ? 'bg-slate-600 text-white shadow-md'
+                        : 'bg-white/5 text-slate-300 hover:bg-white/10'
                     }`}
                   >
                     Draft
                   </button>
                   <button
                     onClick={() => setStatusFilter('active')}
-                    className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+                    className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all ${
                       statusFilter === 'active'
                         ? 'bg-green-600 text-white shadow-md'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        : 'bg-white/5 text-slate-300 hover:bg-white/10'
                     }`}
                   >
                     Active
                   </button>
                   <button
                     onClick={() => setStatusFilter('blocked')}
-                    className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+                    className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all ${
                       statusFilter === 'blocked'
                         ? 'bg-red-600 text-white shadow-md'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        : 'bg-white/5 text-slate-300 hover:bg-white/10'
                     }`}
                   >
                     Blocked
@@ -226,7 +226,7 @@ function MyServices() {
               {/* Create Service Button */}
               <Link
                 to="/services/new"
-                className="inline-flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg whitespace-nowrap"
+                className="inline-flex items-center justify-center space-x-2 px-6 py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1 transition-all whitespace-nowrap"
               >
                 <FontAwesomeIcon icon={faPlus} />
                 <span>Create Service</span>
@@ -235,16 +235,16 @@ function MyServices() {
 
             {/* Services Grid */}
             {loading ? (
-              <div className="text-center py-20 bg-gray-800 rounded-xl shadow-md">
-                <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-400 mb-4" />
-                <p className="text-gray-400">Loading services...</p>
+              <div className="text-center py-20 glass-card rounded-2xl">
+                <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-primary mb-4" />
+                <p className="text-slate-400">Loading services...</p>
               </div>
             ) : services.length === 0 ? (
-              <div className="text-center py-20 bg-gray-800 rounded-xl shadow-md">
-                <p className="text-gray-400 mb-6 text-lg">No services found</p>
+              <div className="text-center py-20 glass-card rounded-2xl">
+                <p className="text-slate-400 mb-6 text-lg">No services found</p>
                 <Link
                   to="/services/new"
-                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
+                  className="px-8 py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1 transition-all"
                 >
                   Create Your First Service
                 </Link>
@@ -255,7 +255,7 @@ function MyServices() {
               {services.map((service) => (
                 <div
                   key={service.id}
-                  className="bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all overflow-hidden border border-gray-700 group"
+                  className="glass-card rounded-2xl overflow-hidden hover:border-primary/20 transition-all hover:scale-[1.02] group"
                 >
                   <div className="h-48 relative overflow-hidden">
                     {service.adImage ? (
@@ -284,7 +284,7 @@ function MyServices() {
                   </div>
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-xl font-semibold text-gray-100 group-hover:text-blue-400 transition-colors line-clamp-2 flex-1">
+                      <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors line-clamp-2 flex-1">
                         {service.title}
                       </h3>
                       <span
@@ -293,7 +293,7 @@ function MyServices() {
                         {service.status}
                       </span>
                     </div>
-                    <p className="text-gray-400 text-sm mb-4 line-clamp-2">{service.adText}</p>
+                    <p className="text-slate-400 text-sm mb-4 line-clamp-2">{service.adText}</p>
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center">
                         <StarRating
@@ -306,7 +306,7 @@ function MyServices() {
                           }
                         />
                       </div>
-                      <span className="text-2xl font-bold text-blue-400">
+                      <span className="text-2xl font-bold text-primary">
                         ${typeof service.balance === 'number'
                           ? (Math.round(service.balance * 100) / 100).toFixed(2)
                           : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
@@ -315,13 +315,13 @@ function MyServices() {
                     <div className="flex gap-2">
                       <Link
                         to={`/services/${service.id}`}
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center"
+                        className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 transition-colors text-center shadow-glow-primary hover:shadow-glow-primary-lg"
                       >
                         View
                       </Link>
                       <button
                         onClick={() => navigate(`/services/${service.id}/edit`)}
-                        className="px-4 py-2 border-2 border-blue-600 text-blue-400 rounded-lg font-semibold hover:bg-blue-900/30 transition-colors"
+                        className="px-4 py-2 glass-card border-2 border-primary/50 text-primary rounded-full font-semibold hover:bg-primary/10 transition-colors"
                         title="Edit"
                       >
                         <FontAwesomeIcon icon={faEdit} />
@@ -334,9 +334,9 @@ function MyServices() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="bg-gray-800 rounded-xl shadow-md p-6 mt-8">
+                  <div className="glass-card rounded-2xl p-6 mt-8">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div className="text-sm text-gray-400">
+                      <div className="text-sm text-slate-400">
                         Showing {services.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to{' '}
                         {Math.min(currentPage * itemsPerPage, total)} of {total} services
                       </div>
@@ -344,7 +344,7 @@ function MyServices() {
                         <button
                           onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                           disabled={currentPage === 1}
-                          className="px-4 py-2 border border-gray-600 rounded-lg font-medium text-gray-300 hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                          className="px-4 py-2 glass-card rounded-full font-medium text-slate-300 hover:bg-white/15 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                         >
                           <FontAwesomeIcon icon={faChevronLeft} />
                           <span>Previous</span>
@@ -367,10 +367,10 @@ function MyServices() {
                               <button
                                 key={pageNum}
                                 onClick={() => setCurrentPage(pageNum)}
-                                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                                className={`px-4 py-2 rounded-full font-medium transition-all ${
                                   currentPage === pageNum
-                                    ? 'bg-blue-600 text-white shadow-md'
-                                    : 'border border-gray-600 text-gray-300 hover:bg-gray-700'
+                                    ? 'bg-primary text-primary-foreground shadow-glow-primary'
+                                    : 'glass-card text-slate-300 hover:bg-white/15'
                                 }`}
                               >
                                 {pageNum}
@@ -382,7 +382,7 @@ function MyServices() {
                         <button
                           onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                           disabled={currentPage === totalPages}
-                          className="px-4 py-2 border border-gray-600 rounded-lg font-medium text-gray-300 hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                          className="px-4 py-2 glass-card rounded-full font-medium text-slate-300 hover:bg-white/15 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                         >
                           <span>Next</span>
                           <FontAwesomeIcon icon={faChevronRight} />
