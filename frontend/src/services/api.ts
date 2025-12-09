@@ -713,7 +713,6 @@ export interface InitiateChargeData {
 export interface ChargeStatusResponse {
   walletAddress: string;
   amount: number;
-  gasFee: number;
   platformFee: number;
   total: number;
   transactionId: string;
@@ -742,6 +741,20 @@ export const paymentApi = {
     confirmedAt?: string;
   }> => {
     const response = await api.get(`/payment/charge/status/${transactionId}`);
+    return response.data;
+  },
+
+  getChargeByWalletAddress: async (walletAddress: string): Promise<{
+    walletAddress: string;
+    amount: number;
+    platformFee: number;
+    total: number;
+    transactionId: string;
+    expiresAt: string;
+    status: string;
+    transactionHash?: string;
+  }> => {
+    const response = await api.get(`/payment/charge/wallet/${walletAddress}`);
     return response.data;
   },
 

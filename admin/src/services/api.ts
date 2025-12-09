@@ -44,6 +44,26 @@ export interface UpdateCategoryData {
   icon?: string;
 }
 
+export interface TempWallet {
+  id: string;
+  userId: string;
+  user: {
+    id: string;
+    email: string;
+    userName?: string;
+    firstName?: string;
+    lastName?: string;
+  } | null;
+  address: string;
+  status: string;
+  totalReceived: number;
+  usdtBalance: number;
+  trxBalance: number;
+  lastCheckedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const adminApi = {
   signIn: async (data: AdminSignInData) => {
     const response = await api.post('/admin/signin', data);
@@ -52,6 +72,16 @@ export const adminApi = {
 
   getProfile: async () => {
     const response = await api.get('/admin/profile');
+    return response.data;
+  },
+
+  getTempWallets: async (): Promise<TempWallet[]> => {
+    const response = await api.get('/admin/temp-wallets');
+    return response.data;
+  },
+
+  transferFromTempWallet: async (walletId: string) => {
+    const response = await api.post(`/admin/temp-wallets/${walletId}/transfer`);
     return response.data;
   },
 };

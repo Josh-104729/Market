@@ -670,8 +670,8 @@ function Chat() {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto inset-0 flex flex-col">
-        <div className="flex-1 flex min-h-0 overflow-hidden">
+      <div className="mx-auto fixed inset-0 flex flex-col mt-[106px]">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex min-h-0 overflow-hidden">
           {/* Main Chat Area */}
           <div className="flex-1 flex flex-col min-w-0 min-h-0">
             {/* Header */}

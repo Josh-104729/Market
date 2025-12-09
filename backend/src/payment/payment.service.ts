@@ -11,6 +11,7 @@ import { ChatGateway } from '../chat/chat.gateway';
 import { Milestone } from '../entities/milestone.entity';
 import { Conversation } from '../entities/conversation.entity';
 import { WalletService } from '../wallet/wallet.service';
+import { TempWallet } from '../entities/temp-wallet.entity';
 
 @Injectable()
 export class PaymentService {
@@ -25,6 +26,8 @@ export class PaymentService {
     private milestoneRepository: Repository<Milestone>,
     @InjectRepository(Conversation)
     private conversationRepository: Repository<Conversation>,
+    @InjectRepository(TempWallet)
+    private tempWalletRepository: Repository<TempWallet>,
     private dataSource: DataSource,
     @Inject(forwardRef(() => ChatGateway))
     private chatGateway: ChatGateway,
@@ -51,7 +54,6 @@ export class PaymentService {
   async initiateCharge(userId: string, initiateChargeDto: InitiateChargeDto): Promise<{
     walletAddress: string;
     amount: number;
-    gasFee: number;
     platformFee: number;
     total: number;
     transactionId: string;
@@ -62,13 +64,12 @@ export class PaymentService {
     await queryRunner.startTransaction();
 
     try {
-      // Get or create temp wallet
-      const tempWallet = await this.walletService.getOrCreateTempWallet(userId);
+      // Create a new temp wallet for each charge
+      const tempWallet = await this.walletService.createTempWallet(userId);
 
       // Calculate fees
-      const platformFee = 1; // $1 USDT fixed
-      const gasFee = await this.walletService.estimateGasFee();
-      const total = Number(initiateChargeDto.amount) + gasFee + platformFee;
+      const platformFee = 3; // $3 USDT fixed
+      const total = Number(initiateChargeDto.amount) + platformFee;
 
       // Set expiration (24 hours from now)
       const expiresAt = new Date();
@@ -81,7 +82,6 @@ export class PaymentService {
         status: TransactionStatus.PENDING,
         amount: initiateChargeDto.amount,
         expectedAmount: initiateChargeDto.amount,
-        gasFee: gasFee,
         platformFee: platformFee,
         tempWalletId: tempWallet.id,
         expiresAt: expiresAt,
@@ -95,7 +95,6 @@ export class PaymentService {
       return {
         walletAddress: tempWallet.address,
         amount: initiateChargeDto.amount,
-        gasFee: gasFee,
         platformFee: platformFee,
         total: total,
         transactionId: savedTransaction.id,
@@ -126,6 +125,60 @@ export class PaymentService {
       status: transaction.status,
       transactionHash: transaction.transactionHash,
       confirmedAt: transaction.status === TransactionStatus.SUCCESS ? transaction.updatedAt : undefined,
+    };
+  }
+
+  async getChargeByWalletAddress(walletAddress: string, userId: string): Promise<{
+    walletAddress: string;
+    amount: number;
+    platformFee: number;
+    total: number;
+    transactionId: string;
+    expiresAt: Date;
+    status: string;
+    transactionHash?: string;
+  }> {
+    // Find the temp wallet by address
+    const tempWallet = await this.tempWalletRepository.findOne({
+      where: { address: walletAddress },
+    });
+    
+    if (!tempWallet) {
+      throw new NotFoundException('Wallet address not found');
+    }
+
+    // Verify the wallet belongs to the user
+    if (tempWallet.userId !== userId) {
+      throw new NotFoundException('Wallet address not found');
+    }
+
+    // Find the most recent pending or successful charge transaction for this wallet
+    const transaction = await this.transactionRepository.findOne({
+      where: {
+        clientId: userId,
+        type: TransactionType.CHARGE,
+        tempWalletId: tempWallet.id,
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (!transaction) {
+      throw new NotFoundException('Charge transaction not found');
+    }
+
+    const platformFee = Number(transaction.platformFee || 0);
+    const amount = Number(transaction.amount);
+    const total = amount + platformFee;
+
+    return {
+      walletAddress: tempWallet.address,
+      amount: amount,
+      platformFee: platformFee,
+      total: total,
+      transactionId: transaction.id,
+      expiresAt: transaction.expiresAt || new Date(),
+      status: transaction.status,
+      transactionHash: transaction.transactionHash || undefined,
     };
   }
 
@@ -243,31 +296,11 @@ export class PaymentService {
 
       await queryRunner.commitTransaction();
 
-      // Execute blockchain transaction
-      try {
-        const privateKey = await this.walletService.getDecryptedPrivateKey(tempWallet);
-        const transactionHash = await this.walletService.sendUSDT(
-          privateKey,
-          withdrawDto.walletAddress,
-          withdrawDto.amount,
-        );
+      // Note: Blockchain transaction execution has been removed
+      // The transaction is saved as PENDING and should be processed manually
+      // TODO: Implement blockchain transaction execution if needed
 
-        // Update transaction with hash and success status
-        savedTransaction.transactionHash = transactionHash;
-        savedTransaction.status = TransactionStatus.SUCCESS;
-        await this.transactionRepository.save(savedTransaction);
-
-        return savedTransaction;
-      } catch (error) {
-        // Refund on failure
-        balance.amount = Number(balance.amount) + totalDeduction;
-        await this.balanceRepository.save(balance);
-
-        savedTransaction.status = TransactionStatus.FAILED;
-        await this.transactionRepository.save(savedTransaction);
-
-        throw new BadRequestException(`Withdrawal failed: ${error.message}`);
-      }
+      return savedTransaction;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

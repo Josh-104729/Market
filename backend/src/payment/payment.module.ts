@@ -7,12 +7,13 @@ import { Transaction } from '../entities/transaction.entity';
 import { User } from '../entities/user.entity';
 import { Milestone } from '../entities/milestone.entity';
 import { Conversation } from '../entities/conversation.entity';
+import { TempWallet } from '../entities/temp-wallet.entity';
 import { ChatModule } from '../chat/chat.module';
 import { WalletModule } from '../wallet/wallet.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Balance, Transaction, User, Milestone, Conversation]),
+    TypeOrmModule.forFeature([Balance, Transaction, User, Milestone, Conversation, TempWallet]),
     forwardRef(() => ChatModule),
     forwardRef(() => WalletModule),
   ],

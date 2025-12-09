@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Request, Param } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminSignInDto } from './dto/admin-signin.dto';
 import { AdminGuard } from './guards/admin.guard';
@@ -16,6 +16,18 @@ export class AdminController {
   @Get('profile')
   async getProfile(@Request() req) {
     return this.adminService.getProfile(req.user.id);
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('temp-wallets')
+  async getTempWallets() {
+    return this.adminService.getTempWallets();
+  }
+
+  @UseGuards(AdminGuard)
+  @Post('temp-wallets/:walletId/transfer')
+  async transferFromTempWallet(@Param('walletId') walletId: string) {
+    return this.adminService.transferFromTempWallet(walletId);
   }
 }
 

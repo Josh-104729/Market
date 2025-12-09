@@ -453,7 +453,7 @@ function Layout({ children }: LayoutProps) {
       
       {/* Main Content with padding for fixed header */}
       <main className="flex-1 pt-24 md:pt-28">{children}</main>
-      <Footer />
+      {!location.pathname.startsWith('/chat/') && <Footer />}
     </div>
   )
 }
