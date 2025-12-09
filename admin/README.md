@@ -1,6 +1,6 @@
-# Market Admin
+# OmniMart Admin
 
-Black Market Admin Panel built with React, Vite, TypeScript, and Tailwind CSS.
+OmniMart Admin Panel built with React, Vite, TypeScript, and Tailwind CSS. Manage the universal marketplace where anyone can sell anything and buy anything.
 
 ## Installation
 

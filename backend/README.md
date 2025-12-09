@@ -1,6 +1,6 @@
-# Market Backend
+# OmniMart Backend
 
-Black Market Backend API built with NestJS, TypeScript, and TypeORM.
+OmniMart Backend API built with NestJS, TypeScript, and TypeORM. Powers the universal marketplace where anyone can sell anything and buy anything.
 
 ## Installation
 
@@ -46,7 +46,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
-SMTP_FROM=noreply@market.com
+SMTP_FROM=noreply@omnimart.com
 
 # SMS Configuration (Twilio - Optional)
 # For production, configure Twilio to send SMS verification codes

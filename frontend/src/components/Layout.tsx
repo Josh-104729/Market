@@ -179,7 +179,7 @@ function Layout({ children }: LayoutProps) {
                   </svg>
                 </div>
                 <div className="flex items-baseline gap-1.5 sm:gap-2">
-                  <span className="text-lg sm:text-xl font-bold tracking-tight text-white">MarketPlace</span>
+                  <span className="text-lg sm:text-xl font-bold tracking-tight text-white">OmniMart</span>
                 </div>
               </Link>
               

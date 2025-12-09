@@ -1,6 +1,6 @@
-# Black Market Application
+# OmniMart
 
-A full-stack Black Market web application with separate frontend, admin panel, and backend API.
+A full-stack universal marketplace platform where anyone can sell anything and buy anything. Built with separate frontend, admin panel, and backend API.
 
 ## Project Structure
 

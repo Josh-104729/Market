@@ -72,7 +72,7 @@ function Dashboard() {
               Admin Dashboard
             </h1>
             <p className="text-xl text-blue-100">
-              Welcome to the Black Market Admin Panel
+              Welcome to the OmniMart Admin Panel
             </p>
           </div>
         </div>
