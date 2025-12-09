@@ -9,6 +9,7 @@ import Services from './pages/Services'
 import ServiceDetail from './pages/ServiceDetail'
 import Blog from './pages/Blog'
 import TempWallets from './pages/TempWallets'
+import Withdraws from './pages/Withdraws'
 import SignIn from './pages/SignIn'
 import Layout from './components/Layout'
 
@@ -85,6 +86,13 @@ function App() {
           <PrivateRoute>
             <Layout>
               <TempWallets />
+            </Layout>
+          </PrivateRoute>
+        } />
+        <Route path="/withdraws" element={
+          <PrivateRoute>
+            <Layout>
+              <Withdraws />
             </Layout>
           </PrivateRoute>
         } />

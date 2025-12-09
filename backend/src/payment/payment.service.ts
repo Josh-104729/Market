@@ -254,51 +254,36 @@ export class PaymentService {
         where: { userId },
       });
 
-      // Calculate fees
-      const platformFee = 1; // $1 USDT fixed
-      const gasFee = await this.walletService.estimateGasFee();
-      const totalDeduction = Number(withdrawDto.amount) + platformFee;
-
-      if (!balance || Number(balance.amount) < totalDeduction) {
-        throw new BadRequestException('Insufficient balance');
+      // Validate amount doesn't exceed balance
+      if (!balance || Number(balance.amount) < Number(withdrawDto.amount)) {
+        throw new BadRequestException(`Insufficient balance. Available: ${Number(balance?.amount || 0).toFixed(2)} USDT`);
       }
 
-      // Get user's temp wallet
-      const tempWallet = await this.walletService.getTempWallet(userId);
-      if (!tempWallet) {
-        throw new BadRequestException('No wallet found. Please charge your account first.');
+      // Validate minimum amount
+      if (Number(withdrawDto.amount) < 0.01) {
+        throw new BadRequestException('Minimum withdrawal amount is 0.01 USDT');
       }
 
-      // Check if wallet has enough TRX for gas
-      const trxBalance = await this.walletService.getTRXBalance(tempWallet.address);
-      if (trxBalance < 10) {
-        throw new BadRequestException('Insufficient TRX in wallet for gas. Please ensure wallet has at least 10 TRX.');
+      // Validate wallet address format (TRC20 address)
+      const trc20AddressRegex = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
+      if (!trc20AddressRegex.test(withdrawDto.walletAddress.trim())) {
+        throw new BadRequestException('Invalid TRC20 wallet address');
       }
 
-      // Create transaction
+      // Create pending withdrawal transaction (don't deduct balance yet)
+      // Balance will be deducted when admin accepts the withdrawal
       const transaction = queryRunner.manager.create(Transaction, {
         clientId: userId,
         type: TransactionType.WITHDRAW,
         status: TransactionStatus.PENDING,
         amount: withdrawDto.amount,
-        gasFee: gasFee,
-        platformFee: platformFee,
-        walletAddress: withdrawDto.walletAddress,
-        tempWalletId: tempWallet.id,
-        description: `Withdraw ${withdrawDto.amount} USDT to ${withdrawDto.walletAddress}`,
+        walletAddress: withdrawDto.walletAddress.trim(),
+        description: `Withdraw ${withdrawDto.amount} USDT to ${withdrawDto.walletAddress.trim()}`,
       });
 
       const savedTransaction = await queryRunner.manager.save(transaction);
 
-      // Lock balance (deduct)
-      balance.amount = Number(balance.amount) - totalDeduction;
-      await queryRunner.manager.save(balance);
-
       await queryRunner.commitTransaction();
-
-      // Note: Blockchain transaction execution has been removed
-      // The transaction is saved as PENDING and should be processed manually
-      // TODO: Implement blockchain transaction execution if needed
 
       return savedTransaction;
     } catch (error) {

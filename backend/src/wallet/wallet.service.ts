@@ -184,66 +184,109 @@ export class WalletService {
   }
 
 
-  async getUSDTBalance(walletAddress: string): Promise<number> {
-    try {
-      // Use TronGrid API to get TRC20 token balance (more reliable and doesn't require owner address)
-      const tronGridUrl = process.env.TRON_GRID_URL || 'https://api.trongrid.io';
-      const response = await fetch(
-        `${tronGridUrl}/v1/accounts/${walletAddress}/tokens?contract_address=${this.USDT_CONTRACT}`,
-      );
+  async getUSDTBalance(walletAddress: string, retries: number = 3): Promise<number> {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        // Add delay for retries to avoid rate limiting
+        if (attempt > 0) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff, max 5s
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
 
-      if (response.ok) {
-        const data = await response.json();
-        const tokens = data.data || [];
-        
-        // Find USDT token
-        const usdtToken = tokens.find((token: any) => 
-          token.token_address === this.USDT_CONTRACT || 
-          token.contract_address === this.USDT_CONTRACT
+        // Use TronGrid API to get TRC20 token balance (more reliable and doesn't require owner address)
+        const tronGridUrl = process.env.TRON_GRID_URL || 'https://api.trongrid.io';
+        const response = await fetch(
+          `${tronGridUrl}/v1/accounts/${walletAddress}/tokens?contract_address=${this.USDT_CONTRACT}`,
         );
 
-        if (usdtToken && usdtToken.balance) {
-          // Balance is already in the smallest unit, convert to USDT (6 decimals)
-          return Number(usdtToken.balance) / 1e6;
+        if (response.ok) {
+          const data = await response.json();
+          const tokens = data.data || [];
+          
+          // Find USDT token
+          const usdtToken = tokens.find((token: any) => 
+            token.token_address === this.USDT_CONTRACT || 
+            token.contract_address === this.USDT_CONTRACT
+          );
+
+          if (usdtToken && usdtToken.balance) {
+            // Balance is already in the smallest unit, convert to USDT (6 decimals)
+            return Number(usdtToken.balance) / 1e6;
+          }
+        }
+
+        // If we get 429 (rate limit), retry with backoff
+        if (response.status === 429 && attempt < retries - 1) {
+          console.warn(`Rate limited (429) when getting USDT balance for ${walletAddress}, retrying... (attempt ${attempt + 1}/${retries})`);
+          continue;
+        }
+
+        // Fallback to contract call with default address
+        return await this.getUSDTBalanceViaContract(walletAddress, retries);
+      } catch (error) {
+        // If it's a rate limit error and we have retries left, continue
+        if (attempt < retries - 1 && (error as any)?.response?.status === 429) {
+          console.warn(`Rate limited (429) when getting USDT balance for ${walletAddress}, retrying... (attempt ${attempt + 1}/${retries})`);
+          continue;
+        }
+        
+        if (attempt === retries - 1) {
+          console.error('Error getting USDT balance via API, trying contract call:', error);
+          // Last attempt, try contract call
+          return await this.getUSDTBalanceViaContract(walletAddress, 1);
         }
       }
-
-      // Fallback to contract call with default address
-      return await this.getUSDTBalanceViaContract(walletAddress);
-    } catch (error) {
-      console.error('Error getting USDT balance via API, trying contract call:', error);
-      // Fallback to contract call
-      return await this.getUSDTBalanceViaContract(walletAddress);
     }
+    
+    // If all retries failed, return 0
+    return 0;
   }
 
-  private async getUSDTBalanceViaContract(walletAddress: string): Promise<number> {
-    try {
-      // Set a default address for the contract call
-      // For read-only operations, any valid address works
-      const defaultAddress = 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb';
-      
-      // Create a temporary TronWeb instance with default address
-      const fullNode = process.env.TRON_FULL_NODE || 'https://api.trongrid.io';
-      const solidityNode = process.env.TRON_SOLIDITY_NODE || 'https://api.trongrid.io';
-      const eventServer = process.env.TRON_EVENT_SERVER || 'https://api.trongrid.io';
-      
-      const tempTronWeb = new TronWeb({
-        fullHost: fullNode,
-        solidityNode: solidityNode,
-        eventServer: eventServer,
-      });
-      
-      // Set default address for contract calls
-      tempTronWeb.setAddress(defaultAddress);
-      
-      const contract = await tempTronWeb.contract().at(this.USDT_CONTRACT);
-      const balance = await contract.balanceOf(walletAddress).call();
-      return Number(balance) / 1e6; // Convert from smallest unit to USDT (6 decimals)
-    } catch (error) {
-      console.error('Error getting USDT balance via contract:', error);
-      return 0;
+  private async getUSDTBalanceViaContract(walletAddress: string, retries: number = 1): Promise<number> {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        // Add delay for retries to avoid rate limiting
+        if (attempt > 0) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff, max 5s
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+
+        // Set a default address for the contract call
+        // For read-only operations, any valid address works
+        const defaultAddress = 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb';
+        
+        // Create a temporary TronWeb instance with default address
+        const fullNode = process.env.TRON_FULL_NODE || 'https://api.trongrid.io';
+        const solidityNode = process.env.TRON_SOLIDITY_NODE || 'https://api.trongrid.io';
+        const eventServer = process.env.TRON_EVENT_SERVER || 'https://api.trongrid.io';
+        
+        const tempTronWeb = new TronWeb({
+          fullHost: fullNode,
+          solidityNode: solidityNode,
+          eventServer: eventServer,
+        });
+        
+        // Set default address for contract calls
+        tempTronWeb.setAddress(defaultAddress);
+        
+        const contract = await tempTronWeb.contract().at(this.USDT_CONTRACT);
+        const balance = await contract.balanceOf(walletAddress).call();
+        return Number(balance) / 1e6; // Convert from smallest unit to USDT (6 decimals)
+      } catch (error) {
+        // If it's a rate limit error and we have retries left, continue
+        if (attempt < retries - 1 && ((error as any)?.response?.status === 429 || (error as any)?.message?.includes('429'))) {
+          console.warn(`Rate limited (429) when getting USDT balance via contract for ${walletAddress}, retrying... (attempt ${attempt + 1}/${retries})`);
+          continue;
+        }
+        
+        if (attempt === retries - 1) {
+          console.error('Error getting USDT balance via contract:', error);
+          return 0;
+        }
+      }
     }
+    
+    return 0;
   }
 
   async updateWalletLastChecked(walletId: string): Promise<void> {
@@ -675,6 +718,15 @@ export class WalletService {
         const trxNeeded = requiredTRX - currentTRXBalance;
         // Add a small buffer (1 TRX) for safety
         const trxWithBuffer = trxNeeded + 1;
+        
+        // Check if master wallet has enough TRX to send
+        const masterTRXBalance = await this.getTRXBalance(masterWallet.address);
+        if (masterTRXBalance < trxWithBuffer) {
+          throw new BadRequestException(
+            `Master wallet has insufficient TRX for transaction. Required: ${trxWithBuffer.toFixed(4)} TRX, Available: ${masterTRXBalance.toFixed(4)} TRX. Please add TRX to the master wallet before proceeding.`
+          );
+        }
+        
         console.log(`Sending ${trxWithBuffer} TRX from master to temp wallet ${tempWallet.address} (needed: ${trxNeeded.toFixed(4)}, current: ${currentTRXBalance.toFixed(4)})`);
         trxTxHash = await this.sendTRXFromMaster(tempWallet.address, trxWithBuffer);
         
@@ -781,6 +833,11 @@ export class WalletService {
           // Calculate amount to send (leave buffer for transfer fee)
           const trxToSend = remainingTRXBalance - trxTransferFeeBuffer;
           
+          // Note: The check above (remainingTRXBalance > trxTransferFeeBuffer) already ensures
+          // we have enough TRX. The calculation trxToSend = remainingTRXBalance - trxTransferFeeBuffer
+          // means we always have enough for the transfer + fee.
+          // So we can proceed with the transfer
+          
           console.log(`Sending remaining ${trxToSend.toFixed(4)} TRX from temp wallet to master wallet (leaving ${trxTransferFeeBuffer} TRX for fees)`);
           
           // Send TRX from temp wallet to master wallet
@@ -859,5 +916,113 @@ export class WalletService {
       );
     }
   }
+
+  /**
+   * Transfer USDT from master wallet to a specific address
+   */
+  async transferFromMasterToAddress(
+    toAddress: string,
+    usdtAmount: number,
+  ): Promise<{
+    transactionHash: string;
+  }> {
+    try {
+      const masterWallet = this.getMasterWallet();
+      
+      // Create TronWeb instance with master wallet private key
+      const masterTronWeb = new TronWeb({
+        fullHost: process.env.TRON_FULL_NODE || 'https://api.trongrid.io',
+        solidityNode: process.env.TRON_SOLIDITY_NODE || 'https://api.trongrid.io',
+        eventServer: process.env.TRON_EVENT_SERVER || 'https://api.trongrid.io',
+        privateKey: masterWallet.privateKey,
+      });
+
+      // Set the address for the contract call
+      masterTronWeb.setAddress(masterWallet.address);
+
+      // Calculate required TRX for the transfer
+      const requiredTRX = await this.calculateRequiredTRXForTransfer(
+        masterWallet.address,
+        toAddress,
+        usdtAmount,
+        masterWallet.privateKey,
+      );
+
+      // Check if master wallet has enough TRX
+      const masterTRXBalance = await this.getTRXBalance(masterWallet.address);
+      if (masterTRXBalance < requiredTRX) {
+        throw new BadRequestException(
+          `Master wallet has insufficient TRX for transaction. Required: ${requiredTRX.toFixed(4)} TRX, Available: ${masterTRXBalance.toFixed(4)} TRX. Please add TRX to the master wallet before processing this withdrawal.`
+        );
+      }
+
+      console.log(`Master wallet has sufficient TRX: ${masterTRXBalance.toFixed(4)} >= ${requiredTRX.toFixed(4)}`);
+
+      // Get USDT contract
+      const contract = await masterTronWeb.contract().at(this.USDT_CONTRACT);
+
+      // Transfer USDT (amount in smallest unit, USDT has 6 decimals)
+      const amountInSmallestUnit = Math.floor(usdtAmount * 1e6);
+      
+      console.log(`Transferring ${usdtAmount} USDT from master wallet to ${toAddress}`);
+      
+      const result = await contract.transfer(
+        toAddress,
+        amountInSmallestUnit
+      ).send();
+
+      // Handle different result formats
+      let txHash: string | null = null;
+
+      if (typeof result === 'string') {
+        txHash = result;
+      } else if (result && result.txid) {
+        txHash = result.txid;
+      } else if (result && result.transaction && result.transaction.txid) {
+        txHash = result.transaction.txid;
+      } else if (result && result.txID) {
+        txHash = result.txID;
+      }
+
+      if (!txHash) {
+        throw new BadRequestException('Failed to get transaction hash from transfer');
+      }
+
+      console.log(`USDT transfer transaction hash: ${txHash}`);
+
+      // Wait for transaction to be confirmed
+      let confirmed = false;
+      let attempts = 0;
+      const maxAttempts = 60; // Wait up to 60 seconds
+
+      while (!confirmed && attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        try {
+          const txInfo = await masterTronWeb.trx.getTransactionInfo(txHash);
+          if (txInfo && txInfo.receipt && txInfo.receipt.result === 'SUCCESS') {
+            confirmed = true;
+            console.log(`USDT transfer confirmed: ${txHash}`);
+          }
+        } catch (error) {
+          // Transaction might not be confirmed yet, continue waiting
+        }
+        attempts++;
+      }
+
+      if (!confirmed) {
+        console.warn(`USDT transfer transaction ${txHash} not confirmed within timeout, but transfer may have succeeded`);
+      }
+
+      return {
+        transactionHash: txHash,
+      };
+    } catch (error) {
+      console.error('Error transferring from master wallet:', error);
+      throw new BadRequestException(
+        `Failed to transfer from master wallet: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
 }
 

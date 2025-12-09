@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faFolder, faUsers, faBox, faShoppingCart, faBlog, faWallet } from '@fortawesome/free-solid-svg-icons'
+import { faFolder, faUsers, faBox, faShoppingCart, faBlog, faWallet, faMoneyBillWave } from '@fortawesome/free-solid-svg-icons'
 
 function Dashboard() {
   const menuItems = [
@@ -34,6 +34,14 @@ function Dashboard() {
       icon: faWallet,
       link: '/temp-wallets',
       gradient: 'from-emerald-500 to-emerald-600',
+      available: true,
+    },
+    {
+      title: 'Withdraws',
+      description: 'Review and process withdrawal requests',
+      icon: faMoneyBillWave,
+      link: '/withdraws',
+      gradient: 'from-orange-500 to-orange-600',
       available: true,
     },
     {

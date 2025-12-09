@@ -84,6 +84,16 @@ export const adminApi = {
     const response = await api.post(`/admin/temp-wallets/${walletId}/transfer`);
     return response.data;
   },
+
+  getWithdraws: async () => {
+    const response = await api.get('/admin/withdraws');
+    return response.data;
+  },
+
+  acceptWithdraw: async (withdrawId: string) => {
+    const response = await api.post(`/admin/withdraws/${withdrawId}/accept`);
+    return response.data;
+  },
 };
 
 export const categoryApi = {

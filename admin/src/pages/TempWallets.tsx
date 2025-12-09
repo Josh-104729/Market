@@ -97,9 +97,21 @@ function TempWallets() {
       await loadWallets()
     } catch (err: any) {
       console.error('Transfer failed:', err)
-      const errorMessage = err.response?.data?.message || 'Failed to transfer funds'
+      let errorMessage = err.response?.data?.message || 'Failed to transfer funds'
+      
+      // Check if error is about insufficient TRX
+      if (errorMessage.toLowerCase().includes('trx') || errorMessage.toLowerCase().includes('insufficient')) {
+        errorMessage = `❌ ${errorMessage}\n\nPlease ensure the master wallet has sufficient TRX for transaction fees.`
+      }
+      
       setError(errorMessage)
-      showToast.error(errorMessage)
+      showToast.error(
+        <div>
+          <div className="font-semibold">Transfer Failed</div>
+          <div className="text-sm mt-1 whitespace-pre-line">{errorMessage}</div>
+        </div>,
+        { autoClose: 8000 }
+      )
     } finally {
       setTransferring(null)
     }
