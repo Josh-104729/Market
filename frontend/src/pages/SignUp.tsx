@@ -542,11 +542,11 @@ function SignUp() {
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6">
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
-                <span className="text-blue-400 font-bold text-xl">M</span>
+                <span className="text-blue-400 font-bold text-xl">O</span>
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-white">Create Your Account</h2>
-                <p className="text-blue-100 text-sm">Join thousands of professionals</p>
+                <p className="text-blue-100 text-sm">Join OmniMart - Sell and buy anything</p>
               </div>
             </div>
             

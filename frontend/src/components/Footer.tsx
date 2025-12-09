@@ -13,14 +13,14 @@ function Footer() {
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-3 mb-4 group">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center shadow-lg shadow-primary/20 ring-1 ring-white/10 group-hover:scale-110 transition-transform">
-                <span className="text-white font-bold text-xl">M</span>
+                <span className="text-white font-bold text-xl">O</span>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-xl font-bold tracking-tight text-white">MarketPlace</span>
+                <span className="text-xl font-bold tracking-tight text-white">OmniMart</span>
               </div>
             </Link>
             <p className="text-slate-400 font-light max-w-sm leading-relaxed">
-              Connect with talented professionals and get your projects done. Your one-stop marketplace for quality services.
+              Anyone can sell anything and buy anything. Your universal marketplace for everything.
             </p>
             {/* Social Media Links */}
             <div className="flex items-center gap-4 mt-6">
@@ -141,7 +141,7 @@ function Footer() {
 
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-white/5 text-center text-slate-500 text-xs">
-          <p>© {currentYear} MarketPlace. All rights reserved.</p>
+          <p>© {currentYear} OmniMart. All rights reserved.</p>
         </div>
       </div>
     </footer>

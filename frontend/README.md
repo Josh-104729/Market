@@ -1,6 +1,6 @@
-# Market Frontend
+# OmniMart Frontend
 
-Black Market Frontend built with React, Vite, TypeScript, and Tailwind CSS.
+OmniMart Frontend built with React, Vite, TypeScript, and Tailwind CSS. A universal marketplace where anyone can sell anything and buy anything.
 
 ## Installation
 

@@ -1,7 +1,7 @@
 {
-  "name": "market-backend",
+  "name": "omnimart-backend",
   "version": "1.0.0",
-  "description": "Black Market Backend API",
+  "description": "OmniMart Backend API - Universal marketplace where anyone can sell anything and buy anything",
   "author": "",
   "private": true,
   "license": "UNLICENSED",

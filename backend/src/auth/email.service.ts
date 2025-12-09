@@ -46,14 +46,18 @@ export class EmailService {
 
   async sendVerificationEmail(email: string, verificationUrl: string) {
     const mailOptions = {
-      from: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@market.com',
+      from: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@omnimart.com',
       to: email,
       subject: 'Verify Your Email Address',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #10b981; font-size: 28px; margin: 0;">OmniMart</h1>
+            <p style="color: #666; font-size: 14px; margin-top: 5px;">Anyone can sell anything and buy anything</p>
+          </div>
           <h2 style="color: #333;">Email Verification</h2>
-          <p>Thank you for signing up! Please click the link below to verify your email address:</p>
-          <a href="${verificationUrl}" style="display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0;">
+          <p>Thank you for signing up to OmniMart! Please click the link below to verify your email address:</p>
+          <a href="${verificationUrl}" style="display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0;">
             Verify Email
           </a>
           <p>Or copy and paste this URL into your browser:</p>

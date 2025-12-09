@@ -40,13 +40,13 @@ function SignIn() {
         <div className="glass-card rounded-2xl shadow-2xl p-8 space-y-8">
           <div className="text-center">
             <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center mb-4 shadow-lg shadow-primary/20 ring-1 ring-white/10">
-              <span className="text-white font-bold text-2xl">M</span>
+              <span className="text-white font-bold text-2xl">O</span>
             </div>
             <h2 className="text-3xl font-bold text-white mb-2">
               Welcome Back
             </h2>
             <p className="text-slate-400">
-              Sign in to continue to MarketPlace
+              Sign in to continue to OmniMart
             </p>
           </div>
 
