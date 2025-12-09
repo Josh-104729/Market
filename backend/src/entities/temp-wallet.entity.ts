@@ -23,6 +23,9 @@ export class TempWallet extends BaseEntity {
   @Column({ name: 'private_key', type: 'text' })
   privateKey: string; // Encrypted private key
 
+  @Column({ name: 'encryption_key_hash', nullable: true, length: 64 })
+  encryptionKeyHash?: string; // Hash of the encryption key used to encrypt this wallet's private key
+
   @Column({
     type: 'enum',
     enum: TempWalletStatus,

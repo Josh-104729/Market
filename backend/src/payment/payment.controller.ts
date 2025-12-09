@@ -25,6 +25,11 @@ export class PaymentController {
     return this.paymentService.getChargeStatus(transactionId, req.user.id);
   }
 
+  @Get('charge/wallet/:walletAddress')
+  async getChargeByWalletAddress(@Request() req, @Param('walletAddress') walletAddress: string) {
+    return this.paymentService.getChargeByWalletAddress(walletAddress, req.user.id);
+  }
+
   @Post('charge')
   async charge(@Request() req, @Body() chargeDto: ChargeDto) {
     return this.paymentService.charge(req.user.id, chargeDto);

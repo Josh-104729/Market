@@ -76,9 +76,6 @@ export class Transaction extends BaseEntity {
   @Column({ name: 'expected_amount', type: 'decimal', precision: 10, scale: 2, nullable: true })
   expectedAmount?: number; // For charge transactions
 
-  @Column({ name: 'gas_fee', type: 'decimal', precision: 10, scale: 2, nullable: true })
-  gasFee?: number;
-
   @Column({ name: 'platform_fee', type: 'decimal', precision: 10, scale: 2, nullable: true })
   platformFee?: number;
 

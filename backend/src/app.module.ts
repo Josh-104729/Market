@@ -39,7 +39,7 @@ import { WalletModule } from './wallet/wallet.module';
       database: 'market',
       entities: [User, Category, Service, Tag, Conversation, Message, Milestone, Post, PostLike, PostComment, PostCommentLike, Balance, Transaction, TempWallet],
       synchronize: true, // Set to false in production
-      logging: true,
+      logging: false,
     }),
     AuthModule,
     AdminModule,

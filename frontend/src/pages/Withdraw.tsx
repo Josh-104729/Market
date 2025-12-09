@@ -27,9 +27,9 @@ function Withdraw() {
       return
     }
 
-    // Check if balance is sufficient (amount + fees)
-    if (balance && (Number(amount) + totalFees) > Number(balance.amount)) {
-      showToast.error(`Insufficient balance. You need ${(Number(amount) + totalFees).toFixed(2)} USDT (including fees)`)
+    // Validate amount doesn't exceed balance
+    if (!balance || Number(amount) > Number(balance.amount)) {
+      showToast.error(`Insufficient balance. Available: ${Number(balance?.amount || 0).toFixed(2)} USDT`)
       return
     }
 
@@ -50,7 +50,7 @@ function Withdraw() {
         amount: Number(amount),
         walletAddress: walletAddress.trim(),
       })
-      showToast.success('Withdrawal request submitted successfully')
+      showToast.success('Withdrawal request submitted successfully. It will be processed by admin.')
       setAmount('')
       setWalletAddress('')
       // Refresh balance
@@ -66,18 +66,9 @@ function Withdraw() {
 
   const handleMaxAmount = () => {
     if (balance) {
-      // Account for fees (platform fee $1 + estimated gas fee ~$1.5)
-      const estimatedFees = 2.5
-      const maxAmount = Math.max(0, Number(balance.amount) - estimatedFees)
-      setAmount(maxAmount.toFixed(2))
+      setAmount(Number(balance.amount).toFixed(2))
     }
   }
-
-  // Calculate estimated fees
-  const estimatedGasFee = 1.5 // This should ideally come from the backend
-  const platformFee = 1
-  const totalFees = estimatedGasFee + platformFee
-  const netAmount = amount ? (Number(amount) - totalFees).toFixed(2) : '0.00'
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
@@ -138,35 +129,11 @@ function Withdraw() {
             </p>
           </div>
 
-          {amount && Number(amount) > 0 && (
-            <div className="p-4 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 space-y-2">
-              <div className="flex justify-between text-slate-300">
-                <span>Withdrawal Amount:</span>
-                <span className="font-semibold">{Number(amount).toFixed(2)} USDT</span>
-              </div>
-              <div className="flex justify-between text-slate-300">
-                <span>Gas Fee (estimated):</span>
-                <span className="font-semibold">~{estimatedGasFee.toFixed(2)} USDT</span>
-              </div>
-              <div className="flex justify-between text-slate-300">
-                <span>Platform Fee:</span>
-                <span className="font-semibold">{platformFee.toFixed(2)} USDT</span>
-              </div>
-              <div className="pt-2 border-t border-white/10 flex justify-between text-white">
-                <span className="font-semibold">Total Deduction:</span>
-                <span className="font-bold text-lg">{(Number(amount) + totalFees).toFixed(2)} USDT</span>
-              </div>
-              <div className="pt-2 border-t border-white/10 flex justify-between text-green-400">
-                <span className="font-semibold">You will receive:</span>
-                <span className="font-bold text-lg">{netAmount} USDT</span>
-              </div>
-            </div>
-          )}
 
-          <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
-            <p className="text-sm text-yellow-300">
-              <strong>Warning:</strong> Please double-check your wallet address. 
-              Withdrawals are irreversible and will be processed immediately.
+          <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
+            <p className="text-sm text-blue-300">
+              <strong>Note:</strong> Your withdrawal request will be reviewed by admin. 
+              Please double-check your wallet address before submitting.
             </p>
           </div>
 
