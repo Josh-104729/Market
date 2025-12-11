@@ -14,6 +14,7 @@ import Charge from './pages/Charge'
 import ChargeDetail from './pages/ChargeDetail'
 import Withdraw from './pages/Withdraw'
 import Transactions from './pages/Transactions'
+import Notifications from './pages/Notifications'
 import Layout from './components/Layout'
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
                 <Route path="/charge/:walletAddress" element={<ChargeDetail />} />
                 <Route path="/withdraw" element={<Withdraw />} />
                 <Route path="/transactions" element={<Transactions />} />
+                <Route path="/notifications" element={<Notifications />} />
               </Routes>
             </Layout>
           }

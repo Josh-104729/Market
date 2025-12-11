@@ -11,12 +11,14 @@ import { Conversation } from '../entities/conversation.entity';
 import { TempWallet } from '../entities/temp-wallet.entity';
 import { ChatModule } from '../chat/chat.module';
 import { WalletModule } from '../wallet/wallet.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Balance, Transaction, User, Milestone, Conversation, TempWallet]),
     forwardRef(() => ChatModule),
     forwardRef(() => WalletModule),
+    forwardRef(() => NotificationModule),
   ],
   controllers: [PaymentController],
   providers: [PaymentService, PaymentMonitorService],

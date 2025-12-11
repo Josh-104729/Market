@@ -8,13 +8,15 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Injectable, UseGuards } from '@nestjs/common';
+import { Injectable, UseGuards, Inject, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { Conversation } from '../entities/conversation.entity';
 import { Message } from '../entities/message.entity';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../entities/notification.entity';
 
 @Injectable()
 @WebSocketGateway({
@@ -38,15 +40,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private conversationRepository: Repository<Conversation>,
     @InjectRepository(Message)
     private messageRepository: Repository<Message>,
+    @Inject(forwardRef(() => NotificationService))
+    private notificationService: NotificationService,
   ) {}
 
   async handleConnection(client: Socket) {
     try {
-      console.log('New connection attempt:', {
-        auth: client.handshake.auth,
-        query: client.handshake.query,
-        headers: Object.keys(client.handshake.headers),
-      });
+      // console.log('New connection attempt:', {
+      //   auth: client.handshake.auth,
+      //   query: client.handshake.query,
+      //   headers: Object.keys(client.handshake.headers),
+      // });
 
       // Try multiple ways to get the token
       const token = 
@@ -72,6 +76,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Store user info in socket
       client.data.userId = user.id;
       client.data.user = user;
+
+      // Join user's personal room for notifications
+      client.join(`user:${user.id}`);
 
       console.log(`✅ User ${user.id} (${user.email}) connected to chat`);
     } catch (error) {
@@ -178,6 +185,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Emit to all clients in the conversation room
       this.server.to(`conversation:${data.conversationId}`).emit('new_message', messageWithSender);
+
+      // Create notification for the recipient (not the sender)
+      const recipientId = conversation.clientId === userId ? conversation.providerId : conversation.clientId;
+      if (recipientId) {
+        const senderName = messageWithSender.sender
+          ? `${messageWithSender.sender.firstName || ''} ${messageWithSender.sender.lastName || ''}`.trim() || messageWithSender.sender.userName || 'Someone'
+          : 'Someone';
+        
+        const messagePreview = data.message.length > 100 
+          ? data.message.substring(0, 100) + '...'
+          : data.message;
+
+        await this.notificationService.createNotification(
+          recipientId,
+          NotificationType.MESSAGE,
+          `New message from ${senderName}`,
+          messagePreview,
+          { conversationId: data.conversationId, messageId: savedMessage.id },
+        );
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       client.emit('error', { message: 'Failed to send message' });

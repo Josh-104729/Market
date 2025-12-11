@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, In } from 'typeorm';
 import { Service, ServiceStatus } from '../entities/service.entity';
 import { Tag } from '../entities/tag.entity';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../entities/notification.entity';
 
 @Injectable()
 export class ServiceService {
@@ -13,6 +15,8 @@ export class ServiceService {
     private serviceRepository: Repository<Service>,
     @InjectRepository(Tag)
     private tagRepository: Repository<Tag>,
+    @Inject(forwardRef(() => NotificationService))
+    private notificationService: NotificationService,
   ) {}
 
   async create(userId: string, createServiceDto: CreateServiceDto, adImagePath: string): Promise<Service> {
@@ -134,6 +138,9 @@ export class ServiceService {
       throw new ForbiddenException('You can only update your own services');
     }
 
+    // Store old status to detect status changes
+    const oldStatus = service.status;
+
     if (updateServiceDto.categoryId) {
       service.categoryId = updateServiceDto.categoryId;
     }
@@ -154,6 +161,38 @@ export class ServiceService {
     }
 
     await this.serviceRepository.save(service);
+
+    // Send notification if admin approved/unblocked the service
+    if (isAdmin && updateServiceDto.status && oldStatus !== updateServiceDto.status) {
+      if (oldStatus === ServiceStatus.DRAFT && updateServiceDto.status === ServiceStatus.ACTIVE) {
+        // Service was approved
+        await this.notificationService.createNotification(
+          service.userId,
+          NotificationType.SERVICE_APPROVED,
+          'Service Approved',
+          `Your service "${service.title}" has been approved and is now active.`,
+          { serviceId: service.id, serviceTitle: service.title },
+        );
+      } else if (oldStatus === ServiceStatus.BLOCKED && updateServiceDto.status === ServiceStatus.ACTIVE) {
+        // Service was unblocked
+        await this.notificationService.createNotification(
+          service.userId,
+          NotificationType.SERVICE_UNBLOCKED,
+          'Service Unblocked',
+          `Your service "${service.title}" has been unblocked and is now active again.`,
+          { serviceId: service.id, serviceTitle: service.title },
+        );
+      } else if (updateServiceDto.status === ServiceStatus.BLOCKED) {
+        // Service was blocked
+        await this.notificationService.createNotification(
+          service.userId,
+          NotificationType.SERVICE_BLOCKED,
+          'Service Blocked',
+          `Your service "${service.title}" has been blocked.`,
+          { serviceId: service.id, serviceTitle: service.title },
+        );
+      }
+    }
 
     // Update tags if provided
     if (updateServiceDto.tags) {

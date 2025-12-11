@@ -9,6 +9,8 @@ import { Milestone } from '../entities/milestone.entity';
 import { Conversation } from '../entities/conversation.entity';
 import { WalletService } from '../wallet/wallet.service';
 import { TempWallet } from '../entities/temp-wallet.entity';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../entities/notification.entity';
 
 @Injectable()
 export class PaymentService {
@@ -31,6 +33,8 @@ export class PaymentService {
     private chatGateway: ChatGateway,
     @Inject(forwardRef(() => WalletService))
     private walletService: WalletService,
+    @Inject(forwardRef(() => NotificationService))
+    private notificationService: NotificationService,
   ) { }
 
   async getBalance(userId: string): Promise<Balance> {
@@ -214,6 +218,23 @@ export class PaymentService {
       await queryRunner.manager.save(providerBalance);
 
       await queryRunner.commitTransaction();
+
+      // Create notifications for both client and provider
+      await this.notificationService.createNotification(
+        transaction.clientId!,
+        NotificationType.PAYMENT_TRANSFER,
+        'Payment Sent',
+        `You sent ${Number(transaction.amount).toFixed(2)} USDT for milestone payment`,
+        { transactionId: transaction.id, milestoneId: transaction.milestoneId, amount: transaction.amount },
+      );
+
+      await this.notificationService.createNotification(
+        transaction.providerId!,
+        NotificationType.PAYMENT_TRANSFER,
+        'Payment Received',
+        `You received ${Number(transaction.amount).toFixed(2)} USDT for milestone payment`,
+        { transactionId: transaction.id, milestoneId: transaction.milestoneId, amount: transaction.amount },
+      );
 
       // Load transaction with relations for WebSocket emission
       const transactionWithRelations = await this.transactionRepository.findOne({
@@ -540,6 +561,15 @@ export class PaymentService {
 
       await queryRunner.commitTransaction();
 
+      // Create notification for successful charge
+      await this.notificationService.createNotification(
+        currentTransaction.clientId!,
+        NotificationType.PAYMENT_CHARGE,
+        'Charge Completed',
+        `Your balance has been charged with ${Number(currentTransaction.amount).toFixed(2)} USDT`,
+        { transactionId: currentTransaction.id, amount: currentTransaction.amount },
+      );
+
       return { success: true, message: 'Charge processed successfully' };
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -689,8 +719,17 @@ export class PaymentService {
 
       await queryRunner.commitTransaction();
 
-      // Emit WebSocket notification to user if they're online
+      // Create notification for successful withdraw
       if (transaction.clientId) {
+        await this.notificationService.createNotification(
+          transaction.clientId,
+          NotificationType.PAYMENT_WITHDRAW,
+          'Withdrawal Completed',
+          `Your withdrawal of ${Number(transaction.amount).toFixed(2)} USDT has been processed successfully`,
+          { transactionId: transaction.id, amount: transaction.amount, transactionHash: result.transactionHash },
+        );
+
+        // Emit WebSocket notification to user if they're online
         this.chatGateway.server.to(`user:${transaction.clientId}`).emit('withdraw_completed', {
           transactionId: transaction.id,
           amount: transaction.amount,

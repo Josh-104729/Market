@@ -802,5 +802,54 @@ export const paymentApi = {
 };
 
 
+export interface Notification {
+  id: string;
+  userId?: string;
+  type: 'broadcast' | 'payment_charge' | 'payment_withdraw' | 'payment_transfer' | 'message' | 'service_approved' | 'service_blocked' | 'service_unblocked';
+  title: string;
+  message: string;
+  readAt?: string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotificationListResponse {
+  data: Notification[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  unreadCount: number;
+}
+
+export const notificationApi = {
+  getAll: async (params?: {
+    page?: number;
+    limit?: number;
+  }): Promise<NotificationListResponse> => {
+    const response = await api.get('/notifications', { params });
+    return response.data;
+  },
+
+  getUnreadCount: async (): Promise<{ count: number }> => {
+    const response = await api.get('/notifications/unread-count');
+    return response.data;
+  },
+
+  markAsRead: async (notificationId: string): Promise<Notification> => {
+    const response = await api.patch(`/notifications/${notificationId}/read`);
+    return response.data;
+  },
+
+  markAllAsRead: async (): Promise<void> => {
+    await api.patch('/notifications/read-all');
+  },
+
+  delete: async (notificationId: string): Promise<void> => {
+    await api.delete(`/notifications/${notificationId}`);
+  },
+};
+
 export default api;
 

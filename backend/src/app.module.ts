@@ -27,8 +27,10 @@ import { PostCommentLike } from './entities/post-comment-like.entity';
 import { Balance } from './entities/balance.entity';
 import { Transaction } from './entities/transaction.entity';
 import { TempWallet } from './entities/temp-wallet.entity';
+import { Notification } from './entities/notification.entity';
 import { PaymentModule } from './payment/payment.module';
 import { WalletModule } from './wallet/wallet.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -46,7 +48,7 @@ import { WalletModule } from './wallet/wallet.module';
         username: configService.get<string>('DB_USERNAME', 'root'),
         password: configService.get<string>('DB_PASSWORD', 'Csh104729!'),
         database: configService.get<string>('DB_DATABASE', 'market'),
-        entities: [User, Category, Service, Tag, Conversation, Message, Milestone, Post, PostLike, PostComment, PostCommentLike, Balance, Transaction, TempWallet],
+        entities: [User, Category, Service, Tag, Conversation, Message, Milestone, Post, PostLike, PostComment, PostCommentLike, Balance, Transaction, TempWallet, Notification],
         synchronize: configService.get<boolean>('DB_SYNCHRONIZE', true), // Set to false in production
         logging: configService.get<boolean>('DB_LOGGING', false),
       }),
@@ -63,6 +65,7 @@ import { WalletModule } from './wallet/wallet.module';
     BlogModule,
     PaymentModule,
     WalletModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,7 +1,7 @@
 import { ReactNode } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSignOutAlt, faHome, faFolder, faBriefcase, faNewspaper, faWallet, faMoneyBillWave } from '@fortawesome/free-solid-svg-icons'
+import { faSignOutAlt, faHome, faFolder, faBriefcase, faNewspaper, faWallet, faMoneyBillWave, faBullhorn } from '@fortawesome/free-solid-svg-icons'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { logout } from '../store/slices/authSlice'
 
@@ -27,13 +27,14 @@ function Layout({ children }: LayoutProps) {
     { path: '/blog', label: 'Blog', icon: faNewspaper },
     { path: '/temp-wallets', label: 'Temp Wallets', icon: faWallet },
     { path: '/withdraws', label: 'Withdraws', icon: faMoneyBillWave },
+    { path: '/broadcast', label: 'Broadcast', icon: faBullhorn },
   ]
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0a0f1f 0%, #0f172a 100%)' }}>
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/20 border-b border-white/10">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between">
             <h2 className="text-xl md:text-2xl font-bold text-white">OmniMart Admin</h2>
             <div className="flex items-center space-x-4">
               <span className="text-slate-300 text-sm md:text-base">

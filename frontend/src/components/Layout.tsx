@@ -9,6 +9,7 @@ import { getSocket } from '../services/socket'
 import { Message, paymentApi, Balance } from '../services/api'
 import { Socket } from 'socket.io-client'
 import Footer from './Footer'
+import NotificationDropdown from './NotificationDropdown'
 
 interface LayoutProps {
   children: ReactNode
@@ -232,6 +233,8 @@ function Layout({ children }: LayoutProps) {
               <div className="flex items-center gap-4">
                 {isAuthenticated && user ? (
                   <>
+                    {/* Notifications */}
+                    <NotificationDropdown userId={user.id} />
                     {/* Balance Dropdown */}
                     <div className="hidden md:block relative" ref={balanceDropdownRef}>
                       <button

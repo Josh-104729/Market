@@ -14,6 +14,7 @@ import { User } from '../entities/user.entity';
 import { Transaction, TransactionType, TransactionStatus } from '../entities/transaction.entity';
 import { AdminSignInDto } from './dto/admin-signin.dto';
 import { PaymentService } from '../payment/payment.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class AdminService {
@@ -26,6 +27,8 @@ export class AdminService {
     private dataSource: DataSource,
     @Inject(forwardRef(() => PaymentService))
     private paymentService: PaymentService,
+    @Inject(forwardRef(() => NotificationService))
+    private notificationService: NotificationService,
   ) {}
 
   async signIn(dto: AdminSignInDto) {
@@ -100,6 +103,10 @@ export class AdminService {
 
   async acceptWithdraw(withdrawId: string) {
     return this.paymentService.processWithdraw(withdrawId);
+  }
+
+  async broadcastNotification(title: string, message: string, metadata?: Record<string, any>) {
+    return this.notificationService.broadcastNotification(title, message, metadata);
   }
 }
 

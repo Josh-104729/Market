@@ -11,6 +11,7 @@ import { Transaction } from '../entities/transaction.entity';
 import { WalletService } from '../wallet/wallet.service';
 import { WalletModule } from '../wallet/wallet.module';
 import { PaymentModule } from '../payment/payment.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { PaymentModule } from '../payment/payment.module';
     }),
     WalletModule,
     forwardRef(() => PaymentModule),
+    forwardRef(() => NotificationModule),
   ],
   controllers: [AdminController],
   providers: [AdminService, AdminInitService],
