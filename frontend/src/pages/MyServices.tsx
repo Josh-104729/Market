@@ -298,11 +298,13 @@ function MyServices() {
                       <div className="flex items-center">
                         <StarRating
                           rating={
-                            service.rating
-                              ? typeof service.rating === 'number'
-                                ? service.rating
-                                : parseFloat(service.rating as any)
-                              : 0
+                            service.averageRating !== undefined && service.averageRating > 0
+                              ? service.averageRating
+                              : service.rating
+                                ? typeof service.rating === 'number'
+                                  ? service.rating
+                                  : parseFloat(service.rating as any)
+                                : 0
                           }
                         />
                       </div>

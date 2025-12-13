@@ -9,9 +9,29 @@ import {
   faExclamationTriangle,
   faChevronLeft,
   faChevronRight,
+  faStar,
 } from '@fortawesome/free-solid-svg-icons'
+import { faStar as faStarRegular, faStarHalfStroke } from '@fortawesome/free-regular-svg-icons'
 import { serviceApi, categoryApi, Service, Category } from '../services/api'
 import { renderIcon } from '../utils/iconHelper'
+
+const StarRating = ({ rating }: { rating: number }) => {
+  const fullStars = Math.floor(rating)
+  const hasHalfStar = rating % 1 >= 0.5
+  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
+
+  return (
+    <div className="flex items-center space-x-1">
+      {[...Array(fullStars)].map((_, i) => (
+        <FontAwesomeIcon key={`full-${i}`} icon={faStar} className="text-yellow-400" />
+      ))}
+      {hasHalfStar && <FontAwesomeIcon icon={faStarHalfStroke} className="text-yellow-400" />}
+      {[...Array(emptyStars)].map((_, i) => (
+        <FontAwesomeIcon key={`empty-${i}`} icon={faStarRegular} className="text-gray-300" />
+      ))}
+    </div>
+  )
+}
 
 interface ConfirmDialog {
   serviceId: string
@@ -293,6 +313,9 @@ function Services() {
                       Seller
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                      Rating
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
                       Price
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
@@ -351,6 +374,21 @@ function Services() {
                           {service.user?.firstName && service.user?.lastName
                             ? `${service.user.firstName} ${service.user.lastName}`
                             : service.user?.userName || service.user?.email || 'N/A'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <StarRating
+                            rating={
+                              service.averageRating !== undefined && service.averageRating > 0
+                                ? service.averageRating
+                                : service.rating
+                                  ? typeof service.rating === 'number'
+                                    ? service.rating
+                                    : parseFloat(service.rating as any)
+                                  : 0
+                            }
+                          />
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

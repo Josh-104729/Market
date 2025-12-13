@@ -17,6 +17,7 @@ import {
   faEllipsisV,
   faSmile,
   faPaperclip,
+  faStar,
 } from '@fortawesome/free-solid-svg-icons'
 import { conversationApi, messageApi, milestoneApi, paymentApi, Conversation, Message, Milestone, Transaction } from '../services/api'
 import { useAppSelector } from '../store/hooks'
@@ -516,8 +517,8 @@ function Chat() {
       
       // Check if milestone is already released and trying to release again
       const milestone = milestones.find(m => m.id === milestoneId)
-      if (action === 'release' && milestone?.status === 'released') {
-        showToast.error('This milestone has already been released')
+      if (action === 'release' && milestone?.status === 'released' && milestone?.feedback) {
+        showToast.error('This milestone has already been released with feedback')
         return
       }
       
@@ -573,11 +574,16 @@ function Chat() {
 
     try {
       setUpdatingMilestone(releaseForm.milestoneId)
+      const milestone = milestones.find(m => m.id === releaseForm.milestoneId)
+      const isAdminReleased = milestone?.status === 'released' && !milestone?.feedback
+      
       await milestoneApi.release(releaseForm.milestoneId, {
         feedback: releaseForm.feedback,
         rating: releaseForm.rating,
       })
-      showToast.success('Milestone released! Provider can now accept the payment.')
+      showToast.success(isAdminReleased 
+        ? 'Feedback submitted! Thank you for your review.' 
+        : 'Milestone released! Provider can now accept the payment.')
       setShowReleaseModal(false)
       setReleaseForm({ milestoneId: '', feedback: '', rating: 0 })
       await fetchMilestones()
@@ -1346,6 +1352,18 @@ function Chat() {
                           )}
                         </>
                       )}
+                      {milestone.status === 'released' && !milestone.feedback && isClient && (
+                        <button
+                          onClick={() => {
+                            setReleaseForm({ milestoneId: milestone.id, feedback: '', rating: 0 })
+                            setShowReleaseModal(true)
+                          }}
+                          className="flex-1 bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-xs font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-1 shadow-glow-primary"
+                        >
+                          <FontAwesomeIcon icon={faStar} className="text-xs" />
+                          Provide Feedback
+                        </button>
+                      )}
                       {milestone.status === 'released' && (
                         <>
                           {/* Only provider can dispute after milestone is released */}
@@ -1371,13 +1389,20 @@ function Chat() {
       </div>
 
       {/* Release Milestone Modal */}
-      {showReleaseModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="glass-card rounded-xl p-6 max-w-md w-full space-y-4">
-            <h2 className="text-xl font-bold text-white mb-4">Release Milestone</h2>
-            <p className="text-slate-300 text-sm mb-4">
-              Please provide feedback and rate the provider (1-5 stars) before releasing this milestone.
-            </p>
+      {showReleaseModal && (() => {
+        const milestone = milestones.find(m => m.id === releaseForm.milestoneId)
+        const isAdminReleased = milestone?.status === 'released' && !milestone?.feedback
+        return (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="glass-card rounded-xl p-6 max-w-md w-full space-y-4">
+              <h2 className="text-xl font-bold text-white mb-4">
+                {isAdminReleased ? 'Provide Feedback' : 'Release Milestone'}
+              </h2>
+              <p className="text-slate-300 text-sm mb-4">
+                {isAdminReleased
+                  ? 'This milestone was released by admin. Please provide your feedback and rate the provider (1-5 stars).'
+                  : 'Please provide feedback and rate the provider (1-5 stars) before releasing this milestone.'}
+              </p>
             
             <div className="space-y-4">
               <div>
@@ -1428,10 +1453,18 @@ function Chat() {
                 {updatingMilestone === releaseForm.milestoneId ? (
                   <>
                     <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
-                    Releasing...
+                    {(() => {
+                      const milestone = milestones.find(m => m.id === releaseForm.milestoneId)
+                      const isAdminReleased = milestone?.status === 'released' && !milestone?.feedback
+                      return isAdminReleased ? 'Submitting...' : 'Releasing...'
+                    })()}
                   </>
                 ) : (
-                  'Release Milestone'
+                  (() => {
+                    const milestone = milestones.find(m => m.id === releaseForm.milestoneId)
+                    const isAdminReleased = milestone?.status === 'released' && !milestone?.feedback
+                    return isAdminReleased ? 'Submit Feedback' : 'Release Milestone'
+                  })()
                 )}
               </button>
               <button
@@ -1447,7 +1480,8 @@ function Chat() {
             </div>
           </div>
         </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

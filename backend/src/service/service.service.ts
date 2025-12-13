@@ -109,10 +109,49 @@ export class ServiceService {
       .take(limit)
       .getMany();
 
+    // Calculate averageRating from milestones for each service
+    const serviceIds = data.map((s) => s.id);
+    const allMilestones = await this.milestoneRepository.find({
+      where: { serviceId: In(serviceIds), deletedAt: null },
+      relations: ['client'],
+    });
+
+    // Group milestones by serviceId and calculate averageRating
+    const serviceRatings = new Map<string, { sum: number; count: number }>();
+    allMilestones.forEach((milestone) => {
+      if (
+        milestone.status === MilestoneStatus.RELEASED &&
+        milestone.rating !== null &&
+        milestone.rating !== undefined
+      ) {
+        const serviceId = milestone.serviceId;
+        if (!serviceRatings.has(serviceId)) {
+          serviceRatings.set(serviceId, { sum: 0, count: 0 });
+        }
+        const current = serviceRatings.get(serviceId)!;
+        current.sum += Number(milestone.rating);
+        current.count += 1;
+        serviceRatings.set(serviceId, current);
+      }
+    });
+
+    // Add averageRating to each service
+    const servicesWithRatings = data.map((service) => {
+      const ratingData = serviceRatings.get(service.id);
+      const averageRating =
+        ratingData && ratingData.count > 0
+          ? Math.round((ratingData.sum / ratingData.count) * 100) / 100
+          : 0;
+      return {
+        ...service,
+        averageRating,
+      };
+    });
+
     const totalPages = Math.ceil(total / limit);
 
     return {
-      data,
+      data: servicesWithRatings,
       total,
       page,
       limit,
