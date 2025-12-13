@@ -161,6 +161,21 @@ export interface Service {
   tags?: Tag[];
   createdAt: string;
   updatedAt: string;
+  totalMilestones?: number;
+  completedMilestones?: number;
+  averageRating?: number;
+  feedbackCount?: number;
+  feedbacks?: Array<{
+    id: string;
+    title: string;
+    feedback: string;
+    rating: number;
+    client: { id: string; firstName?: string; lastName?: string; userName?: string };
+    createdAt: string;
+  }>;
+  feedbacksHasMore?: boolean;
+  feedbacksPage?: number;
+  feedbacksLimit?: number;
 }
 
 export interface ServiceListResponse {
@@ -183,8 +198,11 @@ export const serviceApi = {
     return response.data;
   },
 
-  getById: async (id: string): Promise<Service> => {
-    const response = await api.get(`/services/${id}`);
+  getById: async (id: string, feedbackPage?: number, feedbackLimit?: number): Promise<Service> => {
+    const params: any = {};
+    if (feedbackPage !== undefined) params.feedbackPage = feedbackPage;
+    if (feedbackLimit !== undefined) params.feedbackLimit = feedbackLimit;
+    const response = await api.get(`/services/${id}`, { params });
     return response.data;
   },
 

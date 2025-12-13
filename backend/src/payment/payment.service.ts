@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, Not } from 'typeorm';
 import { Balance } from '../entities/balance.entity';
 import { Transaction, TransactionType, TransactionStatus } from '../entities/transaction.entity';
 import { User } from '../entities/user.entity';
@@ -63,8 +63,8 @@ export class PaymentService {
 
     const [transactions, total] = await this.transactionRepository.findAndCount({
       where: [
-        { clientId: userId },
-        { providerId: userId },
+        { clientId: userId, type: Not(TransactionType.PLATFORM_FEE) },
+        { providerId: userId, type: Not(TransactionType.PLATFORM_FEE) },
       ],
       relations: ['milestone', 'client', 'provider'],
       order: { createdAt: 'DESC' },

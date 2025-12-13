@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, In } from 'typeorm';
 import { Service, ServiceStatus } from '../entities/service.entity';
 import { Tag } from '../entities/tag.entity';
+import { Milestone, MilestoneStatus } from '../entities/milestone.entity';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { NotificationService } from '../notification/notification.service';
@@ -15,6 +16,8 @@ export class ServiceService {
     private serviceRepository: Repository<Service>,
     @InjectRepository(Tag)
     private tagRepository: Repository<Tag>,
+    @InjectRepository(Milestone)
+    private milestoneRepository: Repository<Milestone>,
     @Inject(forwardRef(() => NotificationService))
     private notificationService: NotificationService,
   ) {}
@@ -117,7 +120,27 @@ export class ServiceService {
     };
   }
 
-  async findOne(id: string): Promise<Service> {
+  async findOne(
+    id: string,
+    feedbackPage: number = 1,
+    feedbackLimit: number = 10,
+  ): Promise<Service & { 
+    totalMilestones: number;
+    completedMilestones: number;
+    averageRating: number;
+    feedbackCount: number;
+    feedbacks: Array<{
+      id: string;
+      title: string;
+      feedback: string;
+      rating: number;
+      client: { id: string; firstName?: string; lastName?: string; userName?: string };
+      createdAt: string;
+    }>;
+    feedbacksHasMore: boolean;
+    feedbacksPage: number;
+    feedbacksLimit: number;
+  }> {
     const service = await this.serviceRepository.findOne({
       where: { id, deletedAt: null },
       relations: ['category', 'user', 'tags'],
@@ -127,7 +150,74 @@ export class ServiceService {
       throw new NotFoundException(`Service with ID ${id} not found`);
     }
 
-    return service;
+    // Get all milestones for this service
+    const allMilestones = await this.milestoneRepository.find({
+      where: { serviceId: id, deletedAt: null },
+      relations: ['client'],
+    });
+
+    // Calculate statistics
+    const totalMilestones = allMilestones.length;
+    const completedMilestones = allMilestones.filter(
+      (m) => m.status === MilestoneStatus.RELEASED,
+    ).length;
+
+    // Calculate average rating from completed milestones with ratings
+    const completedWithRatings = allMilestones.filter(
+      (m) => m.status === MilestoneStatus.RELEASED && m.rating !== null && m.rating !== undefined,
+    );
+    const averageRating =
+      completedWithRatings.length > 0
+        ? completedWithRatings.reduce((sum, m) => sum + Number(m.rating), 0) / completedWithRatings.length
+        : 0;
+
+    // Count feedbacks (milestones with feedback)
+    const feedbackCount = allMilestones.filter(
+      (m) => m.feedback && m.feedback.trim().length > 0,
+    ).length;
+
+    // Get feedbacks (completed milestones with feedback and rating)
+    const allFeedbacks = allMilestones
+      .filter(
+        (m) =>
+          m.status === MilestoneStatus.RELEASED &&
+          m.feedback &&
+          m.feedback.trim().length > 0 &&
+          m.rating !== null &&
+          m.rating !== undefined,
+      )
+      .map((m) => ({
+        id: m.id,
+        title: m.title,
+        feedback: m.feedback!,
+        rating: Number(m.rating!),
+        client: {
+          id: m.client.id,
+          firstName: m.client.firstName,
+          lastName: m.client.lastName,
+          userName: m.client.userName,
+        },
+        createdAt: m.createdAt.toISOString(),
+      }))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); // Sort by newest first
+
+    // Apply pagination
+    const startIndex = (feedbackPage - 1) * feedbackLimit;
+    const endIndex = startIndex + feedbackLimit;
+    const paginatedFeedbacks = allFeedbacks.slice(startIndex, endIndex);
+    const feedbacksHasMore = endIndex < allFeedbacks.length;
+
+    return {
+      ...service,
+      totalMilestones,
+      completedMilestones,
+      averageRating: Math.round(averageRating * 100) / 100, // Round to 2 decimal places
+      feedbackCount,
+      feedbacks: paginatedFeedbacks,
+      feedbacksHasMore,
+      feedbacksPage: feedbackPage,
+      feedbacksLimit: feedbackLimit,
+    };
   }
 
   async update(id: string, userId: string, updateServiceDto: UpdateServiceDto, adImagePath?: string, isAdmin: boolean = false): Promise<Service> {

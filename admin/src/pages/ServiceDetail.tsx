@@ -11,6 +11,9 @@ import {
   faUser,
   faTag,
   faStar,
+  faCheckCircle,
+  faClipboardList,
+  faComments,
 } from '@fortawesome/free-solid-svg-icons'
 import { faStar as faStarRegular, faStarHalfStroke } from '@fortawesome/free-regular-svg-icons'
 import { serviceApi, Service } from '../services/api'
@@ -45,6 +48,10 @@ function ServiceDetail() {
   const [loading, setLoading] = useState(true)
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [feedbacks, setFeedbacks] = useState<Service['feedbacks']>([])
+  const [loadingMoreFeedbacks, setLoadingMoreFeedbacks] = useState(false)
+  const [currentFeedbackPage, setCurrentFeedbackPage] = useState(1)
+  const [feedbacksHasMore, setFeedbacksHasMore] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -52,16 +59,38 @@ function ServiceDetail() {
     }
   }, [id])
 
-  const fetchService = async () => {
+  const fetchService = async (feedbackPage: number = 1) => {
     try {
       setLoading(true)
-      const data = await serviceApi.getById(id!)
+      const data = await serviceApi.getById(id!, feedbackPage, 10)
       setService(data)
+      setFeedbacks(data.feedbacks || [])
+      setFeedbacksHasMore(data.feedbacksHasMore || false)
+      setCurrentFeedbackPage(feedbackPage)
     } catch (error) {
       console.error('Failed to fetch service:', error)
       navigate('/services')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadMoreFeedbacks = async () => {
+    if (!id || loadingMoreFeedbacks || !feedbacksHasMore) return
+
+    try {
+      setLoadingMoreFeedbacks(true)
+      const nextPage = currentFeedbackPage + 1
+      const data = await serviceApi.getById(id, nextPage, 10)
+      if (data.feedbacks) {
+        setFeedbacks((prev) => [...(prev || []), ...data.feedbacks!])
+        setFeedbacksHasMore(data.feedbacksHasMore || false)
+        setCurrentFeedbackPage(nextPage)
+      }
+    } catch (error) {
+      console.error('Failed to load more feedbacks:', error)
+    } finally {
+      setLoadingMoreFeedbacks(false)
     }
   }
 
@@ -154,6 +183,46 @@ function ServiceDetail() {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+          {/* Action Buttons at Top */}
+          <div className="border-b border-gray-700 p-6 bg-gray-700">
+            <div className="flex flex-wrap gap-3">
+              {service.status === 'draft' && (
+                <button
+                  onClick={() => setConfirmDialog({ action: 'approve', newStatus: 'active' })}
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all shadow-md hover:shadow-lg flex items-center space-x-2"
+                >
+                  <FontAwesomeIcon icon={faCheck} />
+                  <span>Approve Service</span>
+                </button>
+              )}
+              {service.status === 'active' && (
+                <button
+                  onClick={() => setConfirmDialog({ action: 'block', newStatus: 'blocked' })}
+                  className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all shadow-md hover:shadow-lg flex items-center space-x-2"
+                >
+                  <FontAwesomeIcon icon={faBan} />
+                  <span>Block Service</span>
+                </button>
+              )}
+              {service.status === 'blocked' && (
+                <button
+                  onClick={() => setConfirmDialog({ action: 'unblock', newStatus: 'active' })}
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all shadow-md hover:shadow-lg flex items-center space-x-2"
+                >
+                  <FontAwesomeIcon icon={faCheck} />
+                  <span>Unblock Service</span>
+                </button>
+              )}
+              <button
+                onClick={() => setConfirmDialog({ action: 'delete' })}
+                className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all shadow-md hover:shadow-lg flex items-center space-x-2"
+              >
+                <FontAwesomeIcon icon={faTrash} />
+                <span>Delete Service</span>
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
             {/* Left Side - Image */}
             <div className="relative rounded-lg overflow-hidden min-h-[400px]">
@@ -207,13 +276,49 @@ function ServiceDetail() {
                 <div className="flex items-center">
                   <StarRating
                     rating={
-                      service.rating
-                        ? typeof service.rating === 'number'
-                          ? service.rating
-                          : parseFloat(service.rating as any)
-                        : 0
+                      service.averageRating !== undefined && service.averageRating > 0
+                        ? service.averageRating
+                        : service.rating
+                          ? typeof service.rating === 'number'
+                            ? service.rating
+                            : parseFloat(service.rating as any)
+                          : 0
                     }
                   />
+                  {service.averageRating !== undefined && service.averageRating > 0 && (
+                    <span className="ml-2 text-gray-300 text-sm">
+                      ({service.averageRating.toFixed(2)})
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Milestone Statistics */}
+              <div className="mb-6 p-4 bg-gray-700 rounded-lg">
+                <h3 className="text-xl font-semibold text-gray-100 mb-4 flex items-center space-x-2">
+                  <FontAwesomeIcon icon={faClipboardList} />
+                  <span>Milestone Statistics</span>
+                </h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-gray-800 p-3 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-400">
+                      {service.totalMilestones ?? 0}
+                    </div>
+                    <div className="text-sm text-gray-400">Total Milestones</div>
+                  </div>
+                  <div className="bg-gray-800 p-3 rounded-lg">
+                    <div className="text-2xl font-bold text-green-400 flex items-center space-x-1">
+                      <FontAwesomeIcon icon={faCheckCircle} className="text-sm" />
+                      <span>{service.completedMilestones ?? 0}</span>
+                    </div>
+                    <div className="text-sm text-gray-400">Completed</div>
+                  </div>
+                  <div className="bg-gray-800 p-3 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-400">
+                      {service.feedbackCount ?? 0}
+                    </div>
+                    <div className="text-sm text-gray-400">Feedbacks</div>
+                  </div>
                 </div>
               </div>
 
@@ -275,45 +380,91 @@ function ServiceDetail() {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="border-t border-gray-700 p-6 bg-gray-700">
-            <div className="flex flex-wrap gap-3">
-              {service.status === 'draft' && (
-                <button
-                  onClick={() => setConfirmDialog({ action: 'approve', newStatus: 'active' })}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all shadow-md hover:shadow-lg flex items-center space-x-2"
-                >
-                  <FontAwesomeIcon icon={faCheck} />
-                  <span>Approve Service</span>
-                </button>
+          {/* Feedbacks Section */}
+          {feedbacks && feedbacks.length > 0 && (
+            <div className="mt-8 p-8 bg-gray-800 border-t border-gray-700">
+              <h2 className="text-2xl font-bold text-gray-100 mb-6 flex items-center space-x-2">
+                <FontAwesomeIcon icon={faComments} />
+                <span>Customer Feedbacks</span>
+                <span className="text-lg font-normal text-gray-400">
+                  ({service.feedbackCount ?? 0})
+                </span>
+              </h2>
+              <div className="space-y-4">
+                {feedbacks.map((feedback) => (
+                  <div
+                    key={feedback.id}
+                    className="bg-gray-700 rounded-lg p-6 border border-gray-600"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                          {feedback.client.firstName?.[0] || feedback.client.userName?.[0] || (
+                            <FontAwesomeIcon icon={faUser} />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-100">
+                            {feedback.client.firstName && feedback.client.lastName
+                              ? `${feedback.client.firstName} ${feedback.client.lastName}`
+                              : feedback.client.userName || 'Anonymous'}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {new Date(feedback.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <StarRating rating={feedback.rating} />
+                        <span className="text-gray-300 text-sm">({feedback.rating})</span>
+                      </div>
+                    </div>
+                    <div className="mb-2">
+                      <p className="text-sm font-semibold text-gray-300 mb-1">
+                        Milestone: {feedback.title}
+                      </p>
+                    </div>
+                    <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                      {feedback.feedback}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              {feedbacksHasMore && (
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={loadMoreFeedbacks}
+                    disabled={loadingMoreFeedbacks}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    {loadingMoreFeedbacks ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
+                        <span>Loading...</span>
+                      </>
+                    ) : (
+                      <span>Load More Feedbacks</span>
+                    )}
+                  </button>
+                </div>
               )}
-              {service.status === 'active' && (
-                <button
-                  onClick={() => setConfirmDialog({ action: 'block', newStatus: 'blocked' })}
-                  className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all shadow-md hover:shadow-lg flex items-center space-x-2"
-                >
-                  <FontAwesomeIcon icon={faBan} />
-                  <span>Block Service</span>
-                </button>
-              )}
-              {service.status === 'blocked' && (
-                <button
-                  onClick={() => setConfirmDialog({ action: 'unblock', newStatus: 'active' })}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all shadow-md hover:shadow-lg flex items-center space-x-2"
-                >
-                  <FontAwesomeIcon icon={faCheck} />
-                  <span>Unblock Service</span>
-                </button>
-              )}
-              <button
-                onClick={() => setConfirmDialog({ action: 'delete' })}
-                className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all shadow-md hover:shadow-lg flex items-center space-x-2"
-              >
-                <FontAwesomeIcon icon={faTrash} />
-                <span>Delete Service</span>
-              </button>
             </div>
-          </div>
+          )}
+
+          {/* No Feedbacks Message */}
+          {(!feedbacks || feedbacks.length === 0) && (service.feedbackCount === 0 || !service.feedbackCount) && (
+            <div className="mt-8 p-8 bg-gray-800 border-t border-gray-700">
+              <h2 className="text-2xl font-bold text-gray-100 mb-4 flex items-center space-x-2">
+                <FontAwesomeIcon icon={faComments} />
+                <span>Customer Feedbacks</span>
+              </h2>
+              <p className="text-gray-400">No feedbacks yet.</p>
+            </div>
+          )}
         </div>
       </div>
 

@@ -4,11 +4,12 @@ import { ServiceService } from './service.service';
 import { ServiceController } from './service.controller';
 import { Service } from '../entities/service.entity';
 import { Tag } from '../entities/tag.entity';
+import { Milestone } from '../entities/milestone.entity';
 import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Service, Tag]),
+    TypeOrmModule.forFeature([Service, Tag, Milestone]),
     forwardRef(() => NotificationModule),
   ],
   controllers: [ServiceController],

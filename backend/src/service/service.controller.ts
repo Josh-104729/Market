@@ -97,8 +97,14 @@ export class ServiceController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.serviceService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @Query('feedbackPage') feedbackPage?: string,
+    @Query('feedbackLimit') feedbackLimit?: string,
+  ) {
+    const feedbackPageNum = feedbackPage ? parseInt(feedbackPage, 10) : 1;
+    const feedbackLimitNum = feedbackLimit ? parseInt(feedbackLimit, 10) : 10;
+    return this.serviceService.findOne(id, feedbackPageNum, feedbackLimitNum);
   }
 
   @Patch(':id')
