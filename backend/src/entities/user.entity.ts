@@ -64,5 +64,20 @@ export class User extends BaseEntity {
 
   @Column({ default: 'active' })
   status: string;
+
+  @Column({ name: 'referral_code', nullable: true, unique: true, length: 12 })
+  referralCode?: string;
+
+  @Column({ name: 'referred_by', nullable: true })
+  referredBy?: string;
+
+  @Column({ name: 'referral_code_created_at', nullable: true })
+  referralCodeCreatedAt?: Date;
+
+  @Column({ name: 'total_referrals', default: 0 })
+  totalReferrals: number;
+
+  @Column({ name: 'total_referral_earnings', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  totalReferralEarnings: number;
 }
 

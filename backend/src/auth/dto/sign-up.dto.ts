@@ -11,6 +11,10 @@ export class SignUpStep1Dto {
   @IsString()
   @MinLength(8)
   repassword: string;
+
+  @IsString()
+  @IsOptional()
+  referralCode?: string;
 }
 
 export class SignUpStep4Dto {

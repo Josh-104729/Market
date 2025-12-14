@@ -61,6 +61,7 @@ export interface SignUpStep1Data {
   email: string;
   password: string;
   repassword: string;
+  referralCode?: string;
 }
 
 export interface SignUpStep4Data {
@@ -898,6 +899,97 @@ export const notificationApi = {
 
   delete: async (notificationId: string): Promise<void> => {
     await api.delete(`/notifications/${notificationId}`);
+  },
+};
+
+export interface ReferralStats {
+  totalReferrals: number;
+  activeReferrals: number;
+  completedReferrals: number;
+  pendingReferrals: number;
+  totalEarnings: number;
+  pendingEarnings: number;
+  referralCode: string;
+}
+
+export interface ReferralListItem {
+  id: string;
+  referredUser: {
+    id: string;
+    userName?: string;
+    firstName?: string;
+    lastName?: string;
+    avatar?: string;
+    email: string;
+  };
+  status: string;
+  referredAt: string;
+  activatedAt?: string;
+  completedAt?: string;
+  earnings: number;
+}
+
+export interface RewardListItem {
+  id: string;
+  amount: number;
+  currency: string;
+  rewardType: string;
+  status: string;
+  processedAt?: string;
+  description?: string;
+  referredUser: {
+    id: string;
+    userName?: string;
+    firstName?: string;
+    lastName?: string;
+  };
+  createdAt: string;
+}
+
+export const referralApi = {
+  validateCode: async (code: string) => {
+    const response = await api.get(`/referral/validate?code=${encodeURIComponent(code)}`);
+    return response.data;
+  },
+
+  getMyCode: async (): Promise<{ referralCode: string }> => {
+    const response = await api.get('/referral/my-code');
+    return response.data;
+  },
+
+  getMyStats: async (): Promise<ReferralStats> => {
+    const response = await api.get('/referral/my-stats');
+    return response.data;
+  },
+
+  getMyReferrals: async (params?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    referrals: ReferralListItem[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> => {
+    const response = await api.get('/referral/my-referrals', { params });
+    return response.data;
+  },
+
+  getRewards: async (params?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    rewards: RewardListItem[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> => {
+    const response = await api.get('/referral/rewards', { params });
+    return response.data;
   },
 };
 

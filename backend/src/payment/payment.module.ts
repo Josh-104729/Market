@@ -12,6 +12,7 @@ import { TempWallet } from '../entities/temp-wallet.entity';
 import { ChatModule } from '../chat/chat.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { NotificationModule } from '../notification/notification.module';
+import { ReferralModule } from '../referral/referral.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { NotificationModule } from '../notification/notification.module';
     forwardRef(() => ChatModule),
     forwardRef(() => WalletModule),
     forwardRef(() => NotificationModule),
+    forwardRef(() => ReferralModule),
   ],
   controllers: [PaymentController],
   providers: [PaymentService, PaymentMonitorService],

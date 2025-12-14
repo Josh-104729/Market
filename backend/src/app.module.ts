@@ -31,6 +31,9 @@ import { Notification } from './entities/notification.entity';
 import { PaymentModule } from './payment/payment.module';
 import { WalletModule } from './wallet/wallet.module';
 import { NotificationModule } from './notification/notification.module';
+import { ReferralModule } from './referral/referral.module';
+import { Referral } from './entities/referral.entity';
+import { ReferralReward } from './entities/referral-reward.entity';
 
 @Module({
   imports: [
@@ -48,7 +51,7 @@ import { NotificationModule } from './notification/notification.module';
         username: configService.get<string>('DB_USERNAME', 'root'),
         password: configService.get<string>('DB_PASSWORD', 'Csh104729!'),
         database: configService.get<string>('DB_DATABASE', 'market'),
-        entities: [User, Category, Service, Tag, Conversation, Message, Milestone, Post, PostLike, PostComment, PostCommentLike, Balance, Transaction, TempWallet, Notification],
+        entities: [User, Category, Service, Tag, Conversation, Message, Milestone, Post, PostLike, PostComment, PostCommentLike, Balance, Transaction, TempWallet, Notification, Referral, ReferralReward],
         synchronize: configService.get<boolean>('DB_SYNCHRONIZE', true), // Set to false in production
         logging: configService.get<boolean>('DB_LOGGING', false),
       }),
@@ -66,6 +69,7 @@ import { NotificationModule } from './notification/notification.module';
     PaymentModule,
     WalletModule,
     NotificationModule,
+    ReferralModule,
   ],
   controllers: [AppController],
   providers: [AppService],

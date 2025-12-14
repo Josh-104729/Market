@@ -22,6 +22,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { EmailService } from './email.service';
 import { SmsService } from './sms.service';
 import { TwoFactorService } from './two-factor.service';
+import { ReferralService } from '../referral/referral.service';
 
 @Injectable()
 export class AuthService {
@@ -36,6 +37,7 @@ export class AuthService {
     private emailService: EmailService,
     private smsService: SmsService,
     private twoFactorService: TwoFactorService,
+    private referralService: ReferralService,
   ) {}
 
   async signUpStep1(dto: SignUpStep1Dto) {
@@ -61,6 +63,31 @@ export class AuthService {
     });
 
     await this.userRepository.save(user);
+
+    // Handle referral code if provided
+    if (dto.referralCode && dto.referralCode.trim()) {
+      try {
+        const validation = await this.referralService.validateReferralCode(dto.referralCode.trim());
+        if (validation.isValid && validation.referrer) {
+          // Check eligibility
+          const eligibility = await this.referralService.checkReferralEligibility(
+            user.id,
+            dto.referralCode.trim(),
+          );
+          if (eligibility.eligible) {
+            // Create referral relationship
+            await this.referralService.createReferral(
+              validation.referrer.id,
+              user.id,
+              dto.referralCode.trim().toUpperCase(),
+            );
+          }
+        }
+      } catch (error) {
+        // Log error but don't fail signup if referral fails
+        console.error('Referral code processing failed:', error.message);
+      }
+    }
 
     // Generate JWT token for email verification (expires in 24 hours)
     const verificationToken = this.jwtService.sign(
@@ -105,6 +132,15 @@ export class AuthService {
 
       user.emailVerified = true;
       await this.userRepository.save(user);
+
+      // Activate referral if user was referred
+      if (user.referredBy) {
+        try {
+          await this.referralService.activateReferral(user.id);
+        } catch (error) {
+          console.error('Referral activation failed:', error.message);
+        }
+      }
 
       return {
         message: 'Email verified successfully',

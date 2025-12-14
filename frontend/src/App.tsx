@@ -16,6 +16,7 @@ import Withdraw from './pages/Withdraw'
 import Transactions from './pages/Transactions'
 import Notifications from './pages/Notifications'
 import SecuritySettings from './pages/SecuritySettings'
+import Referral from './pages/Referral'
 import Layout from './components/Layout'
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
                 <Route path="/withdraw" element={<Withdraw />} />
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/notifications" element={<Notifications />} />
+                <Route path="/referral" element={<Referral />} />
               </Routes>
             </Layout>
           }

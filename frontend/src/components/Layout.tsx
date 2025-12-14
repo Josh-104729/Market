@@ -1,7 +1,7 @@
 import { ReactNode, useState, useRef, useEffect, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faChevronDown, faSignOutAlt, faUserCircle, faBars, faWallet, faShieldAlt, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons'
+import { faChevronDown, faSignOutAlt, faUserCircle, faBars, faWallet, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons'
 import { useAppSelector, useAppDispatch } from '../store/hooks'
 import { logout } from '../store/slices/authSlice'
 import { showToast } from '../utils/toast'
@@ -307,6 +307,11 @@ function Layout({ children }: LayoutProps) {
                 <Link to="/feed" className="text-sm font-medium transition-colors text-slate-400 hover:text-white">
                   Feed
                 </Link>
+                {isAuthenticated && (
+                  <Link to="/referral" className="text-sm font-medium transition-colors text-slate-400 hover:text-white">
+                    Referral
+                  </Link>
+                )}
                 <div 
                   className="relative group" 
                   ref={servicesDropdownRef}
@@ -495,6 +500,15 @@ function Layout({ children }: LayoutProps) {
               >
                 Feed
               </Link>
+              {isAuthenticated && (
+                <Link
+                  to="/referral"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  Referral
+                </Link>
+              )}
               <Link
                 to="/services"
                 onClick={() => setMobileMenuOpen(false)}

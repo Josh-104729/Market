@@ -11,6 +11,7 @@ import { WalletService } from '../wallet/wallet.service';
 import { TempWallet } from '../entities/temp-wallet.entity';
 import { NotificationService } from '../notification/notification.service';
 import { NotificationType } from '../entities/notification.entity';
+import { ReferralService } from '../referral/referral.service';
 
 @Injectable()
 export class PaymentService {
@@ -35,6 +36,8 @@ export class PaymentService {
     private walletService: WalletService,
     @Inject(forwardRef(() => NotificationService))
     private notificationService: NotificationService,
+    @Inject(forwardRef(() => ReferralService))
+    private referralService: ReferralService,
   ) { }
 
   async getBalance(userId: string): Promise<Balance> {
@@ -489,6 +492,32 @@ export class PaymentService {
       }
 
       await queryRunner.commitTransaction();
+
+      // Process referral reward if this is client's first purchase
+      if (transaction.clientId) {
+        try {
+          // Check if this is the first completed milestone payment for the client
+          // Since we just committed, this transaction is now SUCCESS
+          const completedTransactions = await this.transactionRepository.count({
+            where: {
+              clientId: transaction.clientId,
+              status: TransactionStatus.SUCCESS,
+              type: TransactionType.MILESTONE_PAYMENT, // Only count milestone payments as purchases
+            },
+          });
+
+          // If this is the first completed milestone payment, process referral reward
+          if (completedTransactions === 1) {
+            await this.referralService.processPurchaseReward(
+              transaction.clientId,
+              transactionAmount,
+            );
+          }
+        } catch (error) {
+          // Log error but don't fail payment acceptance
+          console.error('Referral reward processing failed:', error.message);
+        }
+      }
 
       // Load transaction with relations for WebSocket emission and notifications
       const transactionWithRelations = await this.transactionRepository.findOne({

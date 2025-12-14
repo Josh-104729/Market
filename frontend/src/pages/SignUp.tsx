@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
-import { authApi } from '../services/api';
+import { authApi, referralApi } from '../services/api';
 import { useAppDispatch } from '../store/hooks';
 import { setCredentials } from '../store/slices/authSlice';
 
@@ -45,6 +45,17 @@ function SignUp() {
     verificationCode: '',
   });
 
+  // Referral code validation
+  const [referralCode, setReferralCode] = useState('');
+  const [referralCodeValidating, setReferralCodeValidating] = useState(false);
+  const [referralCodeValid, setReferralCodeValid] = useState<boolean | null>(null);
+  const [referrerInfo, setReferrerInfo] = useState<{
+    userName?: string;
+    firstName?: string;
+    lastName?: string;
+    avatar?: string;
+  } | null>(null);
+
   // Check if coming from email verification
   useEffect(() => {
     const token = searchParams.get('token');
@@ -58,6 +69,35 @@ function SignUp() {
       setCurrentStep(parseInt(stepParam));
     }
   }, [searchParams]);
+
+  // Validate referral code with debounce
+  useEffect(() => {
+    if (!referralCode || referralCode.trim().length < 8) {
+      setReferralCodeValid(null);
+      setReferrerInfo(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setReferralCodeValidating(true);
+      try {
+        const result = await referralApi.validateCode(referralCode.trim().toUpperCase());
+        setReferralCodeValid(result.isValid);
+        if (result.isValid && result.referrer) {
+          setReferrerInfo(result.referrer);
+        } else {
+          setReferrerInfo(null);
+        }
+      } catch (error) {
+        setReferralCodeValid(false);
+        setReferrerInfo(null);
+      } finally {
+        setReferralCodeValidating(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [referralCode]);
 
   const handleEmailVerification = async (token: string) => {
     setLoading(true);
@@ -85,7 +125,11 @@ function SignUp() {
     }
 
     try {
-      const response = await authApi.signUpStep1(step1Data);
+      const signupData = {
+        ...step1Data,
+        referralCode: referralCode.trim() || undefined,
+      };
+      const response = await authApi.signUpStep1(signupData);
       setUserId(response.userId);
       setCurrentStep(2);
     } catch (err: any) {
@@ -219,6 +263,61 @@ function SignUp() {
                   setStep1Data({ ...step1Data, repassword: e.target.value })
                 }
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                Referral Code <span className="text-gray-500 text-xs">(Optional)</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  className={`w-full px-4 py-3 border rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all uppercase ${
+                    referralCodeValid === true
+                      ? 'border-green-500'
+                      : referralCodeValid === false
+                      ? 'border-red-500'
+                      : 'border-gray-600'
+                  }`}
+                  placeholder="Enter referral code (optional)"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  maxLength={12}
+                />
+                {referralCodeValidating && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+                {!referralCodeValidating && referralCodeValid === true && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+                {!referralCodeValidating && referralCodeValid === false && referralCode.length >= 8 && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              {referralCodeValid === true && referrerInfo && (
+                <div className="mt-2 p-3 bg-green-900/30 border border-green-500/50 rounded-lg">
+                  <p className="text-sm text-green-400">
+                    ✓ Valid code! You're being referred by{' '}
+                    <span className="font-semibold">
+                      {referrerInfo.firstName && referrerInfo.lastName
+                        ? `${referrerInfo.firstName} ${referrerInfo.lastName}`
+                        : referrerInfo.userName || 'a user'}
+                    </span>
+                  </p>
+                </div>
+              )}
+              {referralCodeValid === false && referralCode.length >= 8 && (
+                <p className="mt-2 text-sm text-red-400">Invalid referral code</p>
+              )}
             </div>
             <button
               type="submit"
