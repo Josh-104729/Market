@@ -8,6 +8,7 @@ function Withdraw() {
   const [balance, setBalance] = useState<Balance | null>(null)
   const [amount, setAmount] = useState('')
   const [walletAddress, setWalletAddress] = useState('')
+  const [paymentNetwork, setPaymentNetwork] = useState<'USDT_TRC20' | 'USDC_POLYGON'>('USDT_TRC20')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -27,15 +28,16 @@ function Withdraw() {
       return
     }
 
-    // Validate minimum withdrawal amount (5 USDT)
+    // Validate minimum withdrawal amount (5)
+    const currency = paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'
     if (Number(amount) < 5) {
-      showToast.error('Minimum withdrawal amount is 5 USDT')
+      showToast.error(`Minimum withdrawal amount is 5 ${currency}`)
       return
     }
 
     // Validate amount doesn't exceed balance
     if (!balance || Number(amount) > Number(balance.amount)) {
-      showToast.error(`Insufficient balance. Available: ${Number(balance?.amount || 0).toFixed(2)} USDT`)
+      showToast.error(`Insufficient balance. Available: ${Number(balance?.amount || 0).toFixed(2)} ${currency}`)
       return
     }
 
@@ -44,10 +46,19 @@ function Withdraw() {
       return
     }
 
-    // Basic TRC20 address validation (starts with T and is 34 characters)
-    if (!/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(walletAddress.trim())) {
-      showToast.error('Please enter a valid TRC20 wallet address')
-      return
+    // Validate wallet address format based on network
+    if (paymentNetwork === 'USDC_POLYGON') {
+      // Polygon addresses are Ethereum addresses (0x followed by 40 hex characters)
+      if (!/^0x[0-9a-fA-F]{40}$/.test(walletAddress.trim())) {
+        showToast.error('Please enter a valid Polygon wallet address (0x followed by 40 hex characters)')
+        return
+      }
+    } else {
+      // Basic TRC20 address validation (starts with T and is 34 characters)
+      if (!/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(walletAddress.trim())) {
+        showToast.error('Please enter a valid TRC20 wallet address')
+        return
+      }
     }
 
     setLoading(true)
@@ -55,6 +66,7 @@ function Withdraw() {
       await paymentApi.withdraw({
         amount: Number(amount),
         walletAddress: walletAddress.trim(),
+        paymentNetwork: paymentNetwork,
       })
       showToast.success('Withdrawal request submitted successfully. It will be processed by admin.')
       setAmount('')
@@ -80,19 +92,34 @@ function Withdraw() {
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl p-8">
         <h1 className="text-3xl font-bold text-white mb-2">Withdraw Balance</h1>
-        <p className="text-slate-400 mb-6">Withdraw USDT TRC20 to your wallet</p>
+        <p className="text-slate-400 mb-6">Withdraw funds to your wallet</p>
 
         {balance && (
           <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-primary/20 to-emerald-600/20 border border-primary/30">
             <p className="text-sm text-slate-400 mb-1">Available Balance</p>
-            <p className="text-2xl font-bold text-white">{Number(balance.amount).toFixed(2)} USDT</p>
+            <p className="text-2xl font-bold text-white">{Number(balance.amount).toFixed(2)} USD</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
+            <label htmlFor="paymentNetwork" className="block text-sm font-medium text-white mb-2">
+              Payment Network
+            </label>
+            <select
+              id="paymentNetwork"
+              value={paymentNetwork}
+              onChange={(e) => setPaymentNetwork(e.target.value as 'USDT_TRC20' | 'USDC_POLYGON')}
+              className="w-full px-4 py-3 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            >
+              <option value="USDT_TRC20">USDT TRC20</option>
+              <option value="USDC_POLYGON">USDC Polygon</option>
+            </select>
+          </div>
+
+          <div>
             <label htmlFor="amount" className="block text-sm font-medium text-white mb-2">
-              Amount (USDT)
+              Amount ({paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'})
             </label>
             <div className="flex gap-2">
               <input
@@ -119,7 +146,7 @@ function Withdraw() {
 
           <div>
             <label htmlFor="walletAddress" className="block text-sm font-medium text-white mb-2">
-              TRC20 Wallet Address
+              {paymentNetwork === 'USDC_POLYGON' ? 'Polygon' : 'TRC20'} Wallet Address
             </label>
             <input
               type="text"
@@ -127,11 +154,11 @@ function Withdraw() {
               value={walletAddress}
               onChange={(e) => setWalletAddress(e.target.value)}
               className="w-full px-4 py-3 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-mono text-sm"
-              placeholder="Txxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              placeholder={paymentNetwork === 'USDC_POLYGON' ? '0x...' : 'Txxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}
               required
             />
             <p className="mt-2 text-xs text-slate-500">
-              Enter your TRC20 wallet address (starts with T)
+              Enter your {paymentNetwork === 'USDC_POLYGON' ? 'Polygon wallet address (0x followed by 40 hex characters)' : 'TRC20 wallet address (starts with T)'}
             </p>
           </div>
 
@@ -141,7 +168,7 @@ function Withdraw() {
               Please double-check your wallet address before submitting.
             </p>
             <p className="text-xs text-blue-400">
-              Minimum withdrawal amount: 5 USDT
+              Minimum withdrawal amount: 5 {paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'}
             </p>
           </div>
 

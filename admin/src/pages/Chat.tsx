@@ -293,7 +293,7 @@ function Chat() {
                     <h3 className="text-white font-semibold mb-2">{milestone.title}</h3>
                     <p className="text-slate-300 text-sm mb-2">{milestone.description}</p>
                     <div className="text-slate-300 text-sm mb-3">
-                      Original Amount: {Number(milestone.balance).toFixed(2)} USDT
+                      Original Amount: {Number(milestone.balance).toFixed(2)} USD
                     </div>
                     <div className="space-y-2">
                       <input

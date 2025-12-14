@@ -340,9 +340,9 @@ export class ReferralService {
         referredUserId: referral.referredUserId,
         rewardType: RewardType.FIRST_PURCHASE,
         amount: rewardAmount,
-        currency: 'USDT',
+        currency: 'USD',
         status: RewardStatus.PENDING,
-        description: `First purchase reward: ${purchaseAmount} USDT purchase by ${referral.referredUser.userName || referral.referredUser.email}`,
+        description: `First purchase reward: ${purchaseAmount} USD purchase by ${referral.referredUser.userName || referral.referredUser.email}`,
       });
 
       const savedReward = await queryRunner.manager.save(reward);

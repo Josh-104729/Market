@@ -20,6 +20,11 @@ export enum TransactionStatus {
   WITHDRAW = 'withdraw',
 }
 
+export enum PaymentNetwork {
+  USDT_TRC20 = 'USDT_TRC20',
+  USDC_POLYGON = 'USDC_POLYGON',
+}
+
 @Entity('transactions')
 export class Transaction extends BaseEntity {
   @Column({ name: 'client_id', nullable: true })
@@ -83,5 +88,13 @@ export class Transaction extends BaseEntity {
 
   @Column({ name: 'expires_at', nullable: true })
   expiresAt?: Date; // For pending charge transactions
+
+  @Column({
+    type: 'enum',
+    enum: PaymentNetwork,
+    default: PaymentNetwork.USDT_TRC20,
+    nullable: true,
+  })
+  paymentNetwork?: PaymentNetwork; // Payment network: USDT TRC20 or USDC Polygon
 }
 

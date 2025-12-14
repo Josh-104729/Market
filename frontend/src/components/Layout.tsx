@@ -375,7 +375,7 @@ function Layout({ children }: LayoutProps) {
                       >
                         <FontAwesomeIcon icon={faWallet} className="text-primary" />
                         <span className="text-sm font-semibold text-white">
-                          {balance ? `${Number(balance.amount).toFixed(2)} USDT` : '0.00 USDT'}
+                          {balance ? `${Number(balance.amount).toFixed(2)} USD` : '0.00 USD'}
                         </span>
                         <FontAwesomeIcon
                           icon={faChevronDown}

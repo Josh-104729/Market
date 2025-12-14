@@ -141,11 +141,11 @@ function Transactions() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="p-4 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-600/20 border border-green-500/30">
               <p className="text-sm text-slate-400 mb-1">Total In</p>
-              <p className="text-2xl font-bold text-green-400">+{summary.totalIn.toFixed(2)} USDT</p>
+              <p className="text-2xl font-bold text-green-400">+{summary.totalIn.toFixed(2)} USD</p>
             </div>
             <div className="p-4 rounded-xl bg-gradient-to-r from-red-500/20 to-orange-600/20 border border-red-500/30">
               <p className="text-sm text-slate-400 mb-1">Total Out</p>
-              <p className="text-2xl font-bold text-red-400">-{summary.totalOut.toFixed(2)} USDT</p>
+              <p className="text-2xl font-bold text-red-400">-{summary.totalOut.toFixed(2)} USD</p>
             </div>
           </div>
         )}
@@ -267,7 +267,7 @@ function Transactions() {
                         <td className="py-4 px-4">
                           <span className={`font-semibold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
                             {isPositive ? '+' : '-'}
-                            {Number(transaction.amount).toFixed(2)} USDT
+                            {Number(transaction.amount).toFixed(2)} USD
                           </span>
                         </td>
                         <td className="py-4 px-4">
@@ -368,7 +368,7 @@ function Transactions() {
                       </div>
                       <span className={`font-semibold text-lg ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
                         {isPositive ? '+' : '-'}
-                        {Number(transaction.amount).toFixed(2)} USDT
+                        {Number(transaction.amount).toFixed(2)} USD
                       </span>
                     </div>
                     <div className="space-y-2 text-sm">

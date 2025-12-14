@@ -8,6 +8,11 @@ export enum TempWalletStatus {
   INACTIVE = 'INACTIVE',
 }
 
+export enum WalletNetwork {
+  TRON = 'TRON',
+  POLYGON = 'POLYGON',
+}
+
 @Entity('temp_wallets')
 export class TempWallet extends BaseEntity {
   @Column({ name: 'user_id' })
@@ -18,7 +23,14 @@ export class TempWallet extends BaseEntity {
   user: User;
 
   @Column({ name: 'address', unique: true })
-  address: string; // TRC20 wallet address
+  address: string; // Wallet address (TRC20 or Polygon)
+
+  @Column({
+    type: 'enum',
+    enum: WalletNetwork,
+    default: WalletNetwork.TRON,
+  })
+  network: WalletNetwork; // Network type: TRON or POLYGON
 
   @Column({ name: 'private_key', type: 'text' })
   privateKey: string; // Encrypted private key

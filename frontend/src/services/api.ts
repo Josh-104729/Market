@@ -759,6 +759,7 @@ export interface ChargeData {
 
 export interface InitiateChargeData {
   amount: number;
+  paymentNetwork?: 'USDT_TRC20' | 'USDC_POLYGON';
 }
 
 export interface ChargeStatusResponse {
@@ -768,11 +769,13 @@ export interface ChargeStatusResponse {
   total: number;
   transactionId: string;
   expiresAt: string;
+  paymentNetwork?: 'USDT_TRC20' | 'USDC_POLYGON';
 }
 
 export interface WithdrawData {
   amount: number;
   walletAddress: string;
+  paymentNetwork?: 'USDT_TRC20' | 'USDC_POLYGON';
 }
 
 export const paymentApi = {
@@ -804,6 +807,7 @@ export const paymentApi = {
     expiresAt: string;
     status: string;
     transactionHash?: string;
+    paymentNetwork?: 'USDT_TRC20' | 'USDC_POLYGON';
   }> => {
     const response = await api.get(`/payment/charge/wallet/${walletAddress}`);
     return response.data;
