@@ -164,7 +164,7 @@ function Disputes() {
                           <p className="text-slate-300 text-sm mb-2">{milestone.description}</p>
                           <div className="flex items-center gap-4 text-sm">
                             <span className="text-slate-300">
-                              <span className="font-medium">Amount:</span> {Number(milestone.balance).toFixed(2)} USDT
+                              <span className="font-medium">Amount:</span> {Number(milestone.balance).toFixed(2)} USD
                             </span>
                             <span className="text-yellow-400">
                               Status: {milestone.status}

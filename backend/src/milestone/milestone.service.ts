@@ -86,7 +86,7 @@ export class MilestoneService {
       conversation.providerId,
       NotificationType.MILESTONE_CREATED,
       'New Milestone Created',
-      `${clientName} created a new milestone "${savedMilestone.title}" for ${Number(savedMilestone.balance).toFixed(2)} USDT`,
+      `${clientName} created a new milestone "${savedMilestone.title}" for ${Number(savedMilestone.balance).toFixed(2)} USD`,
       { milestoneId: savedMilestone.id, conversationId, clientId: userId },
     );
 
@@ -95,7 +95,7 @@ export class MilestoneService {
       userId,
       NotificationType.MILESTONE_CREATED,
       'Milestone Created',
-      `You created a milestone "${savedMilestone.title}" for ${Number(savedMilestone.balance).toFixed(2)} USDT. Waiting for provider to accept.`,
+      `You created a milestone "${savedMilestone.title}" for ${Number(savedMilestone.balance).toFixed(2)} USD. Waiting for provider to accept.`,
       { milestoneId: savedMilestone.id, conversationId },
     );
     

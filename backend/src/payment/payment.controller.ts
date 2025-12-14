@@ -41,7 +41,7 @@ export class PaymentController {
   // Charge endpoints
   @Post('charge/initiate')
   async initiateCharge(@Request() req, @Body() dto: InitiateChargeDto) {
-    return this.paymentService.initiateCharge(req.user.id, dto.amount);
+    return this.paymentService.initiateCharge(req.user.id, dto.amount, dto.paymentNetwork);
   }
 
   @Get('charge/status/:transactionId')
@@ -57,7 +57,7 @@ export class PaymentController {
   // Withdraw endpoints
   @Post('withdraw')
   async withdraw(@Request() req, @Body() dto: WithdrawDto) {
-    return this.paymentService.withdraw(req.user.id, dto.amount, dto.walletAddress);
+    return this.paymentService.withdraw(req.user.id, dto.amount, dto.walletAddress, dto.paymentNetwork);
   }
 
   @Get('withdraw/status/:transactionId')

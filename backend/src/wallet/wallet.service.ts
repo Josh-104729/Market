@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TempWallet, TempWalletStatus } from '../entities/temp-wallet.entity';
+import { TempWallet, TempWalletStatus, WalletNetwork } from '../entities/temp-wallet.entity';
 import { encrypt, decrypt, getEncryptionKeyHash } from '../utils/encryption.util';
 
 // Use require for TronWeb as it's a CommonJS module
@@ -30,9 +30,9 @@ export class WalletService {
   }
 
   async getOrCreateTempWallet(userId: string): Promise<TempWallet> {
-    // Check if user has an active temp wallet
+    // Check if user has an active temp wallet for TRON
     const existingWallet = await this.tempWalletRepository.findOne({
-      where: { userId, status: TempWalletStatus.ACTIVE },
+      where: { userId, status: TempWalletStatus.ACTIVE, network: WalletNetwork.TRON },
     });
 
     if (existingWallet) {
@@ -54,6 +54,7 @@ export class WalletService {
       address,
       privateKey: encryptedPrivateKey,
       encryptionKeyHash: encryptionKeyHash,
+      network: WalletNetwork.TRON,
       status: TempWalletStatus.ACTIVE,
       totalReceived: 0,
     });
@@ -64,7 +65,7 @@ export class WalletService {
 
   async getTempWallet(userId: string): Promise<TempWallet | null> {
     return await this.tempWalletRepository.findOne({
-      where: { userId, status: TempWalletStatus.ACTIVE },
+      where: { userId, status: TempWalletStatus.ACTIVE, network: WalletNetwork.TRON },
     });
   }
 

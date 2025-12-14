@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { paymentApi, Balance } from '../services/api'
 import { showToast } from '../utils/toast'
 import { getSocket } from '../services/socket'
@@ -14,10 +14,12 @@ interface ChargeData {
   expiresAt: string
   status: string
   transactionHash?: string
+  paymentNetwork?: 'USDT_TRC20' | 'USDC_POLYGON'
 }
 
 function ChargeDetail() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { walletAddress } = useParams<{ walletAddress: string }>()
   const [balance, setBalance] = useState<Balance | null>(null)
   const [chargeData, setChargeData] = useState<ChargeData | null>(null)
@@ -27,6 +29,9 @@ function ChargeDetail() {
   const intervalRef = useRef<number | null>(null)
   const countdownRef = useRef<number | null>(null)
   const socketRef = useRef<Socket | null>(null)
+  
+  // Get paymentNetwork from location state (passed from Charge page)
+  const paymentNetworkFromState = location.state?.paymentNetwork as 'USDT_TRC20' | 'USDC_POLYGON' | undefined
 
   useEffect(() => {
     if (!walletAddress) {
@@ -45,7 +50,13 @@ function ChargeDetail() {
     // Fetch charge data
     paymentApi.getChargeByWalletAddress(walletAddress)
       .then((data) => {
-        setChargeData(data)
+        // Ensure paymentNetwork has a default value if not provided
+        // Priority: 1. From API response, 2. From location state, 3. Default to USDT_TRC20
+        const chargeDataWithNetwork = {
+          ...data,
+          paymentNetwork: data.paymentNetwork || paymentNetworkFromState || 'USDT_TRC20' as 'USDT_TRC20' | 'USDC_POLYGON'
+        }
+        setChargeData(chargeDataWithNetwork)
         setTransactionStatus(data.status)
       })
       .catch((error) => {
@@ -242,12 +253,14 @@ function ChargeDetail() {
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl p-8">
         <h1 className="text-3xl font-bold text-white mb-2">Charge Balance</h1>
-        <p className="text-slate-400 mb-6">Send USDT TRC20 to the address below</p>
+        <p className="text-slate-400 mb-6">
+          Send {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC on Polygon network' : 'USDT TRC20'} to the address below
+        </p>
 
         {balance && (
           <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-primary/20 to-emerald-600/20 border border-primary/30">
             <p className="text-sm text-slate-400 mb-1">Current Balance</p>
-            <p className="text-2xl font-bold text-white">{Number(balance.amount).toFixed(2)} USDT</p>
+            <p className="text-2xl font-bold text-white">{Number(balance.amount).toFixed(2)} USD</p>
           </div>
         )}
 
@@ -305,16 +318,20 @@ function ChargeDetail() {
           {/* Amount Breakdown */}
           <div className="p-4 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 space-y-2">
             <div className="flex justify-between text-slate-300">
+              <span>Network:</span>
+              <span className="font-semibold">{chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC Polygon' : 'USDT TRC20'}</span>
+            </div>
+            <div className="flex justify-between text-slate-300">
               <span>Amount:</span>
-              <span className="font-semibold">{Number(chargeData.amount).toFixed(2)} USDT</span>
+              <span className="font-semibold">{Number(chargeData.amount).toFixed(2)} {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'}</span>
             </div>
             <div className="flex justify-between text-slate-300">
               <span>Platform Fee:</span>
-              <span className="font-semibold">{Number(chargeData.platformFee).toFixed(2)} USDT</span>
+              <span className="font-semibold">{Number(chargeData.platformFee).toFixed(2)} {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'}</span>
             </div>
             <div className="pt-2 border-t border-white/10 flex justify-between text-white">
               <span className="font-semibold">Total to Send:</span>
-              <span className="font-bold text-lg">{Number(chargeData.total).toFixed(2)} USDT</span>
+              <span className="font-bold text-lg">{Number(chargeData.total).toFixed(2)} {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'}</span>
             </div>
           </div>
 
@@ -342,8 +359,8 @@ function ChargeDetail() {
               <strong>Instructions:</strong>
             </p>
             <ol className="text-sm text-blue-300/80 list-decimal list-inside space-y-1">
-              <li>Send exactly <strong>{Number(chargeData.total).toFixed(2)} USDT</strong> to the wallet address above</li>
-              <li>Make sure you're sending USDT on the TRC20 network</li>
+              <li>Send exactly <strong>{Number(chargeData.total).toFixed(2)} {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'}</strong> to the wallet address above</li>
+              <li>Make sure you're sending {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC on the Polygon network' : 'USDT on the TRC20 network'}</li>
               <li>Your balance will be updated automatically once the payment is confirmed</li>
               <li>This page will update automatically when payment is received</li>
             </ol>
@@ -360,11 +377,15 @@ function ChargeDetail() {
             {transactionStatus === 'pending' && (
               <button
                 onClick={() => {
-                  window.open(`https://tronscan.org/#/address/${chargeData.walletAddress}`, '_blank')
+                  if (chargeData.paymentNetwork === 'USDC_POLYGON') {
+                    window.open(`https://polygonscan.com/address/${chargeData.walletAddress}`, '_blank')
+                  } else {
+                    window.open(`https://tronscan.org/#/address/${chargeData.walletAddress}`, '_blank')
+                  }
                 }}
                 className="px-6 py-3 rounded-xl bg-primary/20 border border-primary/30 text-primary font-semibold hover:bg-primary/30 transition-all"
               >
-                View on TronScan
+                View on {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'PolygonScan' : 'TronScan'}
               </button>
             )}
           </div>

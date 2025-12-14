@@ -149,7 +149,7 @@ function Referral() {
               <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                 <p className="text-gray-400 text-sm mb-2">Total Earnings</p>
                 <p className="text-3xl font-bold text-purple-400">
-                  {stats.totalEarnings.toFixed(2)} USDT
+                  {stats.totalEarnings.toFixed(2)} USD
                 </p>
               </div>
             </div>
@@ -241,7 +241,7 @@ function Referral() {
                             <div className="text-right">
                               <p className="text-gray-400 text-sm">Earnings</p>
                               <p className="text-green-400 font-semibold">
-                                {referral.earnings.toFixed(2)} USDT
+                                {referral.earnings.toFixed(2)} USD
                               </p>
                             </div>
                           </div>

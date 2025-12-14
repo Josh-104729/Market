@@ -1,5 +1,6 @@
-import { IsNumber, IsNotEmpty, IsString, Min } from 'class-validator';
+import { IsNumber, IsNotEmpty, IsString, Min, IsEnum, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
+import { PaymentNetwork } from '../../entities/transaction.entity';
 
 export class WithdrawDto {
   @Type(() => Number)
@@ -11,5 +12,9 @@ export class WithdrawDto {
   @IsString()
   @IsNotEmpty()
   walletAddress: string;
+
+  @IsEnum(PaymentNetwork)
+  @IsOptional()
+  paymentNetwork?: PaymentNetwork = PaymentNetwork.USDT_TRC20;
 }
 

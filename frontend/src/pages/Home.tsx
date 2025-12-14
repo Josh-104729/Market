@@ -71,7 +71,7 @@ function Home() {
     {
       icon: faWallet,
       title: 'Crypto Payments',
-      description: 'Pay and get paid with USDT. Fast, secure, and borderless',
+      description: 'Pay and get paid with USD. Fast, secure, and borderless',
       gradient: 'from-orange-500/20 to-red-500/20'
     },
     {
@@ -110,7 +110,7 @@ function Home() {
     {
       step: 4,
       title: 'Get Paid',
-      description: 'Receive payments instantly via USDT. Withdraw anytime.',
+      description: 'Receive payments instantly via USD. Withdraw anytime.',
       icon: faWallet
     }
   ]
@@ -165,7 +165,7 @@ function Home() {
           
           <p className="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto mb-8 font-light leading-relaxed">
             Your universal marketplace. Sell digital services, physical products, or anything you can imagine. 
-            <span className="block mt-2 text-lg">Get paid instantly with USDT. No limits. No boundaries.</span>
+            <span className="block mt-2 text-lg">Get paid instantly with USD. No limits. No boundaries.</span>
           </p>
 
           {/* Enhanced Search Bar */}
