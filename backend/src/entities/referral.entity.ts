@@ -35,7 +35,12 @@ export class Referral extends BaseEntity {
   })
   status: ReferralStatus;
 
-  @Column({ name: 'referred_at', default: () => 'CURRENT_TIMESTAMP(6)' })
+  @Column({ 
+    name: 'referred_at', 
+    type: 'datetime',
+    precision: 6,
+    nullable: false
+  })
   referredAt: Date;
 
   @Column({ name: 'activated_at', nullable: true })

@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS `referrals` (
   `referred_user_id` CHAR(36) NOT NULL,
   `referral_code_used` VARCHAR(12) NOT NULL,
   `status` ENUM('pending', 'active', 'completed', 'expired') NOT NULL DEFAULT 'pending',
-  `referred_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `referred_at` DATETIME(6) NOT NULL,
   `activated_at` DATETIME(6) NULL,
   `completed_at` DATETIME(6) NULL,
   `expires_at` DATETIME(6) NULL,
