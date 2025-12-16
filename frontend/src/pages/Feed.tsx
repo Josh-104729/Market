@@ -101,16 +101,24 @@ const PostCard = ({ post, onLike, onComment }: { post: Post; onLike: (postId: st
       {/* Post Images */}
       {post.images && post.images.length > 0 && (
         <div className={`mb-4 grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
-          {post.images.map((image, idx) => (
-            <div key={idx} className="relative rounded-lg overflow-hidden bg-gray-700">
-              <img
-                src={`http://localhost:3000${image}`}
-                alt={`Post image ${idx + 1}`}
-                className="w-full h-auto object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                onClick={() => window.open(`http://localhost:3000${image}`, '_blank')}
-              />
-            </div>
-          ))}
+          {post.images.map((image, idx) => {
+            // Use full B2 URL if it's already a full URL, otherwise use as-is
+            const imageUrl = image.startsWith('http') ? image : image;
+            return (
+              <div key={idx} className="relative rounded-lg overflow-hidden bg-gray-700">
+                <img
+                  src={imageUrl}
+                  alt={`Post image ${idx + 1}`}
+                  className="w-full h-auto object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => window.open(imageUrl, '_blank')}
+                  onError={() => {
+                    // Fallback handling if image fails to load
+                    console.error('Failed to load image:', imageUrl);
+                  }}
+                />
+              </div>
+            );
+          })}
         </div>
       )}
 
