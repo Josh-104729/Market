@@ -1000,21 +1000,18 @@ export class PaymentService {
     const expectedAmount = transaction.expectedAmount || transaction.amount + (transaction.platformFee || 0);
     const paymentNetwork = transaction.paymentNetwork || PaymentNetwork.USDT_TRC20;
 
-    // Check wallet balance based on network
+    // Check wallet balance based on network (only check token balance, not native balance)
     let tokenBalance = 0;
-    let nativeBalance = 0;
     const currency = paymentNetwork === PaymentNetwork.USDC_POLYGON ? 'USDC' : 'USDT';
 
     if (paymentNetwork === PaymentNetwork.USDC_POLYGON) {
       tokenBalance = await this.polygonWalletService.getUSDCBalance(tempWallet.address);
-      nativeBalance = await this.polygonWalletService.getMATICBalance(tempWallet.address);
     } else {
       tokenBalance = await this.walletService.getUSDTBalance(tempWallet.address);
-      nativeBalance = await this.walletService.getTRXBalance(tempWallet.address);
     }
 
     // If amount is less than expected, notify user (but don't process)
-    if (tokenBalance > 0 && tokenBalance < expectedAmount) {
+    if (tokenBalance > 0 && tokenBalance < expectedAmount * 0.99) { // Allow 1% tolerance
       // Update last checked time
       if (paymentNetwork === PaymentNetwork.USDC_POLYGON) {
         await this.polygonWalletService.updateWalletLastChecked(tempWallet.id);
@@ -1027,8 +1024,8 @@ export class PaymentService {
       };
     }
 
-    // If amount is sufficient, process the payment
-    if (tokenBalance >= expectedAmount || nativeBalance > 0.000001) {
+    // If amount is sufficient, process the payment (credit user balance, no automatic transfer)
+    if (tokenBalance >= expectedAmount * 0.99) {
       return await this.processChargePayment(transaction);
     }
 
@@ -1042,7 +1039,8 @@ export class PaymentService {
   }
 
   /**
-   * Process charge payment: transfer funds and update balance
+   * Process charge payment: credit user balance when payment detected (no automatic transfer)
+   * Admin must manually transfer funds from temp wallet to master wallet
    */
   private async processChargePayment(transaction: Transaction): Promise<{ success: boolean; message?: string }> {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -1069,51 +1067,23 @@ export class PaymentService {
       const paymentNetwork = currentTransaction.paymentNetwork || PaymentNetwork.USDT_TRC20;
       const currency = paymentNetwork === PaymentNetwork.USDC_POLYGON ? 'USDC' : 'USDT';
 
-      let transferResult: { success: boolean; usdtTxHash?: string; usdcTxHash?: string; trxTxHash?: string; maticTxHash?: string; error?: string };
-
+      // Get actual balance received (for USDT TRC20, we only check USDT balance)
+      let tokenBalance = 0;
       if (paymentNetwork === PaymentNetwork.USDC_POLYGON) {
-        const maticBalance = await this.polygonWalletService.getMATICBalance(tempWallet.address);
-
-        // Send MATIC from master wallet if needed for gas
-        if (maticBalance < 0.01) {
-          // Send 0.1 MATIC from master wallet to temp wallet for gas
-          const maticResult = await this.polygonWalletService.sendMATICToTempWallet(tempWallet.address, 0.1);
-          if (!maticResult.success) {
-            throw new BadRequestException(`Failed to send MATIC for gas: ${maticResult.error}`);
-          }
-          // Wait a bit for transaction to be confirmed
-          await new Promise((resolve) => setTimeout(resolve, 3000));
-        }
-
-        // Transfer all USDC from temp wallet to master wallet
-        transferResult = await this.polygonWalletService.transferFromTempWalletToMaster(tempWallet);
+        tokenBalance = await this.polygonWalletService.getUSDCBalance(tempWallet.address);
       } else {
-        const usdtBalance = await this.walletService.getUSDTBalance(tempWallet.address);
-        const trxBalance = await this.walletService.getTRXBalance(tempWallet.address);
-
-        // Send 20 TRX from master wallet
-        if (trxBalance < 10) {
-          // Send 20 TRX from master wallet to temp wallet for gas
-          const trxResult = await this.walletService.sendTRXToTempWallet(tempWallet.address, 20);
-          if (!trxResult.success) {
-            throw new BadRequestException(`Failed to send TRX for gas: ${trxResult.error}`);
-          }
-          // Wait a bit for transaction to be confirmed
-          await new Promise((resolve) => setTimeout(resolve, 3000));
-        }
-
-        // Transfer all USDT from temp wallet to master wallet
-        transferResult = await this.walletService.transferFromTempWalletToMaster(tempWallet);
+        tokenBalance = await this.walletService.getUSDTBalance(tempWallet.address);
       }
 
-      if (!transferResult.success) {
-        throw new BadRequestException(`Failed to transfer funds: ${transferResult.error}`);
+      // Verify payment was received
+      const expectedAmount = currentTransaction.expectedAmount || currentTransaction.amount + (currentTransaction.platformFee || 0);
+      if (tokenBalance < expectedAmount * 0.99) { // Allow 1% tolerance
+        return { success: false, message: `Insufficient payment received. Expected: ${expectedAmount.toFixed(2)} ${currency}, Received: ${tokenBalance.toFixed(2)} ${currency}` };
       }
 
-      // Update transaction status to SUCCESS
+      // Update transaction status to SUCCESS (no automatic transfer)
       currentTransaction.status = TransactionStatus.SUCCESS;
-      currentTransaction.transactionHash = transferResult.usdtTxHash || transferResult.usdcTxHash || transferResult.trxTxHash || transferResult.maticTxHash;
-      currentTransaction.description = `Charge completed. ${currency} TX: ${transferResult.usdtTxHash || transferResult.usdcTxHash || 'N/A'}`;
+      currentTransaction.description = `Charge completed. Payment received: ${tokenBalance.toFixed(2)} ${currency}. Admin transfer pending.`;
       await queryRunner.manager.save(currentTransaction);
 
       // Update user balance (amount excluding platform fee)
@@ -1133,7 +1103,7 @@ export class PaymentService {
       await queryRunner.manager.save(userBalance);
 
       // Update temp wallet total received
-      tempWallet.totalReceived = Number(tempWallet.totalReceived) + Number(currentTransaction.expectedAmount || currentTransaction.amount);
+      tempWallet.totalReceived = Number(tempWallet.totalReceived) + Number(tokenBalance);
       await queryRunner.manager.save(tempWallet);
 
       await queryRunner.commitTransaction();
@@ -1143,7 +1113,7 @@ export class PaymentService {
         where: { userId: currentTransaction.clientId },
       });
 
-      // Create notification for successful charge (currency already declared above)
+      // Create notification for successful charge
       await this.notificationService.createNotification(
         currentTransaction.clientId!,
         NotificationType.PAYMENT_CHARGE,

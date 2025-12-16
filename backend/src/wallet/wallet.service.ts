@@ -39,7 +39,8 @@ export class WalletService {
       return existingWallet;
     }
 
-    // Generate new wallet
+    // Generate new USDT TRC20 GasFree wallet
+    // Note: Temp wallets are GasFree wallets
     const account = this.tronWeb.utils.accounts.generateAccount();
     const address = account.address.base58;
     const privateKey = account.privateKey;
@@ -140,25 +141,6 @@ export class WalletService {
     } catch (error) {
       console.error('Error checking wallet payment:', error);
       return { success: false };
-    }
-  }
-
-
-  // async estimateGasFee(): Promise<number> {
-  //   // TRX price in USDT (you can fetch this from an API or use a fixed rate)
-  //   // For now, using a conservative estimate
-  //   const trxPriceInUSDT = 0.1; // This should be fetched from an API
-  //   const estimatedTRX = 15; // Conservative estimate for USDT transfer
-  //   return estimatedTRX * trxPriceInUSDT;
-  // }
-
-  async getTRXBalance(walletAddress: string): Promise<number> {
-    try {
-      const balance = await this.tronWeb.trx.getBalance(walletAddress);
-      return balance / 1e6; // Convert from sun to TRX
-    } catch (error) {
-      console.error('Error getting TRX balance:', error);
-      return 0;
     }
   }
 
@@ -315,42 +297,6 @@ export class WalletService {
   }
 
   /**
-   * Send TRX from master wallet to a destination address
-   */
-  async sendTRX(
-    fromPrivateKey: string,
-    toAddress: string,
-    amountTRX: number,
-  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
-    try {
-      this.tronWeb.setPrivateKey(fromPrivateKey);
-      const amountSun = Math.floor(amountTRX * 1e6); // Convert TRX to sun
-
-      console.log('sending TRX to address', toAddress, 'amount', amountSun);
-
-      const transaction = await this.tronWeb.trx.sendTransaction(toAddress, amountSun);
-
-      if (transaction.result) {
-        return {
-          success: true,
-          transactionHash: transaction.txid,
-        };
-      } else {
-        return {
-          success: false,
-          error: transaction.message || 'Transaction failed',
-        };
-      }
-    } catch (error) {
-      console.error('Error sending TRX:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
-
-  /**
    * Send USDT (TRC20) from a wallet to a destination address
    */
   async sendUSDT(
@@ -406,11 +352,11 @@ export class WalletService {
 
   /**
    * Transfer all USDT from temp wallet to master wallet
-   * Also transfers remaining TRX after USDT transfer
+   * Note: Temp wallets are GasFree wallets
    */
   async transferFromTempWalletToMaster(
     tempWallet: TempWallet,
-  ): Promise<{ success: boolean; usdtTxHash?: string; trxTxHash?: string; error?: string }> {
+  ): Promise<{ success: boolean; usdtTxHash?: string; error?: string }> {
     try {
       const masterWallet = this.getMasterWallet();
       const privateKey = await this.getDecryptedPrivateKey(tempWallet);
@@ -418,7 +364,7 @@ export class WalletService {
       // Get current balances
       const usdtBalance = await this.getUSDTBalance(tempWallet.address);
 
-      const result: { success: boolean; usdtTxHash?: string; trxTxHash?: string; error?: string } = {
+      const result: { success: boolean; usdtTxHash?: string; error?: string } = {
         success: false,
       };
 
@@ -442,30 +388,6 @@ export class WalletService {
         return result;
       }
 
-      // Transfer remaining TRX (keep a small amount for future gas if needed, but transfer most)
-      // Leave ~1 TRX for future gas fees, transfer the rest
-      // const trxBalance = await this.getTRXBalance(tempWallet.address);
-      // console.log('trxBalance', trxBalance);
-      // const trxToTransfer = Math.max(0, trxBalance - 0.01);
-      // console.log('trxToTransfer', trxToTransfer);
-      // if (trxToTransfer > 0.000001) {
-      //   const trxResult = await this.sendTRX(privateKey, masterWallet.address, trxToTransfer);
-      //   if (!trxResult.success) {
-      //     // USDT transfer succeeded but TRX transfer failed - still return partial success
-      //     result.success = false;
-      //     result.error = `USDT transferred but TRX transfer failed: ${trxResult.error}`;
-      //     return result;
-      //   }
-      //   result.trxTxHash = trxResult.transactionHash;
-
-      //   // Wait a bit for transaction to be processed
-      //   await new Promise((resolve) => setTimeout(resolve, 3000));
-      // } else if (trxBalance === 0) {
-      //   result.success = false;
-      //   result.error = `USDT transferred but TRX transfer failed.`;
-      //   return result;
-      // }
-
       result.success = true;
       return result;
     } catch (error) {
@@ -476,24 +398,5 @@ export class WalletService {
       };
     }
   }
-
-  /**
-   * Send TRX from master wallet to temp wallet (for gas fees)
-   */
-  async sendTRXToTempWallet(
-    tempWalletAddress: string,
-    amountTRX: number = 50,
-  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
-    try {
-      const masterWallet = this.getMasterWallet();
-      return await this.sendTRX(masterWallet.privateKey, tempWalletAddress, amountTRX);
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
-
 }
 

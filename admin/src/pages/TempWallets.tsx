@@ -16,7 +16,6 @@ interface TempWallet {
   status: string
   totalReceived: number
   usdtBalance: number
-  trxBalance: number
   lastCheckedAt?: string
   createdAt: string
   updatedAt: string
@@ -48,18 +47,16 @@ function TempWallets() {
 
   const handleTransfer = async (walletId: string) => {
     const wallet = wallets.find(w => w.id === walletId)
-    const hasUSDT = wallet && wallet.usdtBalance > 0
-    const hasTRX = wallet && wallet.trxBalance > 0.5
-    
-    let confirmMessage = 'Are you sure you want to transfer from this wallet to the master wallet?'
-    if (hasUSDT && hasTRX) {
-      confirmMessage = 'Are you sure you want to transfer all USDT and remaining TRX from this wallet to the master wallet?'
-    } else if (hasUSDT) {
-      confirmMessage = 'Are you sure you want to transfer all USDT from this wallet to the master wallet?'
-    } else if (hasTRX) {
-      confirmMessage = 'Are you sure you want to transfer remaining TRX from this wallet to the master wallet?'
+    const usdtBalance = Number(wallet?.usdtBalance || 0)
+    const hasUSDT = wallet && usdtBalance > 0
+
+    if (!hasUSDT) {
+      showToast.error('No USDT to transfer')
+      return
     }
-    
+
+    const confirmMessage = `Are you sure you want to transfer ${usdtBalance.toFixed(2)} USDT from this wallet to the master wallet?`
+
     if (!confirm(confirmMessage)) {
       return
     }
@@ -68,7 +65,7 @@ function TempWallets() {
       setTransferring(walletId)
       setError(null)
       const result = await adminApi.transferFromTempWallet(walletId)
-      
+
       // Show success toast with transaction details
       const message = (
         <div>
@@ -83,27 +80,17 @@ function TempWallets() {
               USDT TX: {result.usdtTxHash}
             </div>
           )}
-          {result.trxTxHash && (
-            <div className="text-xs mt-1 break-all">
-              TRX TX: {result.trxTxHash}
-            </div>
-          )}
         </div>
       )
       showToast.success(message, { autoClose: 6000 })
-      
+
       // Wait a moment for blockchain to update, then reload wallets to update balances
       await new Promise(resolve => setTimeout(resolve, 2000))
       await loadWallets()
     } catch (err: any) {
       console.error('Transfer failed:', err)
       let errorMessage = err.response?.data?.message || 'Failed to transfer funds'
-      
-      // Check if error is about insufficient TRX
-      if (errorMessage.toLowerCase().includes('trx') || errorMessage.toLowerCase().includes('insufficient')) {
-        errorMessage = `❌ ${errorMessage}\n\nPlease ensure the master wallet has sufficient TRX for transaction fees.`
-      }
-      
+
       setError(errorMessage)
       showToast.error(
         <div>
@@ -179,9 +166,6 @@ function TempWallets() {
                   <th className="text-right py-3 px-4 text-slate-300 font-semibold">
                     USDT Balance <span className="text-xs text-slate-500">(Real-time)</span>
                   </th>
-                  <th className="text-right py-3 px-4 text-slate-300 font-semibold">
-                    TRX Balance <span className="text-xs text-slate-500">(Real-time)</span>
-                  </th>
                   <th className="text-right py-3 px-4 text-slate-300 font-semibold">Total Received</th>
                   <th className="text-left py-3 px-4 text-slate-300 font-semibold">Created</th>
                   <th className="text-center py-3 px-4 text-slate-300 font-semibold">Actions</th>
@@ -214,37 +198,27 @@ function TempWallets() {
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        wallet.status === 'ACTIVE' 
-                          ? 'bg-green-500/20 text-green-300'
-                          : wallet.status === 'COMPLETED'
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${wallet.status === 'ACTIVE'
+                        ? 'bg-green-500/20 text-green-300'
+                        : wallet.status === 'COMPLETED'
                           ? 'bg-blue-500/20 text-blue-300'
                           : 'bg-slate-500/20 text-slate-300'
-                      }`}>
+                        }`}>
                         {wallet.status}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex flex-col items-end">
-                        <span className={`font-semibold ${
-                          wallet.usdtBalance > 0 ? 'text-green-300' : 'text-slate-400'
-                        }`}>
-                          {wallet.usdtBalance.toFixed(2)} USDT
-                        </span>
-                        <span className="text-xs text-slate-500">Blockchain</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex flex-col items-end">
-                        <span className="text-slate-300 font-semibold">
-                          {wallet.trxBalance.toFixed(4)} TRX
+                        <span className={`font-semibold ${wallet.usdtBalance > 0 ? 'text-green-300' : 'text-slate-400'
+                          }`}>
+                          {Number(wallet.usdtBalance || 0).toFixed(2)} USDT
                         </span>
                         <span className="text-xs text-slate-500">Blockchain</span>
                       </div>
                     </td>
                     <td className="py-3 px-4 text-right">
                       <span className="text-slate-300 font-semibold">
-                        {wallet.totalReceived.toFixed(2)} USDT
+                        {Number(wallet.totalReceived || 0).toFixed(2)} USDT
                       </span>
                     </td>
                     <td className="py-3 px-4 text-slate-400 text-sm">
@@ -253,12 +227,11 @@ function TempWallets() {
                     <td className="py-3 px-4 text-center">
                       <button
                         onClick={() => handleTransfer(wallet.id)}
-                        disabled={transferring === wallet.id || (wallet.usdtBalance <= 0 && wallet.trxBalance <= 0.5)}
-                        className={`px-4 py-2 rounded-xl font-semibold transition-all ${
-                          (wallet.usdtBalance > 0 || wallet.trxBalance > 0.5) && transferring !== wallet.id
-                            ? 'bg-primary text-white hover:bg-primary/90'
-                            : 'bg-slate-500/20 text-slate-400 cursor-not-allowed'
-                        }`}
+                        disabled={transferring === wallet.id || Number(wallet.usdtBalance || 0) <= 0}
+                        className={`px-4 py-2 rounded-xl font-semibold transition-all ${Number(wallet.usdtBalance || 0) > 0 && transferring !== wallet.id
+                          ? 'bg-primary text-white hover:bg-primary/90'
+                          : 'bg-slate-500/20 text-slate-400 cursor-not-allowed'
+                          }`}
                       >
                         {transferring === wallet.id ? 'Transferring...' : 'Transfer'}
                       </button>
@@ -273,15 +246,15 @@ function TempWallets() {
         <div className="mt-6 space-y-3">
           <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
             <p className="text-sm text-blue-300">
-              <strong>Note:</strong> Click "Transfer" to manually transfer funds from a temp wallet to the master wallet. 
-              If the wallet has USDT, it will transfer USDT first, then any remaining TRX. 
-              If the wallet has no USDT, it will transfer TRX only. 
-              The system will automatically send TRX from the master wallet if needed for gas fees.
+              <strong>Note:</strong> Click "Transfer" to manually transfer USDT from a temp wallet to the master wallet.
+              Temp wallets are GasFree wallets, so no TRX transfer is needed.
+              Once payment is received in a temp wallet, the user's balance is automatically credited.
+              Admin must manually transfer funds from temp wallets to the master wallet.
             </p>
           </div>
           <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
             <p className="text-sm text-emerald-300">
-              <strong>Real-time Balances:</strong> USDT and TRX balances are fetched directly from the blockchain in real-time. 
+              <strong>Real-time Balances:</strong> USDT balances are fetched directly from the blockchain in real-time.
               Click "Refresh" to update all balances.
             </p>
           </div>

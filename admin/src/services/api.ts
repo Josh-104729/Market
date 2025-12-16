@@ -58,7 +58,6 @@ export interface TempWallet {
   status: string;
   totalReceived: number;
   usdtBalance: number;
-  trxBalance: number;
   lastCheckedAt?: string;
   createdAt: string;
   updatedAt: string;

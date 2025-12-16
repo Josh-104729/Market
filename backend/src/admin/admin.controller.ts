@@ -48,5 +48,17 @@ export class AdminController {
   async releaseMilestone(@Param('id') id: string, @Body() body: { amount: number }) {
     return this.adminService.releaseMilestone(id, body.amount);
   }
+
+  @UseGuards(AdminGuard)
+  @Get('temp-wallets')
+  async getTempWallets() {
+    return this.adminService.getTempWallets();
+  }
+
+  @UseGuards(AdminGuard)
+  @Post('temp-wallets/:walletId/transfer')
+  async transferFromTempWallet(@Param('walletId') walletId: string) {
+    return this.adminService.transferFromTempWallet(walletId);
+  }
 }
 

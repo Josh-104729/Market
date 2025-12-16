@@ -74,11 +74,6 @@ function Withdraws() {
       console.error('Accept withdraw failed:', err)
       let errorMessage = err.response?.data?.message || 'Failed to accept withdrawal'
       
-      // Check if error is about insufficient TRX
-      if (errorMessage.toLowerCase().includes('trx') || errorMessage.toLowerCase().includes('insufficient')) {
-        errorMessage = `❌ ${errorMessage}\n\nPlease ensure the master wallet has sufficient TRX for transaction fees.`
-      }
-      
       setError(errorMessage)
       showToast.error(
         <div>
