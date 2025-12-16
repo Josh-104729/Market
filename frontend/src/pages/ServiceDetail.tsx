@@ -391,7 +391,7 @@ function ServiceDetail() {
               )}
 
               {/* Action Buttons */}
-              <div className="mt-auto space-y-3">
+              <div className="mt-auto">
                 <button
                   onClick={handleConnectSeller}
                   disabled={connecting || !isAuthenticated || (service.user && service.user.id === user?.id)}
@@ -408,9 +408,6 @@ function ServiceDetail() {
                       <span>Connect Seller</span>
                     </>
                   )}
-                </button>
-                <button className="w-full px-6 py-4 border-2 border-blue-600 text-blue-400 rounded-lg font-semibold hover:bg-blue-900/30 transition-colors text-lg">
-                  Add to Favorites
                 </button>
               </div>
 
