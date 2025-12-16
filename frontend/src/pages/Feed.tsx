@@ -14,7 +14,7 @@ import { useAppSelector } from '../store/hooks'
 import { blogApi, Post, PostComment } from '../services/api'
 import { showToast } from '../utils/toast'
 
-const PostCard = ({ post, onLike, onComment }: { post: Post; onLike: (postId: string) => void; onComment: (postId: string, content: string) => void }) => {
+const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => void }) => {
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<PostComment[]>([])
   const [loadingComments, setLoadingComments] = useState(false)
@@ -285,23 +285,6 @@ function Feed() {
     }
   }
 
-  const handleComment = async (postId: string, content: string) => {
-    if (!isAuthenticated) return
-
-    try {
-      await blogApi.createComment(postId, { content })
-      setPosts((prevPosts) =>
-        prevPosts.map((post) =>
-          post.id === postId
-            ? { ...post, commentCount: (post.commentCount || 0) + 1 }
-            : post
-        )
-      )
-    } catch (error) {
-      console.error('Failed to create comment:', error)
-    }
-  }
-
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length > 10) {
@@ -460,7 +443,7 @@ function Feed() {
         ) : (
           <>
             {posts.map((post) => (
-              <PostCard key={post.id} post={post} onLike={handleLike} onComment={handleComment} />
+              <PostCard key={post.id} post={post} onLike={handleLike} />
             ))}
             {hasMore && (
               <div className="text-center mt-6">

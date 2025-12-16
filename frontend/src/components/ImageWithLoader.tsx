@@ -21,7 +21,6 @@ export default function ImageWithLoader({
 }: ImageWithLoaderProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [imageLoaded, setImageLoaded] = useState(false)
 
   // Preload the image to get blur effect working
   useEffect(() => {
@@ -35,7 +34,6 @@ export default function ImageWithLoader({
     img.src = src
     
     img.onload = () => {
-      setImageLoaded(true)
       // Small delay to ensure blur background is rendered
       setTimeout(() => {
         setLoading(false)

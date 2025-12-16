@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { referralApi } from '../services/api';
 import { showToast } from '../utils/toast';
 
 interface ReferralCodeProps {
