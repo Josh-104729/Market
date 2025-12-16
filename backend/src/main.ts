@@ -6,12 +6,19 @@ import { ServerOptions } from 'socket.io';
 import { join } from 'path';
 import { AppModule } from './app.module';
 
+// Helper function to get allowed CORS origins
+function getAllowedOrigins(): string[] {
+  return process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
+    : ['http://localhost:5173', 'http://localhost:5174'];
+}
+
 class SocketIOAdapter extends IoAdapter {
   createIOServer(port: number, options?: ServerOptions) {
     const server = super.createIOServer(port, {
       ...options,
       cors: {
-        origin: ['http://localhost:5173', 'http://localhost:5174'],
+        origin: getAllowedOrigins(),
         credentials: true,
         methods: ['GET', 'POST'],
       },
@@ -42,7 +49,7 @@ async function bootstrap() {
   }));
 
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    origin: getAllowedOrigins(),
     credentials: true,
   });
 
