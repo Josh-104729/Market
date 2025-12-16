@@ -308,9 +308,14 @@ function Layout({ children }: LayoutProps) {
                   Feed
                 </Link>
                 {isAuthenticated && (
-                  <Link to="/referral" className="text-sm font-medium transition-colors text-slate-400 hover:text-white">
-                    Referral
-                  </Link>
+                  <>
+                    <Link to="/chat" className="text-sm font-medium transition-colors text-slate-400 hover:text-white">
+                      Chat
+                    </Link>
+                    <Link to="/referral" className="text-sm font-medium transition-colors text-slate-400 hover:text-white">
+                      Referral
+                    </Link>
+                  </>
                 )}
                 <div 
                   className="relative group" 
@@ -501,13 +506,22 @@ function Layout({ children }: LayoutProps) {
                 Feed
               </Link>
               {isAuthenticated && (
-                <Link
-                  to="/referral"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  Referral
-                </Link>
+                <>
+                  <Link
+                    to="/chat"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    Chat
+                  </Link>
+                  <Link
+                    to="/referral"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    Referral
+                  </Link>
+                </>
               )}
               <Link
                 to="/services"

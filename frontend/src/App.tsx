@@ -8,6 +8,7 @@ import MyServices from './pages/MyServices'
 import CreateService from './pages/CreateService'
 import ServiceDetail from './pages/ServiceDetail'
 import Chat from './pages/Chat'
+import ChatList from './pages/ChatList'
 import Feed from './pages/Feed'
 import Profile from './pages/Profile'
 import Charge from './pages/Charge'
@@ -37,7 +38,8 @@ function App() {
                 <Route path="/my-services" element={<MyServices />} />
                 <Route path="/services/new" element={<CreateService />} />
                 <Route path="/services/:id" element={<ServiceDetail />} />
-                <Route path="/chat/:id" element={<Chat />} />
+                <Route path="/chat" element={<ChatList />} />
+                <Route path="/chat/:id" element={<ChatList />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings/security" element={<SecuritySettings />} />
                 <Route path="/charge" element={<Charge />} />

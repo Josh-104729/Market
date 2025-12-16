@@ -941,9 +941,8 @@ function Chat() {
   const isClient = conversation.clientId === user?.id
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto fixed inset-0 flex flex-col mt-[106px]">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex min-h-0 overflow-hidden">
+    <div className="h-full flex flex-col">
+      <div className="flex-1 flex min-h-0 overflow-hidden">
           {/* Main Chat Area */}
           <div className="flex-1 flex flex-col min-w-0 min-h-0">
             {/* Header */}
@@ -1002,26 +1001,17 @@ function Chat() {
               }}
             >
               {/* Drag Overlay */}
-              {isDragging && messagesAreaRef.current && (() => {
-                const rect = messagesAreaRef.current!.getBoundingClientRect()
-                return (
-                  <div
-                    className="fixed bg-primary/20 border-2 border-dashed border-primary rounded-lg flex items-center justify-center z-50 pointer-events-none"
-                    style={{
-                      top: `${rect.top}px`,
-                      left: `${rect.left}px`,
-                      width: `${rect.width}px`,
-                      height: `${rect.height}px`,
-                    }}
-                  >
-                    <div className="text-center">
-                      <FontAwesomeIcon icon={faPaperclip} className="text-6xl text-primary mb-4" />
-                      <p className="text-primary font-semibold text-xl">Drop files here to upload</p>
-                      <p className="text-primary/80 text-sm mt-2">Release to add files to your message</p>
-                    </div>
+              {isDragging && (
+                <div
+                  className="fixed inset-0 bg-primary/20 border-2 border-dashed border-primary rounded-lg flex items-center justify-center z-50 pointer-events-none"
+                >
+                  <div className="text-center">
+                    <FontAwesomeIcon icon={faPaperclip} className="text-6xl text-primary mb-4" />
+                    <p className="text-primary font-semibold text-xl">Drop files here to upload</p>
+                    <p className="text-primary/80 text-sm mt-2">Release to add files to your message</p>
                   </div>
-                )
-              })()}
+                </div>
+              )}
               <div className="relative p-4 space-y-1" ref={messagesContainerRef}>
                 {/* Loading indicator for older messages */}
                 {loadingMoreMessages && (
@@ -1881,102 +1871,105 @@ function Chat() {
             </div>
           </div>
         </div>
-      </div>
 
       {/* Release Milestone Modal */}
-      {showReleaseModal && (() => {
-        const milestone = milestones.find(m => m.id === releaseForm.milestoneId)
-        const isAdminReleased = milestone?.status === 'released' && !milestone?.feedback
-        return (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="glass-card rounded-xl p-6 max-w-md w-full space-y-4">
-              <h2 className="text-xl font-bold text-white mb-4">
-                {isAdminReleased ? 'Provide Feedback' : 'Release Milestone'}
-              </h2>
-              <p className="text-slate-300 text-sm mb-4">
-                {isAdminReleased
+      {showReleaseModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-card rounded-xl p-6 max-w-md w-full space-y-4">
+            <h2 className="text-xl font-bold text-white mb-4">
+              {(() => {
+                const milestone = milestones.find(m => m.id === releaseForm.milestoneId)
+                const isAdminReleased = milestone?.status === 'released' && !milestone?.feedback
+                return isAdminReleased ? 'Provide Feedback' : 'Release Milestone'
+              })()}
+            </h2>
+            <p className="text-slate-300 text-sm mb-4">
+              {(() => {
+                const milestone = milestones.find(m => m.id === releaseForm.milestoneId)
+                const isAdminReleased = milestone?.status === 'released' && !milestone?.feedback
+                return isAdminReleased
                   ? 'This milestone was released by admin. Please provide your feedback and rate the provider (1-5 stars).'
-                  : 'Please provide feedback and rate the provider (1-5 stars) before releasing this milestone.'}
-              </p>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Rating (1-5 stars) *
-                </label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setReleaseForm({ ...releaseForm, rating: star })}
-                      className={`text-2xl transition-all ${
-                        releaseForm.rating >= star
-                          ? 'text-yellow-400'
-                          : 'text-slate-500 hover:text-slate-400'
-                      }`}
-                    >
-                      ★
-                    </button>
-                  ))}
-                </div>
-                {releaseForm.rating > 0 && (
-                  <p className="text-xs text-slate-400 mt-1">{releaseForm.rating} star{releaseForm.rating !== 1 ? 's' : ''} selected</p>
-                )}
+                  : 'Please provide feedback and rate the provider (1-5 stars) before releasing this milestone.'
+              })()}
+            </p>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Rating (1-5 stars) *
+              </label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setReleaseForm({ ...releaseForm, rating: star })}
+                    className={`text-2xl transition-all ${
+                      releaseForm.rating >= star
+                        ? 'text-yellow-400'
+                        : 'text-slate-500 hover:text-slate-400'
+                    }`}
+                  >
+                    ★
+                  </button>
+                ))}
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Feedback *
-                </label>
-                <textarea
-                  value={releaseForm.feedback}
-                  onChange={(e) => setReleaseForm({ ...releaseForm, feedback: e.target.value })}
-                  placeholder="Share your experience with this milestone..."
-                  className="w-full glass-card text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder-slate-400 text-sm resize-none"
-                  rows={4}
-                />
-              </div>
+              {releaseForm.rating > 0 && (
+                <p className="text-xs text-slate-400 mt-1">{releaseForm.rating} star{releaseForm.rating !== 1 ? 's' : ''} selected</p>
+              )}
             </div>
 
-            <div className="flex space-x-2 pt-4">
-              <button
-                onClick={handleReleaseMilestone}
-                disabled={updatingMilestone === releaseForm.milestoneId || !releaseForm.feedback.trim() || releaseForm.rating < 1}
-                className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary/90 transition-colors text-sm shadow-glow-primary disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {updatingMilestone === releaseForm.milestoneId ? (
-                  <>
-                    <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
-                    {(() => {
-                      const milestone = milestones.find(m => m.id === releaseForm.milestoneId)
-                      const isAdminReleased = milestone?.status === 'released' && !milestone?.feedback
-                      return isAdminReleased ? 'Submitting...' : 'Releasing...'
-                    })()}
-                  </>
-                ) : (
-                  (() => {
-                    const milestone = milestones.find(m => m.id === releaseForm.milestoneId)
-                    const isAdminReleased = milestone?.status === 'released' && !milestone?.feedback
-                    return isAdminReleased ? 'Submit Feedback' : 'Release Milestone'
-                  })()
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  setShowReleaseModal(false)
-                  setReleaseForm({ milestoneId: '', feedback: '', rating: 0 })
-                }}
-                disabled={updatingMilestone === releaseForm.milestoneId}
-                className="flex-1 glass-card text-white px-4 py-2 rounded-full font-semibold hover:bg-white/15 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Feedback *
+              </label>
+              <textarea
+                value={releaseForm.feedback}
+                onChange={(e) => setReleaseForm({ ...releaseForm, feedback: e.target.value })}
+                placeholder="Share your experience with this milestone..."
+                className="w-full glass-card text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder-slate-400 text-sm resize-none"
+                rows={4}
+              />
             </div>
           </div>
+
+          <div className="flex space-x-2 pt-4">
+            <button
+              onClick={handleReleaseMilestone}
+              disabled={updatingMilestone === releaseForm.milestoneId || !releaseForm.feedback.trim() || releaseForm.rating < 1}
+              className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary/90 transition-colors text-sm shadow-glow-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {updatingMilestone === releaseForm.milestoneId ? (
+                <>
+                  <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+                  {(() => {
+                    const milestone = milestones.find(m => m.id === releaseForm.milestoneId)
+                    const isAdminReleased = milestone?.status === 'released' && !milestone?.feedback
+                    return isAdminReleased ? 'Submitting...' : 'Releasing...'
+                  })()}
+                </>
+              ) : (
+                (() => {
+                  const milestone = milestones.find(m => m.id === releaseForm.milestoneId)
+                  const isAdminReleased = milestone?.status === 'released' && !milestone?.feedback
+                  return isAdminReleased ? 'Submit Feedback' : 'Release Milestone'
+                })()
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setShowReleaseModal(false)
+                setReleaseForm({ milestoneId: '', feedback: '', rating: 0 })
+              }}
+              disabled={updatingMilestone === releaseForm.milestoneId}
+              className="flex-1 glass-card text-white px-4 py-2 rounded-full font-semibold hover:bg-white/15 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
-        )
-      })()}
+      </div>
+      )}
 
       {/* File Preview Modal */}
       {previewFile && (
