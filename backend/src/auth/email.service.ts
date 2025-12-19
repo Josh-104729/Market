@@ -35,6 +35,8 @@ export class EmailService {
           user: smtpUser,
           pass: smtpPass,
         },
+        greetingTimeout: 10000,  // Timeout for receiving SMTP greeting (10 seconds)
+        socketTimeout: 10000, 
       });
       this.isConfigured = true;
       this.logger.log('Email service configured successfully');
@@ -77,6 +79,8 @@ export class EmailService {
         return;
       } catch (error) {
         this.logger.error(`Error sending email to ${email}:`, error.message);
+        console.log(error);
+        console.log(error.code);
         if (error.code === 'EAUTH') {
           this.logger.error(
             'Authentication failed. Please check your SMTP credentials. For Gmail, make sure you are using an App Password.',
