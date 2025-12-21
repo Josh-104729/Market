@@ -14,8 +14,10 @@ interface TempWallet {
   } | null
   address: string
   status: string
+  network?: 'TRON' | 'POLYGON'
   totalReceived: number
   usdtBalance: number
+  usdcBalance?: number
   lastCheckedAt?: string
   createdAt: string
   updatedAt: string
@@ -73,6 +75,11 @@ function TempWallets() {
           {result.amountTransferred > 0 && (
             <div className="text-sm mt-1">
               Amount: {result.amountTransferred.toFixed(2)} USDT
+            </div>
+          )}
+          {result.trxTxHash && (
+            <div className="text-xs mt-1 break-all">
+              TRX TX: {result.trxTxHash}
             </div>
           )}
           {result.usdtTxHash && (
@@ -161,6 +168,7 @@ function TempWallets() {
               <thead>
                 <tr className="border-b border-white/10">
                   <th className="text-left py-3 px-4 text-slate-300 font-semibold">Address</th>
+                  <th className="text-left py-3 px-4 text-slate-300 font-semibold">Network</th>
                   <th className="text-left py-3 px-4 text-slate-300 font-semibold">User</th>
                   <th className="text-left py-3 px-4 text-slate-300 font-semibold">Status</th>
                   <th className="text-right py-3 px-4 text-slate-300 font-semibold">
@@ -186,6 +194,21 @@ function TempWallets() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
+                      {wallet.network === 'TRON' ? (
+                        <div className="flex flex-col">
+                          <span className="text-white text-sm font-semibold">USDT TRC20</span>
+                          <span className="text-xs text-slate-400">Normal Wallet</span>
+                        </div>
+                      ) : wallet.network === 'POLYGON' ? (
+                        <div className="flex flex-col">
+                          <span className="text-white text-sm font-semibold">USDC Polygon</span>
+                          <span className="text-xs text-slate-400">Normal Wallet</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 text-sm">Unknown</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
                       {wallet.user ? (
                         <div>
                           <div className="text-white text-sm">
@@ -209,11 +232,30 @@ function TempWallets() {
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex flex-col items-end">
-                        <span className={`font-semibold ${wallet.usdtBalance > 0 ? 'text-green-300' : 'text-slate-400'
-                          }`}>
-                          {Number(wallet.usdtBalance || 0).toFixed(2)} USDT
-                        </span>
-                        <span className="text-xs text-slate-500">Blockchain</span>
+                        {wallet.network === 'TRON' ? (
+                          <>
+                            <span className={`font-semibold ${wallet.usdtBalance > 0 ? 'text-green-300' : 'text-slate-400'
+                              }`}>
+                              {Number(wallet.usdtBalance || 0).toFixed(2)} USDT
+                            </span>
+                            <span className="text-xs text-slate-500">TRC20 Normal Wallet</span>
+                          </>
+                        ) : wallet.network === 'POLYGON' ? (
+                          <>
+                            <span className={`font-semibold ${(wallet.usdcBalance || 0) > 0 ? 'text-green-300' : 'text-slate-400'
+                              }`}>
+                              {Number(wallet.usdcBalance || 0).toFixed(2)} USDC
+                            </span>
+                            <span className="text-xs text-slate-500">Polygon Normal Wallet</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-slate-400 font-semibold">
+                              {Number(wallet.usdtBalance || 0).toFixed(2)} USDT
+                            </span>
+                            <span className="text-xs text-slate-500">Blockchain</span>
+                          </>
+                        )}
                       </div>
                     </td>
                     <td className="py-3 px-4 text-right">
@@ -247,14 +289,14 @@ function TempWallets() {
           <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
             <p className="text-sm text-blue-300">
               <strong>Note:</strong> Click "Transfer" to manually transfer USDT from a temp wallet to the master wallet.
-              Temp wallets are GasFree wallets, so no TRX transfer is needed.
+              If the temp wallet doesn't have enough TRX for gas fees, the master wallet will automatically send 30 TRX first.
               Once payment is received in a temp wallet, the user's balance is automatically credited.
               Admin must manually transfer funds from temp wallets to the master wallet.
             </p>
           </div>
           <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
             <p className="text-sm text-emerald-300">
-              <strong>Real-time Balances:</strong> USDT balances are fetched directly from the blockchain in real-time.
+              <strong>Real-time Balances:</strong> USDT TRC20 Normal Wallet balances are fetched directly from the blockchain in real-time.
               Click "Refresh" to update all balances.
             </p>
           </div>

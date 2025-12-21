@@ -6,7 +6,7 @@ export class WithdrawDto {
   @Type(() => Number)
   @IsNumber()
   @IsNotEmpty()
-  @Min(0.01)
+  @Min(5)
   amount: number;
 
   @IsString()

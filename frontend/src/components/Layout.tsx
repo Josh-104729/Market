@@ -234,6 +234,21 @@ function Layout({ children }: LayoutProps) {
           })
         }
       }
+      // Show toast for payment withdraw notifications
+      else if (notification.type === 'payment_withdraw') {
+        const toastContent = (
+          <div>
+            <div className="font-semibold text-white">{notification.title}</div>
+            <div className="text-sm opacity-90 text-gray-200 mt-1">{notification.message}</div>
+            {notification.metadata?.transactionHash && (
+              <div className="text-xs opacity-75 text-gray-300 mt-1 break-all">
+                TX: {notification.metadata.transactionHash}
+              </div>
+            )}
+          </div>
+        )
+        showToast.success(toastContent, { autoClose: 6000 })
+      }
       // Show toast for milestone-related notifications
       else if (notification.type === 'milestone_created' || notification.type === 'milestone_updated' || notification.type === 'milestone_payment_pending') {
         const toastContent = (

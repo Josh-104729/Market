@@ -17,7 +17,7 @@ import { PaymentNetwork } from '../entities/transaction.entity';
 
 @Injectable()
 export class PaymentService {
-  private readonly PLATFORM_FEE = 5; // $5 USD platform fee
+  private readonly PLATFORM_FEE = 1; // $1 USD platform fee
   private readonly MIN_WITHDRAW_AMOUNT = 5; // Minimum 5 USD for withdrawal
 
   constructor(
@@ -1081,12 +1081,15 @@ export class PaymentService {
         return { success: false, message: `Insufficient payment received. Expected: ${expectedAmount.toFixed(2)} ${currency}, Received: ${tokenBalance.toFixed(2)} ${currency}` };
       }
 
+      // Calculate amount added to balance: transferred amount - platform fee
+      const amountAdded = tokenBalance - (currentTransaction.platformFee || 0);
+
       // Update transaction status to SUCCESS (no automatic transfer)
       currentTransaction.status = TransactionStatus.SUCCESS;
-      currentTransaction.description = `Charge completed. Payment received: ${tokenBalance.toFixed(2)} ${currency}. Admin transfer pending.`;
+      currentTransaction.description = `Charge completed. Payment received: ${tokenBalance.toFixed(2)} ${currency}. Amount added to balance: ${amountAdded.toFixed(2)} ${currency} (after ${currentTransaction.platformFee || 0} ${currency} platform fee). Admin transfer pending.`;
       await queryRunner.manager.save(currentTransaction);
 
-      // Update user balance (amount excluding platform fee)
+      // Update user balance (amount = transferred from user - platform fee)
       let userBalance = await queryRunner.manager.findOne(Balance, {
         where: { userId: currentTransaction.clientId },
       });
@@ -1098,8 +1101,8 @@ export class PaymentService {
         });
       }
 
-      // Add amount to balance (excluding platform fee)
-      userBalance.amount = Number(userBalance.amount) + Number(currentTransaction.amount);
+      // Add amount to balance: transferred amount - platform fee
+      userBalance.amount = Number(userBalance.amount) + amountAdded;
       await queryRunner.manager.save(userBalance);
 
       // Update temp wallet total received
@@ -1118,8 +1121,8 @@ export class PaymentService {
         currentTransaction.clientId!,
         NotificationType.PAYMENT_CHARGE,
         'Charge Completed',
-        `Your balance has been charged with ${Number(currentTransaction.amount).toFixed(2)} ${currency}`,
-        { transactionId: currentTransaction.id, amount: currentTransaction.amount },
+        `Your balance has been charged with ${amountAdded.toFixed(2)} ${currency}`,
+        { transactionId: currentTransaction.id, amount: amountAdded },
       );
 
       // Emit balance update event via WebSocket

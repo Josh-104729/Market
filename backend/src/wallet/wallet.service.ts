@@ -39,8 +39,7 @@ export class WalletService {
       return existingWallet;
     }
 
-    // Generate new USDT TRC20 GasFree wallet
-    // Note: Temp wallets are GasFree wallets
+    // Generate new USDT TRC20 Normal wallet
     const account = this.tronWeb.utils.accounts.generateAccount();
     const address = account.address.base58;
     const privateKey = account.privateKey;
@@ -351,22 +350,89 @@ export class WalletService {
   }
 
   /**
+   * Get TRX balance for a wallet address
+   */
+  async getTRXBalance(walletAddress: string): Promise<number> {
+    try {
+      const balance = await this.tronWeb.trx.getBalance(walletAddress);
+      // TRX has 6 decimals
+      return Number(balance) / 1e6;
+    } catch (error) {
+      console.error('Error getting TRX balance:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Send TRX from a wallet to a destination address
+   */
+  async sendTRX(
+    fromPrivateKey: string,
+    toAddress: string,
+    amountTRX: number,
+  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    try {
+      this.tronWeb.setPrivateKey(fromPrivateKey);
+      const amount = Math.floor(amountTRX * 1e6); // TRX has 6 decimals
+
+      const transaction = await this.tronWeb.trx.sendTransaction(toAddress, amount);
+
+      if (transaction) {
+        return {
+          success: true,
+          transactionHash: transaction,
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Transaction failed',
+        };
+      }
+    } catch (error) {
+      console.error('Error sending TRX:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
    * Transfer all USDT from temp wallet to master wallet
-   * Note: Temp wallets are GasFree wallets
+   * If temp wallet doesn't have enough TRX, master wallet sends 30 TRX first
    */
   async transferFromTempWalletToMaster(
     tempWallet: TempWallet,
-  ): Promise<{ success: boolean; usdtTxHash?: string; error?: string }> {
+  ): Promise<{ success: boolean; usdtTxHash?: string; trxTxHash?: string; error?: string }> {
     try {
       const masterWallet = this.getMasterWallet();
       const privateKey = await this.getDecryptedPrivateKey(tempWallet);
 
       // Get current balances
       const usdtBalance = await this.getUSDTBalance(tempWallet.address);
+      const trxBalance = await this.getTRXBalance(tempWallet.address);
 
-      const result: { success: boolean; usdtTxHash?: string; error?: string } = {
+      const result: { success: boolean; usdtTxHash?: string; trxTxHash?: string; error?: string } = {
         success: false,
       };
+
+      // Check if temp wallet has enough TRX for gas (need at least 10 TRX for USDT transfer)
+      const MIN_TRX_REQUIRED = 10; // Minimum TRX needed for USDT transfer
+      if (trxBalance < MIN_TRX_REQUIRED) {
+        // Master wallet sends 30 TRX to temp wallet
+        console.log(`Temp wallet has insufficient TRX (${trxBalance.toFixed(6)} TRX). Sending 30 TRX from master wallet...`);
+        const trxResult = await this.sendTRX(masterWallet.privateKey, tempWallet.address, 30);
+        if (!trxResult.success) {
+          return {
+            success: false,
+            error: `Failed to send TRX to temp wallet: ${trxResult.error}`,
+          };
+        }
+        result.trxTxHash = trxResult.transactionHash;
+
+        // Wait for TRX transaction to be confirmed
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
 
       // Transfer USDT if balance > 0
       console.log('usdtBalance', usdtBalance);

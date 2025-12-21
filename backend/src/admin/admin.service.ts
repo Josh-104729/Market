@@ -209,10 +209,11 @@ export class AdminService {
       throw new BadRequestException('No funds to transfer');
     }
 
-    let transferResult: { success: boolean; usdtTxHash?: string; usdcTxHash?: string; maticTxHash?: string; error?: string };
+    let transferResult: { success: boolean; usdtTxHash?: string; usdcTxHash?: string; maticTxHash?: string; trxTxHash?: string; error?: string };
 
     if (tempWallet.network === WalletNetwork.TRON) {
-      // Transfer USDT from temp wallet to master wallet (GasFree)
+      // Transfer USDT from temp wallet to master wallet
+      // If temp wallet doesn't have enough TRX, master wallet will send 30 TRX first
       transferResult = await this.walletService.transferFromTempWalletToMaster(tempWallet);
     } else if (tempWallet.network === WalletNetwork.POLYGON) {
       // Transfer USDC from temp wallet to master wallet
@@ -230,6 +231,7 @@ export class AdminService {
       usdtTxHash: transferResult.usdtTxHash,
       usdcTxHash: transferResult.usdcTxHash,
       maticTxHash: transferResult.maticTxHash,
+      trxTxHash: transferResult.trxTxHash,
       amountTransferred: amountTransferred,
     };
   }
