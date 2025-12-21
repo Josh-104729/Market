@@ -85,7 +85,7 @@ function SignIn() {
                 Two-Factor Authentication
               </h2>
               <p className="text-slate-400">
-                Enter the code from your {twoFactorMethod === 'totp' ? 'authenticator app' : twoFactorMethod === 'sms' ? 'SMS' : 'email'}
+                Enter the code from your {twoFactorMethod === 'totp' ? 'authenticator app' : 'email'}
               </p>
             </div>
 

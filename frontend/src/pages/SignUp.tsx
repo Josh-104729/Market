@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import PhoneInput from 'react-phone-number-input';
-import 'react-phone-number-input/style.css';
+// PhoneInput import removed - SMS phone verification disabled
+// import PhoneInput from 'react-phone-number-input';
+// import 'react-phone-number-input/style.css';
 import { authApi, referralApi } from '../services/api';
 import { useAppDispatch } from '../store/hooks';
 import { setCredentials } from '../store/slices/authSlice';
@@ -35,15 +36,15 @@ function SignUp() {
     country: '',
   });
 
-  // Step 6: Phone
-  const [step6Data, setStep6Data] = useState({
-    phoneNumber: '',
-  });
+  // Step 6: Phone - SMS phone verification disabled
+  // const [step6Data, setStep6Data] = useState({
+  //   phoneNumber: '',
+  // });
 
-  // Step 7: Phone Verification
-  const [step7Data, setStep7Data] = useState({
-    verificationCode: '',
-  });
+  // Step 7: Phone Verification - SMS phone verification disabled
+  // const [step7Data, setStep7Data] = useState({
+  //   verificationCode: '',
+  // });
 
   // Referral code validation
   const [referralCode, setReferralCode] = useState('');
