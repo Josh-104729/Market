@@ -23,7 +23,7 @@ import { ReferralModule } from '../referral/referral.module';
   ],
   controllers: [AuthController],
   providers: [AuthService, EmailService, /* SmsService, */ TwoFactorService, JwtStrategy], // SMS phone verification disabled
-  exports: [AuthService, TwoFactorService],
+  exports: [AuthService, TwoFactorService, EmailService],
 })
 export class AuthModule {}
 

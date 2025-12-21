@@ -96,6 +96,12 @@ export class NotificationService {
       where: { userId, readAt: IsNull() },
     });
 
+    // Update last notification check timestamp
+    await this.userRepository.update(
+      { id: userId },
+      { lastNotificationCheckAt: new Date() },
+    );
+
     return {
       data: notifications,
       total,

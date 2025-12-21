@@ -79,5 +79,11 @@ export class User extends BaseEntity {
 
   @Column({ name: 'total_referral_earnings', type: 'decimal', precision: 10, scale: 2, default: 0 })
   totalReferralEarnings: number;
+
+  @Column({ name: 'last_notification_check_at', type: 'timestamp', nullable: true })
+  lastNotificationCheckAt?: Date;
+
+  @Column({ name: 'last_notification_email_sent_at', type: 'timestamp', nullable: true })
+  lastNotificationEmailSentAt?: Date;
 }
 

@@ -145,5 +145,62 @@ export class EmailService {
     this.logger.warn(`[DEV MODE] 2FA Code: ${code}`);
     this.logger.warn('In development, you can use this code to verify 2FA.');
   }
+
+  async sendNotificationReminderEmail(
+    email: string,
+    lastNotification: { title: string; message: string },
+    unreadCount: number,
+  ) {
+    const mailOptions = {
+      from: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@omnimart.com',
+      to: email,
+      subject: `You have ${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''} on OmniMart`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #10b981; font-size: 28px; margin: 0;">OmniMart</h1>
+            <p style="color: #666; font-size: 14px; margin-top: 5px;">Anyone can sell anything and buy anything</p>
+          </div>
+          <h2 style="color: #333;">You have ${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}</h2>
+          <p>You haven't checked your notifications in a while. Here's your latest notification:</p>
+          <div style="background-color: #f4f4f4; padding: 20px; border-radius: 4px; margin: 20px 0;">
+            <h3 style="color: #333; margin-top: 0;">${lastNotification.title}</h3>
+            <p style="color: #666; margin-bottom: 0;">${lastNotification.message}</p>
+          </div>
+          <p>You have <strong>${unreadCount}</strong> unread notification${unreadCount !== 1 ? 's' : ''} waiting for you.</p>
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/notifications" style="display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0;">
+            View All Notifications
+          </a>
+          <p style="color: #999; font-size: 12px; margin-top: 30px;">
+            This is an automated reminder. You can manage your notification preferences in your account settings.
+          </p>
+        </div>
+      `,
+    };
+
+    // If email service is configured, send the email
+    if (this.isConfigured && this.transporter) {
+      try {
+        await this.transporter.sendMail(mailOptions);
+        this.logger.log(`Notification reminder email sent to ${email}`);
+        return;
+      } catch (error) {
+        this.logger.error(`Error sending notification reminder email to ${email}:`, error.message);
+        if (error.code === 'EAUTH') {
+          this.logger.error(
+            'Authentication failed. Please check your SMTP credentials. For Gmail, make sure you are using an App Password.',
+          );
+        }
+        // Fall through to development mode logging
+      }
+    }
+
+    // Development mode: Log the notification reminder
+    this.logger.warn(
+      `[DEV MODE] Email service not configured. Notification reminder email would be sent to ${email}`,
+    );
+    this.logger.warn(`[DEV MODE] Last Notification: ${lastNotification.title} - ${lastNotification.message}`);
+    this.logger.warn(`[DEV MODE] Unread Count: ${unreadCount}`);
+  }
 }
 
