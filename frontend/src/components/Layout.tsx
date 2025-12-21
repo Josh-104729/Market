@@ -101,6 +101,18 @@ function Layout({ children }: LayoutProps) {
     }
   }, [refreshBalance, location.pathname])
 
+  // Listen for 2FA status update events
+  useEffect(() => {
+    const handle2FAStatusUpdate = () => {
+      fetch2FAStatus()
+    }
+
+    window.addEventListener('2fa-status-updated', handle2FAStatusUpdate)
+    return () => {
+      window.removeEventListener('2fa-status-updated', handle2FAStatusUpdate)
+    }
+  }, [fetch2FAStatus])
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

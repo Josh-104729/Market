@@ -49,7 +49,9 @@ function SecuritySettings() {
       setSetupStep('backup');
       setShowBackupCodes(true);
       showToast.success('2FA enabled successfully!');
-      load2FAStatus();
+      await load2FAStatus();
+      // Dispatch event to notify Layout component
+      window.dispatchEvent(new CustomEvent('2fa-status-updated'));
     } catch (error: any) {
       showToast.error(error.response?.data?.message || 'Invalid verification code');
     } finally {
@@ -72,6 +74,8 @@ function SecuritySettings() {
       setTwoFactorMethod(null);
       setPassword('');
       setSetupStep('idle');
+      // Dispatch event to notify Layout component
+      window.dispatchEvent(new CustomEvent('2fa-status-updated'));
     } catch (error: any) {
       showToast.error(error.response?.data?.message || 'Failed to disable 2FA');
     } finally {
