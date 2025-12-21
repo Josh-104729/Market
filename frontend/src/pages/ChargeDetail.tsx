@@ -253,13 +253,13 @@ function ChargeDetail() {
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl p-8">
         <h1 className="text-3xl font-bold text-white mb-2">Charge Balance</h1>
-        <p className="text-slate-400 mb-6">
+        <p className="text-neutral-400 mb-6">
           Send {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC on Polygon network' : 'USDT TRC20'} to the address below
         </p>
 
         {balance && (
           <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-primary/20 to-emerald-600/20 border border-primary/30">
-            <p className="text-sm text-slate-400 mb-1">Current Balance</p>
+            <p className="text-sm text-neutral-400 mb-1">Current Balance</p>
             <p className="text-2xl font-bold text-white">{Number(balance.amount).toFixed(2)} USD</p>
           </div>
         )}
@@ -272,12 +272,12 @@ function ChargeDetail() {
                 ? 'text-green-400 bg-green-400/10' 
                 : transactionStatus === 'pending'
                 ? 'text-yellow-400 bg-yellow-400/10'
-                : 'text-slate-400 bg-slate-400/10'
+                : 'text-neutral-400 bg-neutral-400/10'
             }`}>
               {transactionStatus === 'success' ? 'PAID' : transactionStatus === 'pending' ? 'WAITING FOR PAYMENT' : transactionStatus.toUpperCase()}
             </span>
             {transactionStatus === 'pending' && (
-              <span className="text-xs text-slate-400 animate-pulse">
+              <span className="text-xs text-neutral-400 animate-pulse">
                 Checking for payment...
               </span>
             )}
@@ -317,15 +317,15 @@ function ChargeDetail() {
 
           {/* Amount Breakdown */}
           <div className="p-4 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 space-y-2">
-            <div className="flex justify-between text-slate-300">
+            <div className="flex justify-between text-neutral-300">
               <span>Network:</span>
               <span className="font-semibold">{chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC Polygon' : 'USDT TRC20'}</span>
             </div>
-            <div className="flex justify-between text-slate-300">
+            <div className="flex justify-between text-neutral-300">
               <span>Amount:</span>
               <span className="font-semibold">{Number(chargeData.amount).toFixed(2)} {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'}</span>
             </div>
-            <div className="flex justify-between text-slate-300">
+            <div className="flex justify-between text-neutral-300">
               <span>Platform Fee:</span>
               <span className="font-semibold">{Number(chargeData.platformFee).toFixed(2)} {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'}</span>
             </div>

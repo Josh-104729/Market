@@ -44,11 +44,11 @@ function Transactions() {
       case 'failed':
         return 'text-red-400 bg-red-400/10'
       case 'cancelled':
-        return 'text-gray-400 bg-gray-400/10'
+        return 'text-neutral-400 bg-neutral-400/10'
       case 'draft':
         return 'text-blue-400 bg-blue-400/10'
       default:
-        return 'text-slate-400 bg-slate-400/10'
+        return 'text-neutral-400 bg-neutral-400/10'
     }
   }
 
@@ -134,17 +134,17 @@ function Transactions() {
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
       <div className="backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl p-6 md:p-8">
         <h1 className="text-3xl font-bold text-white mb-2">Transaction History</h1>
-        <p className="text-slate-400 mb-6">View all your transactions</p>
+        <p className="text-neutral-400 mb-6">View all your transactions</p>
 
         {/* Summary Cards */}
         {transactions.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="p-4 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-600/20 border border-green-500/30">
-              <p className="text-sm text-slate-400 mb-1">Total In</p>
+              <p className="text-sm text-neutral-400 mb-1">Total In</p>
               <p className="text-2xl font-bold text-green-400">+{summary.totalIn.toFixed(2)} USD</p>
             </div>
             <div className="p-4 rounded-xl bg-gradient-to-r from-red-500/20 to-orange-600/20 border border-red-500/30">
-              <p className="text-sm text-slate-400 mb-1">Total Out</p>
+              <p className="text-sm text-neutral-400 mb-1">Total Out</p>
               <p className="text-2xl font-bold text-red-400">-{summary.totalOut.toFixed(2)} USD</p>
             </div>
           </div>
@@ -191,15 +191,15 @@ function Transactions() {
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="text-slate-400 mt-4">Loading transactions...</p>
+            <p className="text-neutral-400 mt-4">Loading transactions...</p>
           </div>
         ) : transactions.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-slate-400">No transactions found</p>
+            <p className="text-neutral-400">No transactions found</p>
           </div>
         ) : filteredTransactions.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-slate-400">No transactions match the selected filters</p>
+            <p className="text-neutral-400">No transactions match the selected filters</p>
             <button
               onClick={() => {
                 setFilterType('all')
@@ -217,13 +217,13 @@ function Transactions() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/10">
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-slate-400">Type</th>
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-slate-400">Role</th>
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-slate-400">Amount</th>
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-slate-400">Status</th>
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-slate-400">Date</th>
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-slate-400">Description</th>
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-slate-400">Hash/Address</th>
+                    <th className="text-left py-4 px-4 text-sm font-semibold text-neutral-400">Type</th>
+                    <th className="text-left py-4 px-4 text-sm font-semibold text-neutral-400">Role</th>
+                    <th className="text-left py-4 px-4 text-sm font-semibold text-neutral-400">Amount</th>
+                    <th className="text-left py-4 px-4 text-sm font-semibold text-neutral-400">Status</th>
+                    <th className="text-left py-4 px-4 text-sm font-semibold text-neutral-400">Date</th>
+                    <th className="text-left py-4 px-4 text-sm font-semibold text-neutral-400">Description</th>
+                    <th className="text-left py-4 px-4 text-sm font-semibold text-neutral-400">Hash/Address</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -253,15 +253,15 @@ function Transactions() {
                         <td className="py-4 px-4">
                           {isMilestonePayment ? (
                             <div className="flex flex-col">
-                              <span className={`text-xs font-semibold ${isClient ? 'text-blue-400' : isProvider ? 'text-purple-400' : 'text-slate-400'}`}>
+                              <span className={`text-xs font-semibold ${isClient ? 'text-blue-400' : isProvider ? 'text-purple-400' : 'text-neutral-400'}`}>
                                 {role}
                               </span>
                               {otherParty && (
-                                <span className="text-xs text-slate-500 mt-1">with {otherParty}</span>
+                                <span className="text-xs text-neutral-500 mt-1">with {otherParty}</span>
                               )}
                             </div>
                           ) : (
-                            <span className="text-slate-500 text-sm">-</span>
+                            <span className="text-neutral-500 text-sm">-</span>
                           )}
                         </td>
                         <td className="py-4 px-4">
@@ -276,11 +276,11 @@ function Transactions() {
                           </span>
                         </td>
                         <td className="py-4 px-4">
-                          <span className="text-slate-400 text-sm">{formatDate(transaction.createdAt)}</span>
+                          <span className="text-neutral-400 text-sm">{formatDate(transaction.createdAt)}</span>
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2">
-                            <span className="text-slate-300 text-sm">{transaction.description || '-'}</span>
+                            <span className="text-neutral-300 text-sm">{transaction.description || '-'}</span>
                             {transaction.milestoneId && (
                               <button
                                 onClick={() => {
@@ -306,11 +306,11 @@ function Transactions() {
                               {transaction.transactionHash.substring(0, 10)}...
                             </a>
                           ) : transaction.walletAddress ? (
-                            <span className="text-slate-400 text-sm font-mono truncate max-w-xs block" title={transaction.walletAddress}>
+                            <span className="text-neutral-400 text-sm font-mono truncate max-w-xs block" title={transaction.walletAddress}>
                               {transaction.walletAddress.substring(0, 10)}...
                             </span>
                           ) : (
-                            <span className="text-slate-500 text-sm">-</span>
+                            <span className="text-neutral-500 text-sm">-</span>
                           )}
                         </td>
                       </tr>
@@ -351,7 +351,7 @@ function Transactions() {
                           <span className="text-white font-medium">{getTypeLabel(transaction.type)}</span>
                           {isMilestonePayment && (
                             <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                              isClient ? 'text-blue-400 bg-blue-400/10' : isProvider ? 'text-purple-400 bg-purple-400/10' : 'text-slate-400 bg-slate-400/10'
+                              isClient ? 'text-blue-400 bg-blue-400/10' : isProvider ? 'text-purple-400 bg-purple-400/10' : 'text-neutral-400 bg-neutral-400/10'
                             }`}>
                               {role}
                             </span>
@@ -362,7 +362,7 @@ function Transactions() {
                         </div>
                         {isMilestonePayment && otherParty && (
                           <div className="mt-1">
-                            <span className="text-xs text-slate-500">with {otherParty}</span>
+                            <span className="text-xs text-neutral-500">with {otherParty}</span>
                           </div>
                         )}
                       </div>
@@ -373,13 +373,13 @@ function Transactions() {
                     </div>
                     <div className="space-y-2 text-sm">
                       <div>
-                        <span className="text-slate-400">Date: </span>
-                        <span className="text-slate-300">{formatDate(transaction.createdAt)}</span>
+                        <span className="text-neutral-400">Date: </span>
+                        <span className="text-neutral-300">{formatDate(transaction.createdAt)}</span>
                       </div>
                       {transaction.description && (
                         <div>
-                          <span className="text-slate-400">Description: </span>
-                          <span className="text-slate-300">{transaction.description}</span>
+                          <span className="text-neutral-400">Description: </span>
+                          <span className="text-neutral-300">{transaction.description}</span>
                         </div>
                       )}
                       {transaction.milestoneId && (
@@ -394,7 +394,7 @@ function Transactions() {
                       )}
                       {transaction.transactionHash && (
                         <div>
-                          <span className="text-slate-400">Hash: </span>
+                          <span className="text-neutral-400">Hash: </span>
                           <a
                             href={`https://tronscan.org/#/transaction/${transaction.transactionHash}`}
                             target="_blank"
@@ -407,8 +407,8 @@ function Transactions() {
                       )}
                       {transaction.walletAddress && (
                         <div>
-                          <span className="text-slate-400">Address: </span>
-                          <span className="text-slate-300 font-mono text-xs">{transaction.walletAddress.substring(0, 20)}...</span>
+                          <span className="text-neutral-400">Address: </span>
+                          <span className="text-neutral-300 font-mono text-xs">{transaction.walletAddress.substring(0, 20)}...</span>
                         </div>
                       )}
                     </div>
@@ -420,7 +420,7 @@ function Transactions() {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex flex-col sm:flex-row items-center justify-between mt-6 pt-6 border-t border-white/10 gap-4">
-                <div className="text-sm text-slate-400">
+                <div className="text-sm text-neutral-400">
                   Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} transactions
                 </div>
                 <div className="flex gap-2 flex-wrap justify-center">
@@ -450,7 +450,7 @@ function Transactions() {
                           className={`px-4 py-2 rounded-xl font-medium transition-all ${
                             page === pageNum
                               ? 'bg-primary text-white'
-                              : 'bg-[rgba(2,4,8,0.7)] border border-white/10 text-slate-400 hover:bg-white/5'
+                              : 'bg-[rgba(2,4,8,0.7)] border border-white/10 text-neutral-400 hover:bg-white/5'
                           }`}
                         >
                           {pageNum}

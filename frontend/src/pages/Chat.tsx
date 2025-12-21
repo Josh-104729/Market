@@ -915,7 +915,7 @@ function Chat() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-primary mb-4" />
-          <p className="text-slate-400">Loading conversation...</p>
+          <p className="text-neutral-400">Loading conversation...</p>
         </div>
       </div>
     )
@@ -925,10 +925,10 @@ function Chat() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-slate-400 mb-4">Conversation not found</p>
+          <p className="text-neutral-400 mb-4">Conversation not found</p>
           <button
             onClick={() => navigate('/services')}
-            className="px-6 py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1 transition-all"
+            className="px-6 py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-tranneutral-y-1 transition-all"
           >
             Back to Services
           </button>
@@ -950,7 +950,7 @@ function Chat() {
               <div className="flex items-center space-x-3 flex-1 min-w-0">
                 <button
                   onClick={() => navigate('/services')}
-                  className="text-slate-400 hover:text-primary transition-colors p-2 -ml-2"
+                  className="text-neutral-400 hover:text-primary transition-colors p-2 -ml-2"
                 >
                   <FontAwesomeIcon icon={faArrowLeft} />
                 </button>
@@ -964,7 +964,7 @@ function Chat() {
                       : otherUser?.userName || 'User'}
                   </h2>
                   <div className="flex items-center gap-2">
-                    <p className="text-xs text-slate-400 truncate">{conversation.service?.title}</p>
+                    <p className="text-xs text-neutral-400 truncate">{conversation.service?.title}</p>
                     {typingUsers.size > 0 && (
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <div className="flex gap-0.5">
@@ -980,7 +980,7 @@ function Chat() {
                   </div>
                 </div>
               </div>
-              <button className="text-slate-400 hover:text-primary transition-colors p-2">
+              <button className="text-neutral-400 hover:text-primary transition-colors p-2">
                 <FontAwesomeIcon icon={faEllipsisV} />
               </button>
             </div>
@@ -1062,7 +1062,7 @@ function Chat() {
                         <div key={`msg-${message.id}`}>
                           {showDateSeparator && (
                             <div className="flex justify-center my-4">
-                              <div className="glass-card text-slate-400 text-xs px-3 py-1 rounded-full">
+                              <div className="glass-card text-neutral-400 text-xs px-3 py-1 rounded-full">
                                 {itemDate.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                               </div>
                             </div>
@@ -1078,7 +1078,7 @@ function Chat() {
                             <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[65%] ${isOwn ? 'mr-0' : 'ml-0'}`}>
                               {/* Sender name for incoming messages */}
                               {!isOwn && sender && (
-                                <span className="text-slate-400 text-xs px-2 mb-0.5">
+                                <span className="text-neutral-400 text-xs px-2 mb-0.5">
                                   {sender.firstName && sender.lastName
                                     ? `${sender.firstName} ${sender.lastName}`
                                     : sender.userName || 'User'}
@@ -1250,7 +1250,7 @@ function Chat() {
                                               </div>
                                               
                                               {/* PDF Preview - Full Stretch */}
-                                              <div className="relative bg-slate-900/50 w-full">
+                                              <div className="relative bg-neutral-900/50 w-full">
                                                 <div className="w-full" style={{ minHeight: '400px', maxHeight: '600px' }}>
                                                   <iframe
                                                     src={`${fileUrl}#page=1&zoom=50`}
@@ -1293,7 +1293,7 @@ function Chat() {
                                                 <p className={`text-sm font-medium truncate ${isOwn ? 'text-primary-foreground' : 'text-white'}`}>
                                                   {fileName}
                                                 </p>
-                                                <p className={`text-xs ${isOwn ? 'text-primary-foreground/70' : 'text-slate-400'}`}>
+                                                <p className={`text-xs ${isOwn ? 'text-primary-foreground/70' : 'text-neutral-400'}`}>
                                                   Click to preview or download
                                                 </p>
                                               </div>
@@ -1319,7 +1319,7 @@ function Chat() {
 
                                 {/* Timestamp and Read Status */}
                                 <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                                  <span className={`text-[10px] ${isOwn ? 'text-primary-foreground/70' : 'text-slate-400'}`}>
+                                  <span className={`text-[10px] ${isOwn ? 'text-primary-foreground/70' : 'text-neutral-400'}`}>
                                     {formatTime(new Date(message.createdAt))}
                                   </span>
                                   {isOwn && (
@@ -1365,7 +1365,7 @@ function Chat() {
                                 <p className="text-sm mb-3 opacity-90 leading-relaxed">{milestone.description}</p>
                                 <div className="flex items-center justify-between pt-2 border-t border-white/10">
                                   <span className="text-lg font-bold text-primary">${Number(milestone.balance).toFixed(2)}</span>
-                                  <span className={`text-[10px] ${isOwn ? 'text-primary' : 'text-slate-400'}`}>
+                                  <span className={`text-[10px] ${isOwn ? 'text-primary' : 'text-neutral-400'}`}>
                                     {formatTime(new Date(milestone.createdAt))}
                                   </span>
                                 </div>
@@ -1407,7 +1407,7 @@ function Chat() {
                                     <h4 className="font-semibold mb-1 text-base text-white">
                                       {isClient ? 'Payment Released - Awaiting Provider Acceptance' : 'Payment Pending Acceptance'}
                                     </h4>
-                                    <p className="text-sm mb-2 opacity-90 leading-relaxed text-slate-300">
+                                    <p className="text-sm mb-2 opacity-90 leading-relaxed text-neutral-300">
                                       {isClient ? (
                                         <>
                                           You have released payment for milestone: <span className="font-semibold text-white">{milestone.title}</span>. Waiting for provider to accept.
@@ -1422,12 +1422,12 @@ function Chat() {
                                 </div>
                                 <div className="flex items-center gap-4 mb-3 p-2 rounded-lg bg-black/20">
                                   <div>
-                                    <span className="text-slate-400 text-xs block mb-1">Amount</span>
+                                    <span className="text-neutral-400 text-xs block mb-1">Amount</span>
                                     <p className="text-primary font-bold text-xl">${Number(payment.amount).toFixed(2)}</p>
                                   </div>
                                   <div className="h-8 w-px bg-white/20"></div>
                                   <div>
-                                    <span className="text-slate-400 text-xs block mb-1">Milestone</span>
+                                    <span className="text-neutral-400 text-xs block mb-1">Milestone</span>
                                     <p className="text-white font-semibold text-sm">{milestone.title}</p>
                                   </div>
                                 </div>
@@ -1454,14 +1454,14 @@ function Chat() {
                                 )}
                                 {isClient && (
                                   <div className="pt-2 border-t border-white/10">
-                                    <div className="flex items-center justify-center gap-2 text-slate-400 text-xs">
+                                    <div className="flex items-center justify-center gap-2 text-neutral-400 text-xs">
                                       <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
                                       <span>Waiting for provider to accept payment...</span>
                                     </div>
                                   </div>
                                 )}
                                 <div className={`flex items-center mt-2 ${paymentIsOwn ? 'justify-start' : 'justify-end'}`}>
-                                  <span className="text-[10px] text-slate-400">
+                                  <span className="text-[10px] text-neutral-400">
                                     {formatTime(new Date(payment.updatedAt || payment.createdAt))}
                                   </span>
                                 </div>
@@ -1503,7 +1503,7 @@ function Chat() {
                                     <h4 className="font-semibold mb-1 text-base text-white">
                                       {isClient ? 'Payment Completed Successfully' : 'Payment Received Successfully'}
                                     </h4>
-                                    <p className="text-sm mb-2 opacity-90 leading-relaxed text-slate-300">
+                                    <p className="text-sm mb-2 opacity-90 leading-relaxed text-neutral-300">
                                       {isClient ? (
                                         <>
                                           Provider has accepted your payment for milestone: <span className="font-semibold text-white">{milestone.title}</span>
@@ -1518,12 +1518,12 @@ function Chat() {
                                 </div>
                                 <div className="flex items-center gap-4 mb-3 p-2 rounded-lg bg-black/20">
                                   <div>
-                                    <span className="text-slate-400 text-xs block mb-1">Amount</span>
+                                    <span className="text-neutral-400 text-xs block mb-1">Amount</span>
                                     <p className="text-emerald-400 font-bold text-xl">${Number(payment.amount).toFixed(2)}</p>
                                   </div>
                                   <div className="h-8 w-px bg-white/20"></div>
                                   <div>
-                                    <span className="text-slate-400 text-xs block mb-1">Milestone</span>
+                                    <span className="text-neutral-400 text-xs block mb-1">Milestone</span>
                                     <p className="text-white font-semibold text-sm">{milestone.title}</p>
                                   </div>
                                 </div>
@@ -1534,7 +1534,7 @@ function Chat() {
                                   </div>
                                 </div>
                                 <div className={`flex items-center mt-2 ${paymentIsOwn ? 'justify-start' : 'justify-end'}`}>
-                                  <span className="text-[10px] text-slate-400">
+                                  <span className="text-[10px] text-neutral-400">
                                     {formatTime(new Date(payment.updatedAt || payment.createdAt))}
                                   </span>
                                 </div>
@@ -1565,10 +1565,10 @@ function Chat() {
                         className="text-primary text-xs"
                       />
                       <span className="text-white text-xs truncate max-w-[150px]">{file.name}</span>
-                      <span className="text-slate-400 text-xs">{formatFileSize(file.size)}</span>
+                      <span className="text-neutral-400 text-xs">{formatFileSize(file.size)}</span>
                       <button
                         onClick={() => removeFile(index)}
-                        className="text-slate-400 hover:text-red-400 transition-colors ml-1"
+                        className="text-neutral-400 hover:text-red-400 transition-colors ml-1"
                       >
                         <FontAwesomeIcon icon={faTimes} className="text-xs" />
                       </button>
@@ -1588,7 +1588,7 @@ function Chat() {
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="text-slate-400 hover:text-primary transition-colors p-2 flex-shrink-0"
+                  className="text-neutral-400 hover:text-primary transition-colors p-2 flex-shrink-0"
                   title="Attach files"
                 >
                   <FontAwesomeIcon icon={faPaperclip} />
@@ -1611,13 +1611,13 @@ function Chat() {
                     }}
                     placeholder={selectedFiles.length > 0 ? "Add a message (optional)..." : "Type a message..."}
                     rows={1}
-                    className="w-full glass-card text-white rounded-2xl px-4 py-2.5 pr-12 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 resize-none max-h-32 overflow-y-auto placeholder-slate-400 text-sm leading-5"
+                    className="w-full glass-card text-white rounded-2xl px-4 py-2.5 pr-12 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 resize-none max-h-32 overflow-y-auto placeholder-neutral-400 text-sm leading-5"
                     style={{ minHeight: '42px', maxHeight: '128px' }}
                   />
                   <div className="relative">
                     <button
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      className="text-slate-400 hover:text-primary transition-colors p-2 absolute right-1 bottom-1"
+                      className="text-neutral-400 hover:text-primary transition-colors p-2 absolute right-1 bottom-1"
                     >
                       <FontAwesomeIcon icon={faSmile} />
                     </button>
@@ -1646,7 +1646,7 @@ function Chat() {
                   disabled={(!messageText.trim() && selectedFiles.length === 0) || sending || uploadingFiles}
                   className={`p-2.5 rounded-full flex-shrink-0 transition-all ${(messageText.trim() || selectedFiles.length > 0)
                     ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-glow-primary'
-                    : 'glass-card text-slate-400 cursor-not-allowed'
+                    : 'glass-card text-neutral-400 cursor-not-allowed'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {(sending || uploadingFiles) ? (
@@ -1680,13 +1680,13 @@ function Chat() {
                     placeholder="Title"
                     value={milestoneForm.title}
                     onChange={(e) => setMilestoneForm({ ...milestoneForm, title: e.target.value })}
-                    className="w-full glass-card text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder-slate-400 text-sm"
+                    className="w-full glass-card text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder-neutral-400 text-sm"
                   />
                   <textarea
                     placeholder="Description"
                     value={milestoneForm.description}
                     onChange={(e) => setMilestoneForm({ ...milestoneForm, description: e.target.value })}
-                    className="w-full glass-card text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder-slate-400 text-sm resize-none"
+                    className="w-full glass-card text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder-neutral-400 text-sm resize-none"
                     rows={3}
                   />
                   <input
@@ -1694,7 +1694,7 @@ function Chat() {
                     placeholder="Balance"
                     value={milestoneForm.balance}
                     onChange={(e) => setMilestoneForm({ ...milestoneForm, balance: e.target.value })}
-                    className="w-full glass-card text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder-slate-400 text-sm"
+                    className="w-full glass-card text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder-neutral-400 text-sm"
                   />
                   <div className="flex space-x-2">
                     <button
@@ -1719,7 +1719,7 @@ function Chat() {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
               {milestones.length === 0 ? (
-                <p className="text-slate-400 text-center text-sm py-8">No milestones yet</p>
+                <p className="text-neutral-400 text-center text-sm py-8">No milestones yet</p>
               ) : (
                 milestones.map((milestone) => (
                   <div key={milestone.id} className="glass-card rounded-xl p-4 space-y-3 hover:border-primary/20 transition-colors">
@@ -1729,17 +1729,17 @@ function Chat() {
                         {milestone.status}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-400 leading-relaxed">{milestone.description}</p>
+                    <p className="text-sm text-neutral-400 leading-relaxed">{milestone.description}</p>
                     {milestone.feedback && milestone.rating && (
                       <div className="pt-2 border-t border-white/10 space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-400">Rating:</span>
+                          <span className="text-xs text-neutral-400">Rating:</span>
                           <div className="flex gap-1">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <span
                                 key={star}
                                 className={`text-sm ${
-                                  star <= milestone.rating! ? 'text-yellow-400' : 'text-slate-600'
+                                  star <= milestone.rating! ? 'text-yellow-400' : 'text-neutral-600'
                                 }`}
                               >
                                 ★
@@ -1747,7 +1747,7 @@ function Chat() {
                             ))}
                           </div>
                         </div>
-                        <p className="text-xs text-slate-300 italic">"{milestone.feedback}"</p>
+                        <p className="text-xs text-neutral-300 italic">"{milestone.feedback}"</p>
                       </div>
                     )}
                     <div className="flex items-center justify-between pt-2 border-t border-white/10">
@@ -1883,7 +1883,7 @@ function Chat() {
                 return isAdminReleased ? 'Provide Feedback' : 'Release Milestone'
               })()}
             </h2>
-            <p className="text-slate-300 text-sm mb-4">
+            <p className="text-neutral-300 text-sm mb-4">
               {(() => {
                 const milestone = milestones.find(m => m.id === releaseForm.milestoneId)
                 const isAdminReleased = milestone?.status === 'released' && !milestone?.feedback
@@ -1895,7 +1895,7 @@ function Chat() {
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
                 Rating (1-5 stars) *
               </label>
               <div className="flex gap-2">
@@ -1907,7 +1907,7 @@ function Chat() {
                     className={`text-2xl transition-all ${
                       releaseForm.rating >= star
                         ? 'text-yellow-400'
-                        : 'text-slate-500 hover:text-slate-400'
+                        : 'text-neutral-500 hover:text-neutral-400'
                     }`}
                   >
                     ★
@@ -1915,19 +1915,19 @@ function Chat() {
                 ))}
               </div>
               {releaseForm.rating > 0 && (
-                <p className="text-xs text-slate-400 mt-1">{releaseForm.rating} star{releaseForm.rating !== 1 ? 's' : ''} selected</p>
+                <p className="text-xs text-neutral-400 mt-1">{releaseForm.rating} star{releaseForm.rating !== 1 ? 's' : ''} selected</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
                 Feedback *
               </label>
               <textarea
                 value={releaseForm.feedback}
                 onChange={(e) => setReleaseForm({ ...releaseForm, feedback: e.target.value })}
                 placeholder="Share your experience with this milestone..."
-                className="w-full glass-card text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder-slate-400 text-sm resize-none"
+                className="w-full glass-card text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder-neutral-400 text-sm resize-none"
                 rows={4}
               />
             </div>
@@ -1993,14 +1993,14 @@ function Chat() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleDownloadFile(previewFile.url, previewFile.name)}
-                  className="text-slate-400 hover:text-primary transition-colors p-2"
+                  className="text-neutral-400 hover:text-primary transition-colors p-2"
                   title="Download"
                 >
                   <FontAwesomeIcon icon={faDownload} />
                 </button>
                 <button
                   onClick={closePreview}
-                  className="text-slate-400 hover:text-red-400 transition-colors p-2"
+                  className="text-neutral-400 hover:text-red-400 transition-colors p-2"
                   title="Close"
                 >
                   <FontAwesomeIcon icon={faTimes} />
@@ -2063,7 +2063,7 @@ function Chat() {
                     className="text-primary text-6xl mb-4"
                   />
                   <p className="text-white font-semibold mb-2">{previewFile.name}</p>
-                  <p className="text-slate-400 text-sm mb-4">Preview not available for this file type</p>
+                  <p className="text-neutral-400 text-sm mb-4">Preview not available for this file type</p>
                   <button
                     onClick={() => handleDownloadFile(previewFile.url, previewFile.name)}
                     className="bg-primary text-primary-foreground px-6 py-2 rounded-full font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2 mx-auto"

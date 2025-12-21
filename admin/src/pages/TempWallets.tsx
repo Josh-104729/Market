@@ -160,23 +160,23 @@ function TempWallets() {
 
         {wallets.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-slate-400">No temp wallets found</p>
+            <p className="text-neutral-400">No temp wallets found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-4 text-slate-300 font-semibold">Address</th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-semibold">Network</th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-semibold">User</th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-semibold">Status</th>
-                  <th className="text-right py-3 px-4 text-slate-300 font-semibold">
-                    USDT Balance <span className="text-xs text-slate-500">(Real-time)</span>
+                  <th className="text-left py-3 px-4 text-neutral-300 font-semibold">Address</th>
+                  <th className="text-left py-3 px-4 text-neutral-300 font-semibold">Network</th>
+                  <th className="text-left py-3 px-4 text-neutral-300 font-semibold">User</th>
+                  <th className="text-left py-3 px-4 text-neutral-300 font-semibold">Status</th>
+                  <th className="text-right py-3 px-4 text-neutral-300 font-semibold">
+                    USDT Balance <span className="text-xs text-neutral-500">(Real-time)</span>
                   </th>
-                  <th className="text-right py-3 px-4 text-slate-300 font-semibold">Total Received</th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-semibold">Created</th>
-                  <th className="text-center py-3 px-4 text-slate-300 font-semibold">Actions</th>
+                  <th className="text-right py-3 px-4 text-neutral-300 font-semibold">Total Received</th>
+                  <th className="text-left py-3 px-4 text-neutral-300 font-semibold">Created</th>
+                  <th className="text-center py-3 px-4 text-neutral-300 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -197,15 +197,15 @@ function TempWallets() {
                       {wallet.network === 'TRON' ? (
                         <div className="flex flex-col">
                           <span className="text-white text-sm font-semibold">USDT TRC20</span>
-                          <span className="text-xs text-slate-400">Normal Wallet</span>
+                          <span className="text-xs text-neutral-400">Normal Wallet</span>
                         </div>
                       ) : wallet.network === 'POLYGON' ? (
                         <div className="flex flex-col">
                           <span className="text-white text-sm font-semibold">USDC Polygon</span>
-                          <span className="text-xs text-slate-400">Normal Wallet</span>
+                          <span className="text-xs text-neutral-400">Normal Wallet</span>
                         </div>
                       ) : (
-                        <span className="text-slate-400 text-sm">Unknown</span>
+                        <span className="text-neutral-400 text-sm">Unknown</span>
                       )}
                     </td>
                     <td className="py-3 px-4">
@@ -214,10 +214,10 @@ function TempWallets() {
                           <div className="text-white text-sm">
                             {wallet.user.firstName} {wallet.user.lastName}
                           </div>
-                          <div className="text-slate-400 text-xs">{wallet.user.email}</div>
+                          <div className="text-neutral-400 text-xs">{wallet.user.email}</div>
                         </div>
                       ) : (
-                        <span className="text-slate-400 text-sm">Unknown</span>
+                        <span className="text-neutral-400 text-sm">Unknown</span>
                       )}
                     </td>
                     <td className="py-3 px-4">
@@ -225,7 +225,7 @@ function TempWallets() {
                         ? 'bg-green-500/20 text-green-300'
                         : wallet.status === 'COMPLETED'
                           ? 'bg-blue-500/20 text-blue-300'
-                          : 'bg-slate-500/20 text-slate-300'
+                          : 'bg-neutral-500/20 text-neutral-300'
                         }`}>
                         {wallet.status}
                       </span>
@@ -234,36 +234,36 @@ function TempWallets() {
                       <div className="flex flex-col items-end">
                         {wallet.network === 'TRON' ? (
                           <>
-                            <span className={`font-semibold ${wallet.usdtBalance > 0 ? 'text-green-300' : 'text-slate-400'
+                            <span className={`font-semibold ${wallet.usdtBalance > 0 ? 'text-green-300' : 'text-neutral-400'
                               }`}>
                               {Number(wallet.usdtBalance || 0).toFixed(2)} USDT
                             </span>
-                            <span className="text-xs text-slate-500">TRC20 Normal Wallet</span>
+                            <span className="text-xs text-neutral-500">TRC20 Normal Wallet</span>
                           </>
                         ) : wallet.network === 'POLYGON' ? (
                           <>
-                            <span className={`font-semibold ${(wallet.usdcBalance || 0) > 0 ? 'text-green-300' : 'text-slate-400'
+                            <span className={`font-semibold ${(wallet.usdcBalance || 0) > 0 ? 'text-green-300' : 'text-neutral-400'
                               }`}>
                               {Number(wallet.usdcBalance || 0).toFixed(2)} USDC
                             </span>
-                            <span className="text-xs text-slate-500">Polygon Normal Wallet</span>
+                            <span className="text-xs text-neutral-500">Polygon Normal Wallet</span>
                           </>
                         ) : (
                           <>
-                            <span className="text-slate-400 font-semibold">
+                            <span className="text-neutral-400 font-semibold">
                               {Number(wallet.usdtBalance || 0).toFixed(2)} USDT
                             </span>
-                            <span className="text-xs text-slate-500">Blockchain</span>
+                            <span className="text-xs text-neutral-500">Blockchain</span>
                           </>
                         )}
                       </div>
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <span className="text-slate-300 font-semibold">
+                      <span className="text-neutral-300 font-semibold">
                         {Number(wallet.totalReceived || 0).toFixed(2)} USDT
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-slate-400 text-sm">
+                    <td className="py-3 px-4 text-neutral-400 text-sm">
                       {formatDate(wallet.createdAt)}
                     </td>
                     <td className="py-3 px-4 text-center">
@@ -272,7 +272,7 @@ function TempWallets() {
                         disabled={transferring === wallet.id || Number(wallet.usdtBalance || 0) <= 0}
                         className={`px-4 py-2 rounded-xl font-semibold transition-all ${Number(wallet.usdtBalance || 0) > 0 && transferring !== wallet.id
                           ? 'bg-primary text-white hover:bg-primary/90'
-                          : 'bg-slate-500/20 text-slate-400 cursor-not-allowed'
+                          : 'bg-neutral-500/20 text-neutral-400 cursor-not-allowed'
                           }`}
                       >
                         {transferring === wallet.id ? 'Transferring...' : 'Transfer'}

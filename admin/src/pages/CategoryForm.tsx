@@ -66,17 +66,17 @@ function CategoryForm() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mb-4"></div>
-          <p className="text-gray-400">Loading category...</p>
+          <p className="text-neutral-400">Loading category...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-neutral-900">
       {/* Header Section */}
       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -99,12 +99,12 @@ function CategoryForm() {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-3xl mx-auto">
-          <div className="bg-gray-800 rounded-xl shadow-md p-8">
+          <div className="bg-neutral-800 rounded-xl shadow-md p-8">
             <form onSubmit={handleSubmit}>
               <div className="space-y-8">
                 {/* Title Field */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">
+                  <label className="block text-sm font-semibold text-neutral-300 mb-2">
                     Title <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -112,10 +112,10 @@ function CategoryForm() {
                     required
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-600 bg-gray-700 text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 border border-neutral-600 bg-neutral-700 text-neutral-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     placeholder="e.g., Web Development"
                   />
-                  <p className="text-xs text-gray-400 mt-1">Enter a descriptive title for the category</p>
+                  <p className="text-xs text-neutral-400 mt-1">Enter a descriptive title for the category</p>
                 </div>
 
                 {/* Icon Selector */}
@@ -126,11 +126,11 @@ function CategoryForm() {
               </div>
 
               {/* Action Buttons */}
-              <div className="mt-10 flex justify-end space-x-4 pt-6 border-t border-gray-700">
+              <div className="mt-10 flex justify-end space-x-4 pt-6 border-t border-neutral-700">
                 <button
                   type="button"
                   onClick={() => navigate('/categories')}
-                  className="px-6 py-3 border-2 border-gray-600 rounded-lg text-gray-300 font-semibold hover:bg-gray-700 transition-all"
+                  className="px-6 py-3 border-2 border-neutral-600 rounded-lg text-neutral-300 font-semibold hover:bg-neutral-700 transition-all"
                 >
                   Cancel
                 </button>

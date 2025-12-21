@@ -310,7 +310,7 @@ function Chat() {
           </button>
           <div>
             <h1 className="text-2xl font-bold text-white">Chat</h1>
-            <p className="text-slate-300">
+            <p className="text-neutral-300">
               {getUserName(conversation.client)} ↔ {getUserName(conversation.provider)}
             </p>
           </div>
@@ -356,7 +356,7 @@ function Chat() {
                           : 'bg-yellow-600/20 text-white border border-yellow-500/30'
                       }`}
                     >
-                      <div className="text-xs text-slate-300 mb-1">
+                      <div className="text-xs text-neutral-300 mb-1">
                         {isAdmin ? '👤 Admin' : getUserName(message.sender)}
                       </div>
                       {message.message && (
@@ -507,7 +507,7 @@ function Chat() {
                                     </div>
                                     
                                     {/* PDF Preview - Full Stretch */}
-                                    <div className="relative bg-slate-900/50 w-full">
+                                    <div className="relative bg-neutral-900/50 w-full">
                                       <div className="w-full" style={{ minHeight: '400px', maxHeight: '600px' }}>
                                         <iframe
                                           src={`${fileUrl}#page=1&zoom=50`}
@@ -546,7 +546,7 @@ function Chat() {
                                       <p className="text-sm font-medium truncate text-white">
                                         {fileName}
                                       </p>
-                                      <p className="text-xs text-slate-400">
+                                      <p className="text-xs text-neutral-400">
                                         Click to preview or download
                                       </p>
                                     </div>
@@ -568,7 +568,7 @@ function Chat() {
                         </div>
                       )}
                       
-                      <div className="text-xs text-slate-400 mt-1">
+                      <div className="text-xs text-neutral-400 mt-1">
                         {new Date(message.createdAt).toLocaleTimeString()}
                       </div>
                     </div>
@@ -590,7 +590,7 @@ function Chat() {
                   }
                 }}
                 placeholder="Type a message..."
-                className="flex-1 bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-primary"
+                className="flex-1 bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-neutral-400 focus:outline-none focus:border-primary"
               />
               <button
                 onClick={handleSendMessage}
@@ -612,14 +612,14 @@ function Chat() {
           <div className="glass-card p-4">
             <h2 className="text-xl font-bold text-white mb-4">Disputed Milestones</h2>
             {disputedMilestones.length === 0 ? (
-              <p className="text-slate-300">No disputed milestones</p>
+              <p className="text-neutral-300">No disputed milestones</p>
             ) : (
               <div className="space-y-4">
                 {disputedMilestones.map((milestone) => (
                   <div key={milestone.id} className="bg-black/20 p-4 rounded-lg border border-white/10">
                     <h3 className="text-white font-semibold mb-2">{milestone.title}</h3>
-                    <p className="text-slate-300 text-sm mb-2">{milestone.description}</p>
-                    <div className="text-slate-300 text-sm mb-3">
+                    <p className="text-neutral-300 text-sm mb-2">{milestone.description}</p>
+                    <div className="text-neutral-300 text-sm mb-3">
                       Original Amount: {Number(milestone.balance).toFixed(2)} USD
                     </div>
                     <div className="space-y-2">
@@ -632,7 +632,7 @@ function Chat() {
                           setReleaseAmount({ ...releaseAmount, [milestone.id]: e.target.value })
                         }
                         placeholder="Enter release amount"
-                        className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-primary"
+                        className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-neutral-400 focus:outline-none focus:border-primary"
                       />
                       <button
                         onClick={() => handleReleaseMilestone(milestone.id)}
@@ -682,14 +682,14 @@ function Chat() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleDownloadFile(previewFile.url, previewFile.name)}
-                  className="text-slate-400 hover:text-primary transition-colors p-2"
+                  className="text-neutral-400 hover:text-primary transition-colors p-2"
                   title="Download"
                 >
                   <FontAwesomeIcon icon={faDownload} />
                 </button>
                 <button
                   onClick={closePreview}
-                  className="text-slate-400 hover:text-red-400 transition-colors p-2"
+                  className="text-neutral-400 hover:text-red-400 transition-colors p-2"
                   title="Close"
                 >
                   <FontAwesomeIcon icon={faTimes} />
@@ -752,7 +752,7 @@ function Chat() {
                     className="text-primary text-6xl mb-4"
                   />
                   <p className="text-white font-semibold mb-2">{previewFile.name}</p>
-                  <p className="text-slate-400 text-sm mb-4">Preview not available for this file type</p>
+                  <p className="text-neutral-400 text-sm mb-4">Preview not available for this file type</p>
                   <button
                     onClick={() => handleDownloadFile(previewFile.url, previewFile.name)}
                     className="bg-primary text-white px-6 py-2 rounded-full font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2 mx-auto"

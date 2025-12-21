@@ -114,12 +114,12 @@ function Disputes() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-white mb-2">Disputes</h1>
-        <p className="text-slate-300">Manage and resolve milestone disputes</p>
+        <p className="text-neutral-300">Manage and resolve milestone disputes</p>
       </div>
 
       {disputes.length === 0 ? (
         <div className="glass-card p-8 text-center">
-          <p className="text-slate-300 text-lg">No disputes found</p>
+          <p className="text-neutral-300 text-lg">No disputes found</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -130,7 +130,7 @@ function Disputes() {
                   <h3 className="text-xl font-semibold text-white mb-2">
                     {dispute.service?.title || 'Service'}
                   </h3>
-                  <div className="text-slate-300 space-y-1">
+                  <div className="text-neutral-300 space-y-1">
                     <p>
                       <span className="font-medium">Client:</span> {getUserName(dispute.client)}
                     </p>
@@ -161,9 +161,9 @@ function Disputes() {
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <h5 className="text-white font-medium mb-1">{milestone.title}</h5>
-                          <p className="text-slate-300 text-sm mb-2">{milestone.description}</p>
+                          <p className="text-neutral-300 text-sm mb-2">{milestone.description}</p>
                           <div className="flex items-center gap-4 text-sm">
-                            <span className="text-slate-300">
+                            <span className="text-neutral-300">
                               <span className="font-medium">Amount:</span> {Number(milestone.balance).toFixed(2)} USD
                             </span>
                             <span className="text-yellow-400">

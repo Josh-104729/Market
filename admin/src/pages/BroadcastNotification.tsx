@@ -39,7 +39,7 @@ function BroadcastNotification() {
         <div className="glass-card p-6 rounded-2xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-slate-300 mb-2">
+              <label htmlFor="title" className="block text-sm font-medium text-neutral-300 mb-2">
                 Title
               </label>
               <input
@@ -47,14 +47,14 @@ function BroadcastNotification() {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="Enter notification title"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="message" className="block text-sm font-medium text-slate-300 mb-2">
+              <label htmlFor="message" className="block text-sm font-medium text-neutral-300 mb-2">
                 Message
               </label>
               <textarea
@@ -62,7 +62,7 @@ function BroadcastNotification() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={6}
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                 placeholder="Enter notification message"
                 required
               />

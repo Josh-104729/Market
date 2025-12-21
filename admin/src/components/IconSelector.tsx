@@ -163,7 +163,7 @@ export default function IconSelector({ selectedIcon, onSelect }: IconSelectorPro
 
   return (
     <div className="relative">
-      <label className="block text-sm font-semibold text-gray-300 mb-2">
+      <label className="block text-sm font-semibold text-neutral-300 mb-2">
         Icon
       </label>
       
@@ -171,20 +171,20 @@ export default function IconSelector({ selectedIcon, onSelect }: IconSelectorPro
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-gray-700 text-gray-100 flex items-center justify-between hover:bg-gray-600"
+        className="w-full px-4 py-3 border border-neutral-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-neutral-700 text-neutral-100 flex items-center justify-between hover:bg-neutral-600"
       >
         <div className="flex items-center space-x-3">
           {selectedIconData ? (
             <>
               <FontAwesomeIcon icon={selectedIconData.icon} className="text-2xl text-blue-400" />
-              <span className="text-gray-100">{selectedIconData.label}</span>
+              <span className="text-neutral-100">{selectedIconData.label}</span>
             </>
           ) : (
-            <span className="text-gray-400">Select an icon</span>
+            <span className="text-neutral-400">Select an icon</span>
           )}
         </div>
         <svg
-          className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'transform rotate-180' : ''}`}
+          className={`w-5 h-5 text-neutral-400 transition-transform ${isOpen ? 'transform rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -195,22 +195,22 @@ export default function IconSelector({ selectedIcon, onSelect }: IconSelectorPro
 
       {/* Icon Picker Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full bg-gray-800 border border-gray-600 rounded-lg shadow-xl max-h-96 overflow-hidden">
+        <div className="absolute z-50 mt-2 w-full bg-neutral-800 border border-neutral-600 rounded-lg shadow-xl max-h-96 overflow-hidden">
           {/* Search Bar */}
-          <div className="p-3 border-b border-gray-700">
+          <div className="p-3 border-b border-neutral-700">
             <input
               type="text"
               placeholder="Search icons..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-neutral-600 bg-neutral-700 text-neutral-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               autoFocus
             />
           </div>
 
           {/* Clear Button */}
           {selectedIcon && (
-            <div className="px-3 py-2 border-b border-gray-700">
+            <div className="px-3 py-2 border-b border-neutral-700">
               <button
                 type="button"
                 onClick={handleClear}
@@ -224,7 +224,7 @@ export default function IconSelector({ selectedIcon, onSelect }: IconSelectorPro
           {/* Icons Grid */}
           <div className="p-3 overflow-y-auto max-h-64">
             {filteredIcons.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-neutral-400">
                 No icons found matching "{searchTerm}"
               </div>
             ) : (
@@ -237,14 +237,14 @@ export default function IconSelector({ selectedIcon, onSelect }: IconSelectorPro
                     className={`p-3 rounded-lg border-2 transition-all hover:bg-blue-900/30 hover:border-blue-500 ${
                       selectedIcon === item.name
                         ? 'bg-blue-900 border-blue-500'
-                        : 'border-gray-600'
+                        : 'border-neutral-600'
                     }`}
                     title={item.label}
                   >
                     <FontAwesomeIcon
                       icon={item.icon}
                       className={`text-xl ${
-                        selectedIcon === item.name ? 'text-blue-400' : 'text-gray-400'
+                        selectedIcon === item.name ? 'text-blue-400' : 'text-neutral-400'
                       }`}
                     />
                   </button>

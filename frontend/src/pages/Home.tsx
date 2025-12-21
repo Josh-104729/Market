@@ -1,13 +1,34 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { 
-  faSearch, faShieldAlt, faRocket, faUsers, faWallet, faCheckCircle,
-  faArrowRight, faHandshake, faLock, faClock, faGlobeAmericas, faStore
-} from '@fortawesome/free-solid-svg-icons'
 import { useAppSelector } from '../store/hooks'
 import { categoryApi, Category } from '../services/api'
 import { renderIcon } from '../utils/iconHelper'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { 
+  Search, 
+  ShieldCheck, 
+  Rocket, 
+  Users, 
+  Wallet, 
+  CheckCircle2, 
+  ArrowRight, 
+  Handshake, 
+  Lock, 
+  Clock, 
+  Globe, 
+  Store,
+  Sparkles,
+  Loader2
+} from "lucide-react"
 
 function Home() {
   const navigate = useNavigate()
@@ -27,7 +48,6 @@ function Home() {
         setLoading(false)
       }
     }
-
     fetchCategories()
   }, [])
 
@@ -41,40 +61,40 @@ function Home() {
 
   const features = [
     {
-      icon: faShieldAlt,
+      icon: ShieldCheck,
       title: 'Secure Transactions',
       description: 'Bank-level encryption and secure payment processing for all transactions',
-      gradient: 'from-blue-500/20 to-cyan-500/20'
+      color: 'bg-blue-50 text-blue-600'
     },
     {
-      icon: faRocket,
+      icon: Rocket,
       title: 'Fast & Easy',
       description: 'Get started in minutes. List your service or find what you need instantly',
-      gradient: 'from-purple-500/20 to-pink-500/20'
+      color: 'bg-purple-50 text-purple-600'
     },
     {
-      icon: faUsers,
+      icon: Users,
       title: 'Global Community',
       description: 'Connect with buyers and sellers from around the world',
-      gradient: 'from-emerald-500/20 to-teal-500/20'
+      color: 'bg-emerald-50 text-emerald-600'
     },
     {
-      icon: faWallet,
+      icon: Wallet,
       title: 'Crypto Payments',
       description: 'Pay and get paid with USD. Fast, secure, and borderless',
-      gradient: 'from-orange-500/20 to-red-500/20'
+      color: 'bg-orange-50 text-orange-600'
     },
     {
-      icon: faHandshake,
+      icon: Handshake,
       title: 'Trusted Platform',
       description: 'Verified sellers and buyer protection on every transaction',
-      gradient: 'from-indigo-500/20 to-purple-500/20'
+      color: 'bg-indigo-50 text-indigo-600'
     },
     {
-      icon: faGlobeAmericas,
+      icon: Globe,
       title: 'Unlimited Categories',
       description: 'Sell or buy anything - from digital services to physical products',
-      gradient: 'from-green-500/20 to-emerald-500/20'
+      color: 'bg-pink-50 text-pink-600'
     }
   ]
 
@@ -83,193 +103,139 @@ function Home() {
       step: 1,
       title: 'Sign Up Free',
       description: 'Create your account in seconds. No credit card required.',
-      icon: faUsers
+      icon: Users
     },
     {
       step: 2,
       title: 'List or Browse',
       description: 'Sell your services or browse thousands of available listings.',
-      icon: faStore
+      icon: Store
     },
     {
       step: 3,
       title: 'Connect & Transact',
       description: 'Chat with buyers/sellers and complete secure transactions.',
-      icon: faHandshake
+      icon: Handshake
     },
     {
       step: 4,
       title: 'Get Paid',
       description: 'Receive payments instantly via USD. Withdraw anytime.',
-      icon: faWallet
+      icon: Wallet
     }
   ]
 
   return (
-    <div className="min-h-screen">
-      {/* Enhanced Hero Section */}
-      <section className="relative pt-24 md:pt-32 pb-20 overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-primary/10 rounded-full blur-[150px] -z-10 animate-pulse"></div>
-        <div className="absolute top-[30%] right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[100px] -z-10"></div>
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[100px] -z-10"></div>
+    <div className="min-h-screen bg-white">
+      {/* Hero Section */}
+      <section className="relative pt-20 pb-20 md:pt-32 md:pb-32 overflow-hidden bg-slate-50">
+        <div className="absolute top-0 left-0 w-full h-full opacity-40 pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+        </div>
         
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-primary/20 mb-6 animate-fade-in">
-            <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-            <span className="text-sm text-slate-300">Join <span className="text-primary font-semibold">50,000+</span> active users</span>
-          </div>
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <Badge variant="outline" className="mb-6 px-4 py-1.5 border-primary/20 bg-primary/5 text-primary gap-2 text-sm rounded-full">
+            <Sparkles className="w-3.5 h-3.5" />
+            Join 50,000+ active users
+          </Badge>
 
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 leading-tight">
-            <span className="block text-white">
-              {isAuthenticated ? `Welcome back, ${user?.firstName || 'User'}!` : 'Anyone can sell'}
-            </span>
-            <span className="block mt-2">
-              <span className="text-slate-300">anything and </span>
-              <span className="text-gradient-primary">buy anything</span>
-              <span className="text-white">.</span>
-            </span>
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 text-slate-900 leading-[1.1]">
+            {isAuthenticated ? (
+              <>Welcome back, <span className="text-primary">{user?.firstName || 'User'}</span>!</>
+            ) : (
+              <>Anyone can <span className="text-primary">sell</span> anything</>
+            )}
+            <br />
+            <span className="text-slate-500">and </span>
+            <span className="underline decoration-primary/30 underline-offset-8">buy anything</span>.
           </h1>
           
-          <p className="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto mb-8 font-light leading-relaxed">
+          <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10 font-medium">
             Your universal marketplace. Sell digital services, physical products, or anything you can imagine. 
-            <span className="block mt-2 text-lg">Get paid instantly with USD. No limits. No boundaries.</span>
+            Get paid instantly with USD.
           </p>
 
-          {/* Enhanced Search Bar */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-3xl mx-auto mb-8">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center max-w-2xl mx-auto mb-12">
             <div className="relative flex-1 w-full">
-              <FontAwesomeIcon icon={faSearch} className="absolute left-6 top-1/2 transform -translate-y-1/2 text-slate-400 text-lg" />
-              <input
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <Input
                 type="text"
-                placeholder="Search for anything... services, products, skills..."
+                placeholder="Search for anything..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full pl-14 pr-6 py-5 glass-card rounded-full text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 transition-all text-lg"
+                className="w-full h-14 pl-12 pr-4 rounded-full border-slate-200 bg-white shadow-sm focus-visible:ring-primary text-base"
               />
             </div>
-            <button 
+            <Button 
               onClick={handleSearch}
-              className="px-10 py-5 bg-primary text-primary-foreground rounded-full font-bold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1 transition-all flex items-center space-x-2 whitespace-nowrap text-lg"
+              className="h-14 px-8 rounded-full font-bold text-base w-full sm:w-auto gap-2"
             >
-              <FontAwesomeIcon icon={faSearch} />
-              <span>Search</span>
-            </button>
+              <Search className="w-5 h-5" /> Search
+            </Button>
           </div>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            {!isAuthenticated ? (
-              <>
-                <Link
-                  to="/signup"
-                  className="px-8 py-4 bg-primary text-primary-foreground rounded-full font-bold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1 transition-all flex items-center space-x-2 text-lg"
-                >
-                  <span>Start Selling Now</span>
-                  <FontAwesomeIcon icon={faArrowRight} />
-                </Link>
-                <Link
-                  to="/services"
-                  className="px-8 py-4 glass-card border border-white/20 text-white rounded-full font-semibold hover:bg-white/10 hover:border-primary/50 transition-all flex items-center space-x-2 text-lg"
-                >
-                  <span>Browse Marketplace</span>
-                  <FontAwesomeIcon icon={faStore} />
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/services/new"
-                  className="px-8 py-4 bg-primary text-primary-foreground rounded-full font-bold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1 transition-all flex items-center space-x-2 text-lg"
-                >
-                  <span>Create New Listing</span>
-                  <FontAwesomeIcon icon={faArrowRight} />
-                </Link>
-                <Link
-                  to="/services"
-                  className="px-8 py-4 glass-card border border-white/20 text-white rounded-full font-semibold hover:bg-white/10 hover:border-primary/50 transition-all flex items-center space-x-2 text-lg"
-                >
-                  <span>Explore Services</span>
-                  <FontAwesomeIcon icon={faStore} />
-                </Link>
-              </>
-            )}
-          </div>
-
-          {/* Trust Indicators */}
-          <div className="flex flex-wrap justify-center items-center gap-8 mt-12 text-slate-400">
-            <div className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faLock} className="text-primary" />
-              <span className="text-sm">Secure Payments</span>
+          <div className="flex flex-wrap justify-center gap-4 text-slate-500 text-sm font-medium">
+            <div className="flex items-center gap-1.5">
+              <Lock className="w-4 h-4 text-primary" /> Secure Payments
             </div>
-            <div className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faCheckCircle} className="text-primary" />
-              <span className="text-sm">Verified Sellers</span>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-primary" /> Verified Sellers
             </div>
-            <div className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faClock} className="text-primary" />
-              <span className="text-sm">24/7 Support</span>
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-primary" /> 24/7 Support
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats Section - Moved Up */}
-      <section className="py-16 border-t border-white/5 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent"></div>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div className="glass-card p-6 rounded-2xl hover:border-primary/20 transition-all">
-              <div className="text-4xl md:text-5xl font-bold mb-2 text-primary">50K+</div>
-              <div className="text-slate-400 text-sm md:text-base">Active Users</div>
+      {/* Stats Section */}
+      <section className="py-12 border-y border-slate-100 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-slate-900">50K+</div>
+              <div className="text-slate-500 text-sm font-medium">Active Users</div>
             </div>
-            <div className="glass-card p-6 rounded-2xl hover:border-primary/20 transition-all">
-              <div className="text-4xl md:text-5xl font-bold mb-2 text-primary">10K+</div>
-              <div className="text-slate-400 text-sm md:text-base">Active Listings</div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-slate-900">10K+</div>
+              <div className="text-slate-500 text-sm font-medium">Active Listings</div>
             </div>
-            <div className="glass-card p-6 rounded-2xl hover:border-primary/20 transition-all">
-              <div className="text-4xl md:text-5xl font-bold mb-2 text-primary">2K+</div>
-              <div className="text-slate-400 text-sm md:text-base">Verified Sellers</div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-slate-900">2K+</div>
+              <div className="text-slate-500 text-sm font-medium">Verified Sellers</div>
             </div>
-            <div className="glass-card p-6 rounded-2xl hover:border-primary/20 transition-all">
-              <div className="text-4xl md:text-5xl font-bold mb-2 text-primary">98%</div>
-              <div className="text-slate-400 text-sm md:text-base">Satisfaction Rate</div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-slate-900">98%</div>
+              <div className="text-slate-500 text-sm font-medium">Satisfaction Rate</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* How It Works Section */}
-      <section className="py-24 border-t border-white/5 relative">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-24 bg-white">
+        <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              <span className="text-white">How </span>
-              <span className="text-gradient-primary">It Works</span>
-            </h2>
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-              Get started in 4 simple steps. It's that easy!
-            </p>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">How It Works</h2>
+            <p className="text-slate-600 max-w-xl mx-auto">Get started in 4 simple steps. It's that easy!</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {howItWorks.map((step) => (
-              <div
-                key={step.step}
-                className="relative glass-card p-8 rounded-2xl hover:border-primary/20 transition-all hover:scale-[1.02] group"
-              >
-                <div className="absolute -top-4 -left-4 w-12 h-12 bg-gradient-to-br from-primary to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary/30">
-                  {step.step}
-                </div>
-                <div className="mt-4 mb-6">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-emerald-600/20 border border-primary/30 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <FontAwesomeIcon icon={step.icon} className="text-3xl text-primary" />
+              <div key={step.step} className="relative group text-center p-6">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-6 relative z-10 transition-transform group-hover:scale-110">
+                  <step.icon className="w-8 h-8" />
+                  <div className="absolute -top-2 -right-2 w-7 h-7 bg-white border-2 border-primary rounded-full flex items-center justify-center text-xs font-bold text-primary">
+                    {step.step}
                   </div>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">{step.title}</h3>
-                <p className="text-slate-400 leading-relaxed">{step.description}</p>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">{step.title}</h3>
+                <p className="text-slate-600 text-sm leading-relaxed">{step.description}</p>
+                {step.step < 4 && (
+                  <div className="hidden lg:block absolute top-14 left-[calc(50%+4rem)] w-[calc(100%-8rem)] h-px bg-slate-200" />
+                )}
               </div>
             ))}
           </div>
@@ -277,81 +243,78 @@ function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 border-t border-white/5 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent"></div>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <section className="py-24 bg-slate-50">
+        <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              <span className="text-white">Why Choose </span>
-              <span className="text-gradient-primary">OmniMart</span>
-            </h2>
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-              Everything you need to buy and sell with confidence
-            </p>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Why Choose OmniMart</h2>
+            <p className="text-slate-600 max-w-xl mx-auto">Everything you need to buy and sell with confidence</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {features.map((feature, index) => (
-              <div
-                key={index}
-                className="glass-card p-8 rounded-2xl hover:border-primary/20 transition-all hover:scale-[1.02] group"
-              >
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.gradient} border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                  <FontAwesomeIcon icon={feature.icon} className="text-3xl text-primary" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
-                <p className="text-slate-400 leading-relaxed">{feature.description}</p>
-              </div>
+              <Card key={index} className="border-none shadow-sm hover:shadow-md transition-all">
+                <CardHeader>
+                  <div className={`w-12 h-12 rounded-xl ${feature.color} flex items-center justify-center mb-2`}>
+                    <feature.icon className="w-6 h-6" />
+                  </div>
+                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-slate-600 text-sm leading-relaxed">
+                    {feature.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
       </section>
 
       {/* Categories Section */}
-      <section className="py-24 border-t border-white/5">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              <span className="text-white">Browse by </span>
-              <span className="text-gradient-primary">Category</span>
-            </h2>
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-              Explore thousands of listings across all categories
-            </p>
+      <section className="py-24 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Browse by Category</h2>
+              <p className="text-slate-600">Explore thousands of listings across all categories</p>
+            </div>
+            <Button variant="outline" asChild className="hidden sm:flex rounded-full">
+              <Link to="/services">View All <ArrowRight className="ml-2 w-4 h-4" /></Link>
+            </Button>
           </div>
           
           {loading ? (
-            <div className="text-center py-12">
-              <p className="text-slate-400">Loading categories...</p>
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : categories.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-slate-400">No categories available</p>
-            </div>
+            <div className="text-center py-20 text-slate-400">No categories available</div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
               {categories.map((category) => (
                 <Link
                   key={category.id}
                   to={`/services?category=${category.id}`}
-                  className="glass-card p-6 rounded-2xl hover:border-primary/20 transition-all cursor-pointer hover:scale-[1.05] group"
+                  className="group"
                 >
-                  <div className="flex flex-col items-center text-center gap-4">
+                  <div className="h-full p-6 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-primary/20 hover:shadow-md transition-all flex flex-col items-center text-center gap-4">
                     {category.icon && (
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <div className="text-3xl text-primary">
+                      <div className="w-16 h-16 rounded-2xl bg-white border border-slate-100 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                        <div className="text-3xl text-primary grayscale group-hover:grayscale-0 transition-all">
                           {renderIcon(category.icon)}
                         </div>
                       </div>
                     )}
-                    <h3 className="font-semibold text-white group-hover:text-primary transition-colors">
-                      {category.title}
-                    </h3>
-                    {category.serviceCount !== undefined && (
-                      <p className="text-sm text-slate-400">
-                        {category.serviceCount} {category.serviceCount === 1 ? 'listing' : 'listings'}
-                      </p>
-                    )}
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-sm mb-1 group-hover:text-primary transition-colors">
+                        {category.title}
+                      </h3>
+                      {category.serviceCount !== undefined && (
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          {category.serviceCount} {category.serviceCount === 1 ? 'listing' : 'listings'}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </Link>
               ))}

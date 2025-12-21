@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { ToastContainer } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
+import { Toaster } from "@/components/ui/toaster"
 import { useAppSelector } from './store/hooks'
 import Dashboard from './pages/Dashboard'
 import Categories from './pages/Categories'
@@ -122,18 +121,7 @@ function App() {
         } />
         </Routes>
       </Router>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-      />
+      <Toaster />
     </>
   )
 }

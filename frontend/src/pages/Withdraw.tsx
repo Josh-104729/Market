@@ -92,11 +92,11 @@ function Withdraw() {
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl p-8">
         <h1 className="text-3xl font-bold text-white mb-2">Withdraw Balance</h1>
-        <p className="text-slate-400 mb-6">Withdraw funds to your wallet</p>
+        <p className="text-neutral-400 mb-6">Withdraw funds to your wallet</p>
 
         {balance && (
           <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-primary/20 to-emerald-600/20 border border-primary/30">
-            <p className="text-sm text-slate-400 mb-1">Available Balance</p>
+            <p className="text-sm text-neutral-400 mb-1">Available Balance</p>
             <p className="text-2xl font-bold text-white">{Number(balance.amount).toFixed(2)} USD</p>
           </div>
         )}
@@ -130,7 +130,7 @@ function Withdraw() {
                 max={balance ? Number(balance.amount) : undefined}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="flex-1 px-4 py-3 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="5.00"
                 required
               />
@@ -153,11 +153,11 @@ function Withdraw() {
               id="walletAddress"
               value={walletAddress}
               onChange={(e) => setWalletAddress(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-mono text-sm"
+              className="w-full px-4 py-3 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-mono text-sm"
               placeholder={paymentNetwork === 'USDC_POLYGON' ? '0x...' : 'Txxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}
               required
             />
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-neutral-500">
               Enter your {paymentNetwork === 'USDC_POLYGON' ? 'Polygon wallet address (0x followed by 40 hex characters)' : 'TRC20 wallet address (starts with T)'}
             </p>
           </div>

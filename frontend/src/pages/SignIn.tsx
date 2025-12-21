@@ -4,6 +4,19 @@ import { authApi } from '../services/api';
 import { useAppDispatch } from '../store/hooks';
 import { setCredentials } from '../store/slices/authSlice';
 import { showToast } from '../utils/toast';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, ShieldCheck, Mail, Lock } from "lucide-react";
 
 function SignIn() {
   const navigate = useNavigate();
@@ -19,8 +32,7 @@ function SignIn() {
   const [requires2FA, setRequires2FA] = useState(false);
   const [tempToken, setTempToken] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
-  // SMS phone verification disabled - removed 'sms' from method type
-  const [twoFactorMethod, setTwoFactorMethod] = useState<'totp' | /* 'sms' | */ 'email'>('totp');
+  const [twoFactorMethod, setTwoFactorMethod] = useState<'totp' | 'email'>('totp');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,14 +42,12 @@ function SignIn() {
     try {
       const response = await authApi.signIn(formData);
       
-      // Check if 2FA is required
       if (response.requires2FA) {
         setRequires2FA(true);
         setTempToken(response.tempToken);
         setTwoFactorMethod(response.method || 'totp');
         showToast.info('Please enter your 2FA code');
       } else {
-        // Normal login
         dispatch(setCredentials({ user: response.user, accessToken: response.accessToken }));
         showToast.success('Welcome back!');
         navigate('/');
@@ -74,182 +84,158 @@ function SignIn() {
 
   if (requires2FA) {
     return (
-      <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full">
-          <div className="glass-card rounded-2xl shadow-2xl p-8 space-y-8">
-            <div className="text-center">
-              <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center mb-4 shadow-lg shadow-primary/20 ring-1 ring-white/10">
-                <span className="text-white font-bold text-2xl">O</span>
-              </div>
-              <h2 className="text-3xl font-bold text-white mb-2">
-                Two-Factor Authentication
-              </h2>
-              <p className="text-slate-400">
-                Enter the code from your {twoFactorMethod === 'totp' ? 'authenticator app' : 'email'}
-              </p>
+      <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
+        <Card className="w-full max-w-md shadow-lg border-border">
+          <CardHeader className="space-y-1 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-4">
+              <ShieldCheck className="h-6 w-6 text-primary" />
             </div>
-
-            <form className="space-y-6" onSubmit={handle2FAVerify}>
+            <CardTitle className="text-2xl font-bold">Two-Factor Authentication</CardTitle>
+            <CardDescription>
+              Enter the code from your {twoFactorMethod === 'totp' ? 'authenticator app' : 'email'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handle2FAVerify} className="space-y-4">
               {error && (
-                <div className="bg-red-500/10 border-l-4 border-red-500 text-red-200 px-4 py-3 rounded">
-                  <p className="font-medium">{error}</p>
+                <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md border border-destructive/20">
+                  {error}
                 </div>
               )}
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Verification Code
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="2fa-code">Verification Code</Label>
+                <Input
+                  id="2fa-code"
                   type="text"
+                  placeholder="000000"
+                  className="text-center text-2xl tracking-widest h-12"
                   required
                   maxLength={10}
-                  className="w-full px-4 py-3 glass-card rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 transition-all text-center text-2xl tracking-widest"
-                  placeholder="000000"
                   value={twoFactorCode}
                   onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
                 />
               </div>
-
-              <button
-                type="submit"
+              <Button 
+                type="submit" 
+                className="w-full h-11 text-base font-semibold"
                 disabled={loading || twoFactorCode.length < 4}
-                className="w-full py-3 px-4 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1"
               >
-                {loading ? 'Verifying...' : 'Verify'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setRequires2FA(false);
-                  setTempToken(null);
-                  setTwoFactorCode('');
-                }}
-                className="w-full text-sm text-slate-400 hover:text-slate-300"
-              >
-                Back to login
-              </button>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify'
+                )}
+              </Button>
             </form>
-          </div>
-        </div>
+          </CardContent>
+          <CardFooter>
+            <Button
+              variant="ghost"
+              className="w-full text-muted-foreground"
+              onClick={() => {
+                setRequires2FA(false);
+                setTempToken(null);
+                setTwoFactorCode('');
+              }}
+            >
+              Back to login
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
-        <div className="glass-card rounded-2xl shadow-2xl p-8 space-y-8">
-          <div className="text-center">
-            <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center mb-4 shadow-lg shadow-primary/20 ring-1 ring-white/10">
-              <span className="text-white font-bold text-2xl">O</span>
-            </div>
-            <h2 className="text-3xl font-bold text-white mb-2">
-              Welcome Back
-            </h2>
-            <p className="text-slate-400">
-              Sign in to continue to OmniMart
-            </p>
+    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md shadow-lg border-border">
+        <CardHeader className="space-y-1 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary mb-4 text-white font-bold text-xl">
+            O
           </div>
-
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+          <CardDescription>
+            Sign in to continue to OmniMart
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-red-500/10 border-l-4 border-red-500 text-red-200 px-4 py-3 rounded">
-                <p className="font-medium">{error}</p>
+              <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md border border-destructive/20">
+                {error}
               </div>
             )}
-
             <div className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
-                  Email Address
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="w-full px-4 py-3 glass-card rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 transition-all"
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                />
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    className="pl-10"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
               </div>
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  className="w-full px-4 py-3 glass-card rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 transition-all"
-                  placeholder="Enter your password"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-primary focus:ring-primary border-white/20 rounded bg-white/5"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-300">
-                  Remember me
-                </label>
-              </div>
-              <div className="text-sm">
-                <Link to="#" className="font-medium text-primary hover:text-primary/80">
-                  Forgot password?
-                </Link>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link to="#" className="text-sm font-medium text-primary hover:underline">
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    className="pl-10"
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
-
-            <button
-              type="submit"
+            <div className="flex items-center space-x-2">
+              <Checkbox id="remember" />
+              <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
+                Remember me
+              </Label>
+            </div>
+            <Button 
+              type="submit" 
+              className="w-full h-11 text-base font-semibold"
               disabled={loading}
-              className="w-full py-3 px-4 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1"
             >
               {loading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Signing in...
-                </span>
+                </>
               ) : (
                 'Sign In'
               )}
-            </button>
+            </Button>
           </form>
-
-          <div className="text-center">
-            <p className="text-sm text-slate-400">
-              Don't have an account?{' '}
-              <Link
-                to="/signup"
-                className="font-medium text-primary hover:text-primary/80"
-              >
-                Sign up for free
-              </Link>
-            </p>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-4">
+          <div className="text-sm text-center text-muted-foreground">
+            Don't have an account?{" "}
+            <Link to="/signup" className="font-medium text-primary hover:underline">
+              Sign up for free
+            </Link>
           </div>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

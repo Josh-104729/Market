@@ -183,7 +183,7 @@ function Profile() {
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { bg: string; text: string; icon: any }> = {
-      draft: { bg: 'bg-gray-700', text: 'text-gray-200', icon: faClock },
+      draft: { bg: 'bg-neutral-700', text: 'text-neutral-200', icon: faClock },
       active: { bg: 'bg-green-900', text: 'text-green-200', icon: faCheckCircle },
       blocked: { bg: 'bg-red-900', text: 'text-red-200', icon: faTimesCircle },
       processing: { bg: 'bg-blue-900', text: 'text-blue-200', icon: faClock },
@@ -193,7 +193,7 @@ function Profile() {
       released: { bg: 'bg-green-900', text: 'text-green-200', icon: faCheckCircle },
       dispute: { bg: 'bg-orange-900', text: 'text-orange-200', icon: faTimesCircle },
       published: { bg: 'bg-green-900', text: 'text-green-200', icon: faCheckCircle },
-      archived: { bg: 'bg-gray-700', text: 'text-gray-200', icon: faClock },
+      archived: { bg: 'bg-neutral-700', text: 'text-neutral-200', icon: faClock },
     }
     return badges[status] || badges.draft
   }
@@ -231,10 +231,10 @@ function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
         <div className="text-center">
           <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-400 mb-4" />
-          <p className="text-gray-400">Loading profile...</p>
+          <p className="text-neutral-400">Loading profile...</p>
         </div>
       </div>
     )
@@ -242,9 +242,9 @@ function Profile() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-400 text-lg">No user data available</p>
+          <p className="text-neutral-400 text-lg">No user data available</p>
         </div>
       </div>
     )
@@ -260,12 +260,12 @@ function Profile() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-neutral-900">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left Sidebar */}
           <div className="w-full lg:w-64 flex-shrink-0">
-            <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-4 sticky top-4">
+            <div className="bg-neutral-800 rounded-xl shadow-lg border border-neutral-700 p-4 sticky top-4">
               <nav className="space-y-2">
                 {tabs.map((tab) => (
                   <button
@@ -274,7 +274,7 @@ function Profile() {
                     className={`w-full px-4 py-3 rounded-lg font-medium transition-all flex items-center space-x-3 text-left ${
                       activeTab === tab.id
                         ? 'bg-blue-600 text-white shadow-md'
-                        : 'text-gray-300 hover:bg-gray-700 hover:text-blue-400'
+                        : 'text-neutral-300 hover:bg-neutral-700 hover:text-blue-400'
                     }`}
                   >
                     <FontAwesomeIcon icon={tab.icon} className="text-sm w-5" />
@@ -287,11 +287,11 @@ function Profile() {
 
           {/* Main Content */}
           <div className="flex-1 min-w-0">
-            <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6">
+            <div className="bg-neutral-800 rounded-xl shadow-lg border border-neutral-700 p-6">
               {loadingData ? (
                 <div className="text-center py-20">
                   <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-400 mb-4" />
-                  <p className="text-gray-400">Loading...</p>
+                  <p className="text-neutral-400">Loading...</p>
                 </div>
               ) : (
                 <>
@@ -299,7 +299,7 @@ function Profile() {
                   {activeTab === 'information' && (
                     <div>
                       <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold text-gray-100 flex items-center space-x-2">
+                        <h2 className="text-2xl font-bold text-neutral-100 flex items-center space-x-2">
                           <FontAwesomeIcon icon={faUser} className="text-blue-400" />
                           <span>Profile Information</span>
                         </h2>
@@ -333,17 +333,17 @@ function Profile() {
 
                       {isEditing ? (
                         <div className="space-y-4">
-                          <div className="bg-gray-700/50 rounded-lg p-4">
-                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                          <div className="bg-neutral-700/50 rounded-lg p-4">
+                            <label className="block text-sm font-medium text-neutral-400 mb-2">
                               <FontAwesomeIcon icon={faEnvelope} className="mr-2 text-blue-400" />
                               Email
                             </label>
-                            <p className="text-gray-300">{user.email}</p>
-                            <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+                            <p className="text-neutral-300">{user.email}</p>
+                            <p className="text-xs text-neutral-500 mt-1">Email cannot be changed</p>
                           </div>
 
-                          <div className="bg-gray-700/50 rounded-lg p-4">
-                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                          <div className="bg-neutral-700/50 rounded-lg p-4">
+                            <label className="block text-sm font-medium text-neutral-400 mb-2">
                               <FontAwesomeIcon icon={faIdCard} className="mr-2 text-blue-400" />
                               Username
                             </label>
@@ -351,14 +351,14 @@ function Profile() {
                               type="text"
                               value={editForm.userName}
                               onChange={(e) => setEditForm({ ...editForm, userName: e.target.value })}
-                              className="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-4 py-2 bg-neutral-600 border border-neutral-500 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                               placeholder="Enter username"
                             />
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-gray-700/50 rounded-lg p-4">
-                              <label className="block text-sm font-medium text-gray-400 mb-2">
+                            <div className="bg-neutral-700/50 rounded-lg p-4">
+                              <label className="block text-sm font-medium text-neutral-400 mb-2">
                                 <FontAwesomeIcon icon={faUser} className="mr-2 text-blue-400" />
                                 First Name
                               </label>
@@ -366,13 +366,13 @@ function Profile() {
                                 type="text"
                                 value={editForm.firstName}
                                 onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                                className="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-4 py-2 bg-neutral-600 border border-neutral-500 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="Enter first name"
                               />
                             </div>
 
-                            <div className="bg-gray-700/50 rounded-lg p-4">
-                              <label className="block text-sm font-medium text-gray-400 mb-2">
+                            <div className="bg-neutral-700/50 rounded-lg p-4">
+                              <label className="block text-sm font-medium text-neutral-400 mb-2">
                                 <FontAwesomeIcon icon={faUser} className="mr-2 text-blue-400" />
                                 Last Name
                               </label>
@@ -380,14 +380,14 @@ function Profile() {
                                 type="text"
                                 value={editForm.lastName}
                                 onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                                className="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-4 py-2 bg-neutral-600 border border-neutral-500 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="Enter last name"
                               />
                             </div>
                           </div>
 
-                          <div className="bg-gray-700/50 rounded-lg p-4">
-                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                          <div className="bg-neutral-700/50 rounded-lg p-4">
+                            <label className="block text-sm font-medium text-neutral-400 mb-2">
                               <FontAwesomeIcon icon={faUser} className="mr-2 text-blue-400" />
                               Middle Name
                             </label>
@@ -395,13 +395,13 @@ function Profile() {
                               type="text"
                               value={editForm.middleName}
                               onChange={(e) => setEditForm({ ...editForm, middleName: e.target.value })}
-                              className="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-4 py-2 bg-neutral-600 border border-neutral-500 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                               placeholder="Enter middle name (optional)"
                             />
                           </div>
 
-                          <div className="bg-gray-700/50 rounded-lg p-4">
-                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                          <div className="bg-neutral-700/50 rounded-lg p-4">
+                            <label className="block text-sm font-medium text-neutral-400 mb-2">
                               <FontAwesomeIcon icon={faFileAlt} className="mr-2 text-blue-400" />
                               Bio
                             </label>
@@ -409,13 +409,13 @@ function Profile() {
                               value={editForm.bio}
                               onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
                               rows={4}
-                              className="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-4 py-2 bg-neutral-600 border border-neutral-500 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                               placeholder="Tell us about yourself..."
                             />
                           </div>
 
-                          <div className="bg-gray-700/50 rounded-lg p-4">
-                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                          <div className="bg-neutral-700/50 rounded-lg p-4">
+                            <label className="block text-sm font-medium text-neutral-400 mb-2">
                               <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-2 text-blue-400" />
                               Address
                             </label>
@@ -423,13 +423,13 @@ function Profile() {
                               type="text"
                               value={editForm.address}
                               onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                              className="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-4 py-2 bg-neutral-600 border border-neutral-500 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                               placeholder="Enter address"
                             />
                           </div>
 
-                          <div className="bg-gray-700/50 rounded-lg p-4">
-                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                          <div className="bg-neutral-700/50 rounded-lg p-4">
+                            <label className="block text-sm font-medium text-neutral-400 mb-2">
                               <FontAwesomeIcon icon={faPhone} className="mr-2 text-blue-400" />
                               Phone Number
                             </label>
@@ -437,7 +437,7 @@ function Profile() {
                               type="text"
                               value={editForm.phoneNumber}
                               onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
-                              className="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-4 py-2 bg-neutral-600 border border-neutral-500 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                               placeholder="Enter phone number"
                             />
                           </div>
@@ -463,7 +463,7 @@ function Profile() {
                             <button
                               onClick={handleCancel}
                               disabled={saving}
-                              className="px-6 py-2 bg-gray-600 text-gray-200 rounded-lg font-semibold hover:bg-gray-500 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                              className="px-6 py-2 bg-neutral-600 text-neutral-200 rounded-lg font-semibold hover:bg-neutral-500 transition-colors flex items-center space-x-2 disabled:opacity-50"
                             >
                               <FontAwesomeIcon icon={faTimes} className="text-sm" />
                               <span>Cancel</span>
@@ -472,91 +472,91 @@ function Profile() {
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          <div className="bg-gray-700/50 rounded-lg p-4">
+                          <div className="bg-neutral-700/50 rounded-lg p-4">
                             <div className="flex items-center space-x-3 mb-2">
                               <FontAwesomeIcon icon={faEnvelope} className="text-blue-400" />
-                              <label className="text-sm font-medium text-gray-400">Email</label>
+                              <label className="text-sm font-medium text-neutral-400">Email</label>
                             </div>
-                            <p className="text-gray-100 text-lg">{user.email}</p>
+                            <p className="text-neutral-100 text-lg">{user.email}</p>
                           </div>
 
                           {user.userName && (
-                            <div className="bg-gray-700/50 rounded-lg p-4">
+                            <div className="bg-neutral-700/50 rounded-lg p-4">
                               <div className="flex items-center space-x-3 mb-2">
                                 <FontAwesomeIcon icon={faIdCard} className="text-blue-400" />
-                                <label className="text-sm font-medium text-gray-400">Username</label>
+                                <label className="text-sm font-medium text-neutral-400">Username</label>
                               </div>
-                              <p className="text-gray-100 text-lg">{user.userName}</p>
+                              <p className="text-neutral-100 text-lg">{user.userName}</p>
                             </div>
                           )}
 
                           {user.firstName && (
-                            <div className="bg-gray-700/50 rounded-lg p-4">
+                            <div className="bg-neutral-700/50 rounded-lg p-4">
                               <div className="flex items-center space-x-3 mb-2">
                                 <FontAwesomeIcon icon={faUser} className="text-blue-400" />
-                                <label className="text-sm font-medium text-gray-400">First Name</label>
+                                <label className="text-sm font-medium text-neutral-400">First Name</label>
                               </div>
-                              <p className="text-gray-100 text-lg">{user.firstName}</p>
+                              <p className="text-neutral-100 text-lg">{user.firstName}</p>
                             </div>
                           )}
 
                           {user.lastName && (
-                            <div className="bg-gray-700/50 rounded-lg p-4">
+                            <div className="bg-neutral-700/50 rounded-lg p-4">
                               <div className="flex items-center space-x-3 mb-2">
                                 <FontAwesomeIcon icon={faUser} className="text-blue-400" />
-                                <label className="text-sm font-medium text-gray-400">Last Name</label>
+                                <label className="text-sm font-medium text-neutral-400">Last Name</label>
                               </div>
-                              <p className="text-gray-100 text-lg">{user.lastName}</p>
+                              <p className="text-neutral-100 text-lg">{user.lastName}</p>
                             </div>
                           )}
 
                           {user.middleName && (
-                            <div className="bg-gray-700/50 rounded-lg p-4">
+                            <div className="bg-neutral-700/50 rounded-lg p-4">
                               <div className="flex items-center space-x-3 mb-2">
                                 <FontAwesomeIcon icon={faUser} className="text-blue-400" />
-                                <label className="text-sm font-medium text-gray-400">Middle Name</label>
+                                <label className="text-sm font-medium text-neutral-400">Middle Name</label>
                               </div>
-                              <p className="text-gray-100 text-lg">{user.middleName}</p>
+                              <p className="text-neutral-100 text-lg">{user.middleName}</p>
                             </div>
                           )}
 
                           {user.bio && (
-                            <div className="bg-gray-700/50 rounded-lg p-4">
+                            <div className="bg-neutral-700/50 rounded-lg p-4">
                               <div className="flex items-center space-x-3 mb-2">
                                 <FontAwesomeIcon icon={faFileAlt} className="text-blue-400" />
-                                <label className="text-sm font-medium text-gray-400">Bio</label>
+                                <label className="text-sm font-medium text-neutral-400">Bio</label>
                               </div>
-                              <p className="text-gray-100 text-lg whitespace-pre-wrap">{user.bio}</p>
+                              <p className="text-neutral-100 text-lg whitespace-pre-wrap">{user.bio}</p>
                             </div>
                           )}
 
                           {user.address && (
-                            <div className="bg-gray-700/50 rounded-lg p-4">
+                            <div className="bg-neutral-700/50 rounded-lg p-4">
                               <div className="flex items-center space-x-3 mb-2">
                                 <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-400" />
-                                <label className="text-sm font-medium text-gray-400">Address</label>
+                                <label className="text-sm font-medium text-neutral-400">Address</label>
                               </div>
-                              <p className="text-gray-100 text-lg">{user.address}</p>
+                              <p className="text-neutral-100 text-lg">{user.address}</p>
                             </div>
                           )}
 
                           {user.phoneNumber && (
-                            <div className="bg-gray-700/50 rounded-lg p-4">
+                            <div className="bg-neutral-700/50 rounded-lg p-4">
                               <div className="flex items-center space-x-3 mb-2">
                                 <FontAwesomeIcon icon={faPhone} className="text-blue-400" />
-                                <label className="text-sm font-medium text-gray-400">Phone Number</label>
+                                <label className="text-sm font-medium text-neutral-400">Phone Number</label>
                               </div>
-                              <p className="text-gray-100 text-lg">{user.phoneNumber}</p>
+                              <p className="text-neutral-100 text-lg">{user.phoneNumber}</p>
                             </div>
                           )}
 
                           {user.role && (
-                            <div className="bg-gray-700/50 rounded-lg p-4">
+                            <div className="bg-neutral-700/50 rounded-lg p-4">
                               <div className="flex items-center space-x-3 mb-2">
                                 <FontAwesomeIcon icon={faIdCard} className="text-blue-400" />
-                                <label className="text-sm font-medium text-gray-400">Role</label>
+                                <label className="text-sm font-medium text-neutral-400">Role</label>
                               </div>
-                              <p className="text-gray-100 text-lg capitalize">{user.role}</p>
+                              <p className="text-neutral-100 text-lg capitalize">{user.role}</p>
                             </div>
                           )}
                         </div>
@@ -568,7 +568,7 @@ function Profile() {
                   {activeTab === 'services' && (
                     <div>
                       <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold text-gray-100 flex items-center space-x-2">
+                        <h2 className="text-2xl font-bold text-neutral-100 flex items-center space-x-2">
                           <FontAwesomeIcon icon={faBriefcase} className="text-blue-400" />
                           <span>My Services ({services.length})</span>
                         </h2>
@@ -581,7 +581,7 @@ function Profile() {
                       </div>
                       {services.length === 0 ? (
                         <div className="text-center py-12">
-                          <p className="text-gray-400 mb-4">No services found</p>
+                          <p className="text-neutral-400 mb-4">No services found</p>
                           <Link
                             to="/services/new"
                             className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-block"
@@ -597,23 +597,23 @@ function Profile() {
                               <Link
                                 key={service.id}
                                 to={`/services/${service.id}`}
-                                className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors border border-gray-600"
+                                className="bg-neutral-700 rounded-lg p-4 hover:bg-neutral-600 transition-colors border border-neutral-600"
                               >
                                 <div className="flex items-start justify-between mb-2">
-                                  <h3 className="text-lg font-semibold text-gray-100 line-clamp-2 flex-1">
+                                  <h3 className="text-lg font-semibold text-neutral-100 line-clamp-2 flex-1">
                                     {service.title}
                                   </h3>
                                   <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${statusBadge.bg} ${statusBadge.text}`}>
                                     {service.status}
                                   </span>
                                 </div>
-                                <p className="text-gray-400 text-sm mb-3 line-clamp-2">{service.adText}</p>
+                                <p className="text-neutral-400 text-sm mb-3 line-clamp-2">{service.adText}</p>
                                 <div className="flex items-center justify-between">
                                   <span className="text-xl font-bold text-blue-400">
                                     {formatCurrency(service.balance)}
                                   </span>
                                   {service.category && (
-                                    <span className="text-xs text-gray-400">{service.category.title}</span>
+                                    <span className="text-xs text-neutral-400">{service.category.title}</span>
                                   )}
                                 </div>
                               </Link>
@@ -627,13 +627,13 @@ function Profile() {
                   {/* Conversations Tab */}
                   {activeTab === 'conversations' && (
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-100 mb-6 flex items-center space-x-2">
+                      <h2 className="text-2xl font-bold text-neutral-100 mb-6 flex items-center space-x-2">
                         <FontAwesomeIcon icon={faComments} className="text-blue-400" />
                         <span>Conversations ({conversations.length})</span>
                       </h2>
                       {conversations.length === 0 ? (
                         <div className="text-center py-12">
-                          <p className="text-gray-400">No conversations found</p>
+                          <p className="text-neutral-400">No conversations found</p>
                         </div>
                       ) : (
                         <div className="space-y-4">
@@ -646,7 +646,7 @@ function Profile() {
                               <Link
                                 key={conv.id}
                                 to={`/chat/${conv.id}`}
-                                className="block bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors border border-gray-600"
+                                className="block bg-neutral-700 rounded-lg p-4 hover:bg-neutral-600 transition-colors border border-neutral-600"
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center space-x-3">
@@ -654,16 +654,16 @@ function Profile() {
                                       {otherUserName[0].toUpperCase()}
                                     </div>
                                     <div>
-                                      <h3 className="text-gray-100 font-semibold">{otherUserName}</h3>
+                                      <h3 className="text-neutral-100 font-semibold">{otherUserName}</h3>
                                       {conv.service && (
-                                        <p className="text-gray-400 text-sm">{conv.service.title}</p>
+                                        <p className="text-neutral-400 text-sm">{conv.service.title}</p>
                                       )}
                                     </div>
                                   </div>
                                   <div className="text-right">
-                                    <p className="text-gray-400 text-xs">{formatDate(conv.updatedAt)}</p>
+                                    <p className="text-neutral-400 text-xs">{formatDate(conv.updatedAt)}</p>
                                     {conv.messages && conv.messages.length > 0 && (
-                                      <p className="text-gray-500 text-xs mt-1 line-clamp-1">
+                                      <p className="text-neutral-500 text-xs mt-1 line-clamp-1">
                                         {conv.messages[conv.messages.length - 1].message}
                                       </p>
                                     )}
@@ -680,13 +680,13 @@ function Profile() {
                   {/* Milestones Tab */}
                   {activeTab === 'milestones' && (
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-100 mb-6 flex items-center space-x-2">
+                      <h2 className="text-2xl font-bold text-neutral-100 mb-6 flex items-center space-x-2">
                         <FontAwesomeIcon icon={faTasks} className="text-blue-400" />
                         <span>Milestones ({milestones.length})</span>
                       </h2>
                       {milestones.length === 0 ? (
                         <div className="text-center py-12">
-                          <p className="text-gray-400">No milestones found</p>
+                          <p className="text-neutral-400">No milestones found</p>
                         </div>
                       ) : (
                         <div className="space-y-4">
@@ -700,16 +700,16 @@ function Profile() {
                             return (
                               <div
                                 key={milestone.id}
-                                className="bg-gray-700 rounded-lg p-4 border border-gray-600"
+                                className="bg-neutral-700 rounded-lg p-4 border border-neutral-600"
                               >
                                 <div className="flex items-start justify-between mb-3">
                                   <div className="flex-1">
-                                    <h3 className="text-lg font-semibold text-gray-100 mb-1">{milestone.title}</h3>
-                                    <p className="text-gray-400 text-sm mb-2">{milestone.description}</p>
+                                    <h3 className="text-lg font-semibold text-neutral-100 mb-1">{milestone.title}</h3>
+                                    <p className="text-neutral-400 text-sm mb-2">{milestone.description}</p>
                                     {milestone.service && (
-                                      <p className="text-gray-500 text-xs mb-2">Service: {milestone.service.title}</p>
+                                      <p className="text-neutral-500 text-xs mb-2">Service: {milestone.service.title}</p>
                                     )}
-                                    <div className="flex items-center space-x-4 text-sm text-gray-400">
+                                    <div className="flex items-center space-x-4 text-sm text-neutral-400">
                                       <span>
                                         {isProvider ? 'Client' : 'Provider'}: {otherUserName}
                                       </span>
@@ -740,13 +740,13 @@ function Profile() {
                   {/* Posts Tab */}
                   {activeTab === 'posts' && (
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-100 mb-6 flex items-center space-x-2">
+                      <h2 className="text-2xl font-bold text-neutral-100 mb-6 flex items-center space-x-2">
                         <FontAwesomeIcon icon={faNewspaper} className="text-blue-400" />
                         <span>My Posts ({posts.length})</span>
                       </h2>
                       {posts.length === 0 ? (
                         <div className="text-center py-12">
-                          <p className="text-gray-400 mb-4">No posts found</p>
+                          <p className="text-neutral-400 mb-4">No posts found</p>
                           <Link
                             to="/feed"
                             className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-block"
@@ -761,11 +761,11 @@ function Profile() {
                             return (
                               <div
                                 key={post.id}
-                                className="bg-gray-700 rounded-lg p-4 border border-gray-600"
+                                className="bg-neutral-700 rounded-lg p-4 border border-neutral-600"
                               >
                                 <div className="flex items-start justify-between mb-3">
                                   <div className="flex-1">
-                                    <p className="text-gray-200 whitespace-pre-wrap break-words mb-2">{post.content}</p>
+                                    <p className="text-neutral-200 whitespace-pre-wrap break-words mb-2">{post.content}</p>
                                     {post.images && post.images.length > 0 && (
                                       <div className="grid grid-cols-2 gap-2 mt-2">
                                         {post.images.slice(0, 4).map((image, idx) => (
@@ -778,7 +778,7 @@ function Profile() {
                                         ))}
                                       </div>
                                     )}
-                                    <div className="flex items-center space-x-4 mt-3 text-sm text-gray-400">
+                                    <div className="flex items-center space-x-4 mt-3 text-sm text-neutral-400">
                                       <span className="flex items-center space-x-1">
                                         <FontAwesomeIcon icon={faCalendar} className="text-xs" />
                                         <span>{formatDate(post.createdAt)}</span>
@@ -806,58 +806,58 @@ function Profile() {
                   {/* Statistics Tab */}
                   {activeTab === 'statistics' && (
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-100 mb-6 flex items-center space-x-2">
+                      <h2 className="text-2xl font-bold text-neutral-100 mb-6 flex items-center space-x-2">
                         <FontAwesomeIcon icon={faChartBar} className="text-blue-400" />
                         <span>Statistics & Overview</span>
                       </h2>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <div className="bg-gray-700 rounded-lg p-6 border border-gray-600">
+                        <div className="bg-neutral-700 rounded-lg p-6 border border-neutral-600">
                           <div className="flex items-center justify-between mb-2">
                             <FontAwesomeIcon icon={faBriefcase} className="text-blue-400 text-2xl" />
-                            <span className="text-3xl font-bold text-gray-100">{stats.totalServices}</span>
+                            <span className="text-3xl font-bold text-neutral-100">{stats.totalServices}</span>
                           </div>
-                          <p className="text-gray-400 text-sm">Total Services</p>
+                          <p className="text-neutral-400 text-sm">Total Services</p>
                           <p className="text-green-400 text-xs mt-1">{stats.activeServices} active</p>
                         </div>
-                        <div className="bg-gray-700 rounded-lg p-6 border border-gray-600">
+                        <div className="bg-neutral-700 rounded-lg p-6 border border-neutral-600">
                           <div className="flex items-center justify-between mb-2">
                             <FontAwesomeIcon icon={faComments} className="text-purple-400 text-2xl" />
-                            <span className="text-3xl font-bold text-gray-100">{stats.totalConversations}</span>
+                            <span className="text-3xl font-bold text-neutral-100">{stats.totalConversations}</span>
                           </div>
-                          <p className="text-gray-400 text-sm">Conversations</p>
+                          <p className="text-neutral-400 text-sm">Conversations</p>
                         </div>
-                        <div className="bg-gray-700 rounded-lg p-6 border border-gray-600">
+                        <div className="bg-neutral-700 rounded-lg p-6 border border-neutral-600">
                           <div className="flex items-center justify-between mb-2">
                             <FontAwesomeIcon icon={faTasks} className="text-green-400 text-2xl" />
-                            <span className="text-3xl font-bold text-gray-100">{stats.totalMilestones}</span>
+                            <span className="text-3xl font-bold text-neutral-100">{stats.totalMilestones}</span>
                           </div>
-                          <p className="text-gray-400 text-sm">Total Milestones</p>
+                          <p className="text-neutral-400 text-sm">Total Milestones</p>
                           <p className="text-green-400 text-xs mt-1">{stats.completedMilestones} completed</p>
                         </div>
-                        <div className="bg-gray-700 rounded-lg p-6 border border-gray-600">
+                        <div className="bg-neutral-700 rounded-lg p-6 border border-neutral-600">
                           <div className="flex items-center justify-between mb-2">
                             <FontAwesomeIcon icon={faNewspaper} className="text-pink-400 text-2xl" />
-                            <span className="text-3xl font-bold text-gray-100">{stats.totalPosts}</span>
+                            <span className="text-3xl font-bold text-neutral-100">{stats.totalPosts}</span>
                           </div>
-                          <p className="text-gray-400 text-sm">Posts</p>
+                          <p className="text-neutral-400 text-sm">Posts</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-gray-700 rounded-lg p-6 border border-gray-600">
+                        <div className="bg-neutral-700 rounded-lg p-6 border border-neutral-600">
                           <div className="flex items-center justify-between mb-2">
                             <FontAwesomeIcon icon={faDollarSign} className="text-green-400 text-2xl" />
                             <span className="text-2xl font-bold text-green-400">{formatCurrency(stats.totalEarnings)}</span>
                           </div>
-                          <p className="text-gray-400 text-sm">Total Earnings</p>
-                          <p className="text-gray-500 text-xs mt-1">From completed milestones as provider</p>
+                          <p className="text-neutral-400 text-sm">Total Earnings</p>
+                          <p className="text-neutral-500 text-xs mt-1">From completed milestones as provider</p>
                         </div>
-                        <div className="bg-gray-700 rounded-lg p-6 border border-gray-600">
+                        <div className="bg-neutral-700 rounded-lg p-6 border border-neutral-600">
                           <div className="flex items-center justify-between mb-2">
                             <FontAwesomeIcon icon={faDollarSign} className="text-red-400 text-2xl" />
                             <span className="text-2xl font-bold text-red-400">{formatCurrency(stats.totalSpent)}</span>
                           </div>
-                          <p className="text-gray-400 text-sm">Total Spent</p>
-                          <p className="text-gray-500 text-xs mt-1">On completed milestones as client</p>
+                          <p className="text-neutral-400 text-sm">Total Spent</p>
+                          <p className="text-neutral-500 text-xs mt-1">On completed milestones as client</p>
                         </div>
                       </div>
                     </div>

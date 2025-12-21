@@ -89,13 +89,13 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-white font-semibold text-lg">{getUserName()}</h3>
-          <p className="text-gray-400 text-sm">{formatTimeAgo(post.createdAt)}</p>
+          <p className="text-neutral-400 text-sm">{formatTimeAgo(post.createdAt)}</p>
         </div>
       </div>
 
       {/* Post Content */}
       <div className="mb-4">
-        <p className="text-gray-200 whitespace-pre-wrap break-words">{post.content}</p>
+        <p className="text-neutral-200 whitespace-pre-wrap break-words">{post.content}</p>
       </div>
 
       {/* Post Images */}
@@ -105,7 +105,7 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
             // Use full B2 URL if it's already a full URL, otherwise use as-is
             const imageUrl = image.startsWith('http') ? image : image;
             return (
-              <div key={idx} className="relative rounded-lg overflow-hidden bg-gray-700">
+              <div key={idx} className="relative rounded-lg overflow-hidden bg-neutral-700">
                 <img
                   src={imageUrl}
                   alt={`Post image ${idx + 1}`}
@@ -123,7 +123,7 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
       )}
 
       {/* Post Stats */}
-      <div className="flex items-center justify-between text-gray-400 text-sm mb-4 pb-4 border-b border-gray-700">
+      <div className="flex items-center justify-between text-neutral-400 text-sm mb-4 pb-4 border-b border-neutral-700">
         <div className="flex items-center space-x-4">
           {post.likeCount !== undefined && post.likeCount > 0 && (
             <span className="flex items-center space-x-1">
@@ -142,13 +142,13 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
 
       {/* Post Actions */}
       {isAuthenticated && (
-        <div className="flex items-center justify-around border-t border-gray-700 pt-4">
+        <div className="flex items-center justify-around border-t border-neutral-700 pt-4">
           <button
             onClick={() => onLike(post.id)}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
               post.isLiked
                 ? 'text-red-500 hover:bg-red-500/10'
-                : 'text-gray-400 hover:text-red-500 hover:bg-gray-700'
+                : 'text-neutral-400 hover:text-red-500 hover:bg-neutral-700'
             }`}
           >
             <FontAwesomeIcon icon={post.isLiked ? faHeart : faHeartRegular} className="text-xl" />
@@ -156,12 +156,12 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
           </button>
           <button
             onClick={loadComments}
-            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-400 hover:text-blue-400 hover:bg-gray-700 transition-all"
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-neutral-400 hover:text-blue-400 hover:bg-neutral-700 transition-all"
           >
             <FontAwesomeIcon icon={faComment} className="text-xl" />
             <span className="font-medium">Comment</span>
           </button>
-          <button className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-400 hover:text-green-400 hover:bg-gray-700 transition-all">
+          <button className="flex items-center space-x-2 px-4 py-2 rounded-lg text-neutral-400 hover:text-green-400 hover:bg-neutral-700 transition-all">
             <FontAwesomeIcon icon={faShare} className="text-xl" />
             <span className="font-medium">Share</span>
           </button>
@@ -170,7 +170,7 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
 
       {/* Comments Section */}
       {showComments && (
-        <div className="mt-4 pt-4 border-t border-gray-700">
+        <div className="mt-4 pt-4 border-t border-neutral-700">
           {loadingComments ? (
             <div className="flex justify-center py-4">
               <FontAwesomeIcon icon={faSpinner} className="animate-spin text-blue-400 text-xl" />
@@ -186,7 +186,7 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
                       placeholder="Write a comment..."
-                      className="flex-1 glass-card text-white rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder-slate-400"
+                      className="flex-1 glass-card text-white rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder-neutral-400"
                     />
                     <button
                       type="submit"
@@ -202,7 +202,7 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
               {/* Comments List */}
               <div className="space-y-4">
                 {comments.length === 0 ? (
-                  <p className="text-gray-400 text-center py-4">No comments yet. Be the first to comment!</p>
+                  <p className="text-neutral-400 text-center py-4">No comments yet. Be the first to comment!</p>
                 ) : (
                   comments.map((comment) => (
                     <div key={comment.id} className="flex items-start space-x-3">
@@ -218,9 +218,9 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
                           <span className="text-white font-semibold text-sm">
                             {comment.user?.userName || comment.user?.firstName || 'Anonymous'}
                           </span>
-                          <span className="text-slate-400 text-xs">{formatTimeAgo(comment.createdAt)}</span>
+                          <span className="text-neutral-400 text-xs">{formatTimeAgo(comment.createdAt)}</span>
                         </div>
-                        <p className="text-slate-200 text-sm">{comment.content}</p>
+                        <p className="text-neutral-200 text-sm">{comment.content}</p>
                       </div>
                     </div>
                   ))
@@ -343,7 +343,7 @@ function Feed() {
             {!isCreatingPost ? (
               <button
                 onClick={() => setIsCreatingPost(true)}
-                className="w-full text-left glass-card hover:bg-white/15 rounded-xl px-4 py-3 text-slate-300 transition-all"
+                className="w-full text-left glass-card hover:bg-white/15 rounded-xl px-4 py-3 text-neutral-300 transition-all"
               >
                 <span>What's on your mind?</span>
               </button>
@@ -353,7 +353,7 @@ function Feed() {
                   value={postContent}
                   onChange={(e) => setPostContent(e.target.value)}
                   placeholder="What's on your mind?"
-                  className="w-full glass-card text-white rounded-xl px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 resize-none placeholder-slate-400"
+                  className="w-full glass-card text-white rounded-xl px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 resize-none placeholder-neutral-400"
                   rows={4}
                 />
 
@@ -380,7 +380,7 @@ function Feed() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="text-gray-400 hover:text-blue-400 transition-colors"
+                      className="text-neutral-400 hover:text-blue-400 transition-colors"
                     >
                       <FontAwesomeIcon icon={faImage} className="text-xl" />
                     </button>
@@ -402,14 +402,14 @@ function Feed() {
                         setPostImages([])
                         setImagePreviews([])
                       }}
-                      className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                      className="px-4 py-2 text-neutral-400 hover:text-white transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={!postContent.trim() || submittingPost}
-                      className="px-6 py-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1"
+                      className="px-6 py-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2 shadow-glow-primary hover:shadow-glow-primary-lg hover:-tranneutral-y-1"
                     >
                       {submittingPost ? (
                         <>
@@ -434,11 +434,11 @@ function Feed() {
         {loading && posts.length === 0 ? (
           <div className="text-center py-20 glass-card rounded-2xl">
             <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-primary mb-4" />
-            <p className="text-slate-400">Loading posts...</p>
+            <p className="text-neutral-400">Loading posts...</p>
           </div>
         ) : posts.length === 0 ? (
           <div className="text-center py-20 glass-card rounded-2xl">
-            <p className="text-slate-400 mb-6 text-lg">No posts yet. Be the first to share something!</p>
+            <p className="text-neutral-400 mb-6 text-lg">No posts yet. Be the first to share something!</p>
           </div>
         ) : (
           <>

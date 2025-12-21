@@ -156,7 +156,7 @@ function Notifications() {
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-white">Notifications</h1>
               {unreadCount > 0 && (
-                <p className="text-sm text-slate-400 mt-1">
+                <p className="text-sm text-neutral-400 mt-1">
                   {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
                 </p>
               )}
@@ -176,15 +176,15 @@ function Notifications() {
 
       <div className="glass-card rounded-2xl overflow-hidden">
         {loading && notifications.length === 0 ? (
-          <div className="p-12 text-center text-slate-400">
+          <div className="p-12 text-center text-neutral-400">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
             <p>Loading notifications...</p>
           </div>
         ) : notifications.length === 0 ? (
           <div className="p-12 text-center">
-            <FontAwesomeIcon icon={faBell} className="text-6xl text-slate-600 mb-4" />
-            <p className="text-slate-400 text-lg">No notifications yet</p>
-            <p className="text-slate-500 text-sm mt-2">You'll see notifications here when you receive them</p>
+            <FontAwesomeIcon icon={faBell} className="text-6xl text-neutral-600 mb-4" />
+            <p className="text-neutral-400 text-lg">No notifications yet</p>
+            <p className="text-neutral-500 text-sm mt-2">You'll see notifications here when you receive them</p>
           </div>
         ) : (
           <>
@@ -206,10 +206,10 @@ function Notifications() {
                           <span className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></span>
                         )}
                       </div>
-                      <p className="text-sm text-slate-400 mb-2">
+                      <p className="text-sm text-neutral-400 mb-2">
                         {notification.message}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-neutral-500">
                         {formatDate(notification.createdAt)}
                       </p>
                     </div>
@@ -217,7 +217,7 @@ function Notifications() {
                       {(!notification.readAt || notification.readAt === null) && (
                         <button
                           onClick={() => handleMarkAsRead(notification.id)}
-                          className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-white/5"
+                          className="p-2 text-neutral-400 hover:text-primary transition-colors rounded-lg hover:bg-white/5"
                           title="Mark as read"
                         >
                           <FontAwesomeIcon icon={faCheck} />
@@ -225,7 +225,7 @@ function Notifications() {
                       )}
                       <button
                         onClick={() => handleDelete(notification.id)}
-                        className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-white/5"
+                        className="p-2 text-neutral-400 hover:text-red-500 transition-colors rounded-lg hover:bg-white/5"
                         title="Delete"
                       >
                         <FontAwesomeIcon icon={faTrash} />

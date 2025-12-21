@@ -113,7 +113,7 @@ function SecuritySettings() {
         
         {!twoFactorEnabled ? (
           <div>
-            <p className="text-slate-400 mb-4">
+            <p className="text-neutral-400 mb-4">
               Add an extra layer of security to your account by enabling two-factor authentication.
             </p>
             
@@ -129,13 +129,13 @@ function SecuritySettings() {
 
             {setupStep === 'qr' && (
               <div className="space-y-4">
-                <p className="text-slate-300">Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.):</p>
+                <p className="text-neutral-300">Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.):</p>
                 <div className="flex justify-center">
                   <img src={qrCodeUrl} alt="QR Code" className="bg-white p-4 rounded-lg" />
                 </div>
                 <form onSubmit={handleVerifySetup} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
                       Enter verification code
                     </label>
                     <input
@@ -165,10 +165,10 @@ function SecuritySettings() {
                   <p className="font-medium mb-2">Important: Save these backup codes</p>
                   <p className="text-sm">These codes can be used to access your account if you lose your authenticator device. Store them in a safe place.</p>
                 </div>
-                <div className="bg-gray-800 p-4 rounded-lg">
+                <div className="bg-neutral-800 p-4 rounded-lg">
                   <div className="grid grid-cols-2 gap-2">
                     {backupCodes.map((code, index) => (
-                      <div key={index} className="font-mono text-center p-2 bg-gray-700 rounded text-white">
+                      <div key={index} className="font-mono text-center p-2 bg-neutral-700 rounded text-white">
                         {code}
                       </div>
                     ))}
@@ -192,13 +192,13 @@ function SecuritySettings() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-green-400 font-semibold">2FA is enabled</p>
-                <p className="text-slate-400 text-sm">Method: {twoFactorMethod?.toUpperCase()}</p>
+                <p className="text-neutral-400 text-sm">Method: {twoFactorMethod?.toUpperCase()}</p>
               </div>
             </div>
             
             <form onSubmit={handleDisable2FA} className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
                   Enter your password to disable 2FA
                 </label>
                 <input
@@ -219,14 +219,14 @@ function SecuritySettings() {
               </button>
             </form>
 
-            <div className="border-t border-gray-700 pt-4">
+            <div className="border-t border-neutral-700 pt-4">
               <h3 className="text-lg font-semibold text-white mb-2">Backup Codes</h3>
-              <p className="text-slate-400 text-sm mb-4">
+              <p className="text-neutral-400 text-sm mb-4">
                 Regenerate backup codes if you've used them all or need new ones.
               </p>
               <form onSubmit={handleRegenerateBackupCodes} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-neutral-300 mb-2">
                     Enter your password to regenerate backup codes
                   </label>
                   <input
@@ -252,10 +252,10 @@ function SecuritySettings() {
                     <p className="font-medium mb-2">New Backup Codes Generated</p>
                     <p className="text-sm">Save these codes in a safe place. They won't be shown again.</p>
                   </div>
-                  <div className="bg-gray-800 p-4 rounded-lg">
+                  <div className="bg-neutral-800 p-4 rounded-lg">
                     <div className="grid grid-cols-2 gap-2">
                       {backupCodes.map((code, index) => (
-                        <div key={index} className="font-mono text-center p-2 bg-gray-700 rounded text-white">
+                        <div key={index} className="font-mono text-center p-2 bg-neutral-700 rounded text-white">
                           {code}
                         </div>
                       ))}

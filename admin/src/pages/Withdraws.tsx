@@ -144,7 +144,7 @@ function Withdraws() {
 
         {pendingWithdraws.length === 0 && otherWithdraws.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-slate-400">No withdrawal requests found</p>
+            <p className="text-neutral-400">No withdrawal requests found</p>
           </div>
         ) : (
           <>
@@ -155,11 +155,11 @@ function Withdraws() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-white/10">
-                        <th className="text-left py-3 px-4 text-slate-300 font-semibold">User</th>
-                        <th className="text-right py-3 px-4 text-slate-300 font-semibold">Amount</th>
-                        <th className="text-left py-3 px-4 text-slate-300 font-semibold">Wallet Address</th>
-                        <th className="text-left py-3 px-4 text-slate-300 font-semibold">Requested</th>
-                        <th className="text-center py-3 px-4 text-slate-300 font-semibold">Actions</th>
+                        <th className="text-left py-3 px-4 text-neutral-300 font-semibold">User</th>
+                        <th className="text-right py-3 px-4 text-neutral-300 font-semibold">Amount</th>
+                        <th className="text-left py-3 px-4 text-neutral-300 font-semibold">Wallet Address</th>
+                        <th className="text-left py-3 px-4 text-neutral-300 font-semibold">Requested</th>
+                        <th className="text-center py-3 px-4 text-neutral-300 font-semibold">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -171,10 +171,10 @@ function Withdraws() {
                                 <div className="text-white text-sm">
                                   {withdraw.client.firstName} {withdraw.client.lastName}
                                 </div>
-                                <div className="text-slate-400 text-xs">{withdraw.client.email}</div>
+                                <div className="text-neutral-400 text-xs">{withdraw.client.email}</div>
                               </div>
                             ) : (
-                              <span className="text-slate-400 text-sm">Unknown</span>
+                              <span className="text-neutral-400 text-sm">Unknown</span>
                             )}
                           </td>
                           <td className="py-3 px-4 text-right">
@@ -193,7 +193,7 @@ function Withdraws() {
                               </button>
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-slate-400 text-sm">
+                          <td className="py-3 px-4 text-neutral-400 text-sm">
                             {formatDate(withdraw.createdAt)}
                           </td>
                           <td className="py-3 px-4 text-center">
@@ -203,7 +203,7 @@ function Withdraws() {
                               className={`px-4 py-2 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
                                 accepting !== withdraw.id
                                   ? 'bg-primary text-white hover:bg-primary/90'
-                                  : 'bg-slate-500/20 text-slate-400 cursor-not-allowed'
+                                  : 'bg-neutral-500/20 text-neutral-400 cursor-not-allowed'
                               }`}
                             >
                               {accepting === withdraw.id ? (
@@ -234,12 +234,12 @@ function Withdraws() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-white/10">
-                        <th className="text-left py-3 px-4 text-slate-300 font-semibold">User</th>
-                        <th className="text-right py-3 px-4 text-slate-300 font-semibold">Amount</th>
-                        <th className="text-left py-3 px-4 text-slate-300 font-semibold">Wallet Address</th>
-                        <th className="text-left py-3 px-4 text-slate-300 font-semibold">Status</th>
-                        <th className="text-left py-3 px-4 text-slate-300 font-semibold">Transaction</th>
-                        <th className="text-left py-3 px-4 text-slate-300 font-semibold">Processed</th>
+                        <th className="text-left py-3 px-4 text-neutral-300 font-semibold">User</th>
+                        <th className="text-right py-3 px-4 text-neutral-300 font-semibold">Amount</th>
+                        <th className="text-left py-3 px-4 text-neutral-300 font-semibold">Wallet Address</th>
+                        <th className="text-left py-3 px-4 text-neutral-300 font-semibold">Status</th>
+                        <th className="text-left py-3 px-4 text-neutral-300 font-semibold">Transaction</th>
+                        <th className="text-left py-3 px-4 text-neutral-300 font-semibold">Processed</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -251,10 +251,10 @@ function Withdraws() {
                                 <div className="text-white text-sm">
                                   {withdraw.client.firstName} {withdraw.client.lastName}
                                 </div>
-                                <div className="text-slate-400 text-xs">{withdraw.client.email}</div>
+                                <div className="text-neutral-400 text-xs">{withdraw.client.email}</div>
                               </div>
                             ) : (
-                              <span className="text-slate-400 text-sm">Unknown</span>
+                              <span className="text-neutral-400 text-sm">Unknown</span>
                             )}
                           </td>
                           <td className="py-3 px-4 text-right">
@@ -279,7 +279,7 @@ function Withdraws() {
                                 ? 'bg-green-500/20 text-green-300'
                                 : withdraw.status === 'failed'
                                 ? 'bg-red-500/20 text-red-300'
-                                : 'bg-slate-500/20 text-slate-300'
+                                : 'bg-neutral-500/20 text-neutral-300'
                             }`}>
                               {withdraw.status.toUpperCase()}
                             </span>
@@ -298,10 +298,10 @@ function Withdraws() {
                                 </button>
                               </div>
                             ) : (
-                              <span className="text-slate-400 text-sm">-</span>
+                              <span className="text-neutral-400 text-sm">-</span>
                             )}
                           </td>
-                          <td className="py-3 px-4 text-slate-400 text-sm">
+                          <td className="py-3 px-4 text-neutral-400 text-sm">
                             {formatDate(withdraw.updatedAt)}
                           </td>
                         </tr>

@@ -1,12 +1,49 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSearch, faPlus, faStar, faSpinner, faTh, faTable, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons'
-import { faStar as faStarRegular, faStarHalfStroke } from '@fortawesome/free-regular-svg-icons'
 import { useAppSelector } from '../store/hooks'
 import { categoryApi, serviceApi, Service, Category } from '../services/api'
 import { renderIcon } from '../utils/iconHelper'
 import ImageWithLoader from '../components/ImageWithLoader'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { 
+  Search, 
+  Plus, 
+  Star, 
+  LayoutGrid, 
+  Table as TableIcon, 
+  ChevronLeft, 
+  ChevronRight,
+  Filter,
+  Package,
+  StarHalf
+} from "lucide-react"
 
 type ViewMode = 'card' | 'table'
 
@@ -18,13 +55,13 @@ const StarRating = ({ rating }: { rating: number }) => {
   const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
 
   return (
-    <div className="flex items-center space-x-1">
+    <div className="flex items-center gap-0.5">
       {[...Array(fullStars)].map((_, i) => (
-        <FontAwesomeIcon key={`full-${i}`} icon={faStar} className="text-yellow-400" />
+        <Star key={`full-${i}`} className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
       ))}
-      {hasHalfStar && <FontAwesomeIcon icon={faStarHalfStroke} className="text-yellow-400" />}
+      {hasHalfStar && <StarHalf className="w-3.5 h-3.5 text-yellow-400" />}
       {[...Array(emptyStars)].map((_, i) => (
-        <FontAwesomeIcon key={`empty-${i}`} icon={faStarRegular} className="text-gray-300" />
+        <Star key={`empty-${i}`} className="w-3.5 h-3.5 text-slate-200" />
       ))}
     </div>
   )
@@ -36,44 +73,36 @@ function Services() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('')
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
   const [itemsPerPage, setItemsPerPage] = useState(12)
 
-  // Load view mode from localStorage, default to 'card'
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     return (saved === 'card' || saved === 'table') ? saved : 'card'
   })
 
-  // Calculate total service count (sum of all category service counts)
-  const totalServiceCount = categories.reduce((sum, category) => {
-    return sum + (category.serviceCount || 0)
-  }, 0)
+  const totalServiceCount = categories.reduce((sum, category) => sum + (category.serviceCount || 0), 0)
 
   useEffect(() => {
     fetchCategories()
   }, [])
 
-  // Save view mode to localStorage when it changes
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, viewMode)
   }, [viewMode])
 
-  // Reset to page 1 when filters or page size change
   useEffect(() => {
     setCurrentPage(1)
   }, [searchTerm, selectedCategory, itemsPerPage])
 
-  // Debounced search effect - only triggers fetch after user stops typing
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchServices()
-    }, searchTerm ? 500 : 0) // 500ms debounce for search, immediate for other filters
+    }, searchTerm ? 500 : 0)
     return () => clearTimeout(timeoutId)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, searchTerm, selectedCategory, itemsPerPage])
 
   const fetchCategories = async () => {
@@ -93,7 +122,7 @@ function Services() {
         page: currentPage,
         limit: itemsPerPage,
       }
-      if (selectedCategory) {
+      if (selectedCategory && selectedCategory !== 'all') {
         params.categoryId = selectedCategory
       }
       if (searchTerm.trim()) {
@@ -111,391 +140,274 @@ function Services() {
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left Sidebar - Categories */}
-          <div className="w-full lg:w-64 flex-shrink-0">
-            <div className="glass-card rounded-2xl p-4 sticky top-20">
-              <h2 className="text-lg font-semibold text-white mb-4">Categories</h2>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col gap-8">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Marketplace</h1>
+            <p className="text-slate-500 mt-1">Discover and purchase services from our community.</p>
+          </div>
+          {isAuthenticated && (
+            <Button asChild className="gap-2 rounded-full px-6 shadow-md shadow-primary/20">
+              <Link to="/services/new">
+                <Plus className="w-4 h-4" />
+                <span>Create Service</span>
+              </Link>
+            </Button>
+          )}
+        </div>
+
+        <Separator className="bg-slate-100" />
+
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Sidebar Filters */}
+          <aside className="w-full lg:w-64 space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-slate-900 font-semibold">
+                <Filter className="w-4 h-4" />
+                <span>Filters</span>
+              </div>
+              
               <div className="space-y-2">
-                <button
-                  onClick={() => setSelectedCategory('')}
-                  className={`w-full px-4 py-3 rounded-xl font-medium transition-all flex items-center justify-between ${selectedCategory === ''
-                      ? 'bg-primary text-primary-foreground shadow-glow-primary'
-                      : 'glass-card text-slate-300 hover:bg-white/15'
-                    }`}
-                >
-                  <span>All Categories</span>
-                  {totalServiceCount > 0 && (
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-semibold ${selectedCategory === ''
-                          ? 'bg-white/20 text-white'
-                          : 'bg-blue-600 text-blue-200'
-                        }`}
-                    >
-                      {totalServiceCount}
-                    </span>
-                  )}
-                </button>
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`w-full px-4 py-3 rounded-xl font-medium transition-all flex items-center justify-between ${selectedCategory === category.id
-                        ? 'bg-primary text-primary-foreground shadow-glow-primary'
-                        : 'glass-card text-slate-300 hover:bg-white/15'
-                      }`}
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">Category</Label>
+                <div className="flex flex-col gap-1">
+                  <Button
+                    variant={selectedCategory === 'all' ? "secondary" : "ghost"}
+                    className="justify-between px-3 h-10 font-medium"
+                    onClick={() => setSelectedCategory('all')}
                   >
-                    <div className="flex items-center space-x-2">
-                      {category.icon && (
-                        <span className={selectedCategory === category.id ? 'text-white' : 'text-blue-400'}>
-                          {renderIcon(category.icon, 'text-lg')}
-                        </span>
+                    <span>All Categories</span>
+                    <Badge variant="outline" className="ml-2 font-bold text-[10px]">{totalServiceCount}</Badge>
+                  </Button>
+                  {categories.map((category) => (
+                    <Button
+                      key={category.id}
+                      variant={selectedCategory === category.id ? "secondary" : "ghost"}
+                      className="justify-between px-3 h-10 font-medium"
+                      onClick={() => setSelectedCategory(category.id)}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        {category.icon && <span className="text-primary">{renderIcon(category.icon, 'w-4 h-4')}</span>}
+                        <span className="truncate">{category.title}</span>
+                      </div>
+                      {category.serviceCount !== undefined && (
+                        <Badge variant="outline" className="ml-2 font-bold text-[10px]">{category.serviceCount}</Badge>
                       )}
-                      <span>{category.title}</span>
-                    </div>
-                    {category.serviceCount !== undefined && category.serviceCount > 0 && (
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-semibold ${selectedCategory === category.id
-                            ? 'bg-white/20 text-white'
-                            : 'bg-blue-600 text-blue-200'
-                          }`}
-                      >
-                        {category.serviceCount}
-                      </span>
-                    )}
-                  </button>
-                ))}
+                    </Button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          </aside>
 
-          {/* Right Content - Search, Create Button, and Services */}
-          <div className="flex-1 min-w-0">
-            {/* Search Input, View Mode Switch, and Create Button */}
-            <div className="mb-6 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
-              <div className="relative flex-1">
-                <FontAwesomeIcon
-                  icon={faSearch}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  type="text"
+          {/* Main Content Area */}
+          <div className="flex-1 space-y-6">
+            {/* Search and View Toggle */}
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Input
+                  placeholder="Search services..."
+                  className="pl-10 h-11 rounded-xl bg-white border-slate-200"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search services by title, description, or tags..."
-                  className="w-full pl-12 pr-4 py-3 glass-card rounded-full text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 transition-all"
                 />
               </div>
-
-              {/* View Mode Switch */}
-              <div className="flex items-center gap-2 glass-card rounded-full p-1">
-                <button
+              <div className="flex items-center gap-2 bg-slate-100/50 p-1 rounded-xl border border-slate-200">
+                <Button
+                  variant={viewMode === 'card' ? "white" : "ghost"}
+                  size="icon"
+                  className={`h-9 w-9 rounded-lg ${viewMode === 'card' ? "bg-white shadow-sm" : "text-slate-500"}`}
                   onClick={() => setViewMode('card')}
-                  className={`p-2 rounded-full transition-all ${viewMode === 'card'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-slate-400 hover:text-white'
-                    }`}
-                  title="Card View"
                 >
-                  <FontAwesomeIcon icon={faTh} />
-                </button>
-                <button
+                  <LayoutGrid className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'table' ? "white" : "ghost"}
+                  size="icon"
+                  className={`h-9 w-9 rounded-lg ${viewMode === 'table' ? "bg-white shadow-sm" : "text-slate-500"}`}
                   onClick={() => setViewMode('table')}
-                  className={`p-2 rounded-full transition-all ${viewMode === 'table'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-slate-400 hover:text-white'
-                    }`}
-                  title="Table View"
                 >
-                  <FontAwesomeIcon icon={faTable} />
-                </button>
+                  <TableIcon className="w-4 h-4" />
+                </Button>
               </div>
-
-              {isAuthenticated && (
-                <Link
-                  to="/services/new"
-                  className="inline-flex items-center justify-center space-x-2 px-6 py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1 transition-all whitespace-nowrap"
-                >
-                  <FontAwesomeIcon icon={faPlus} />
-                  <span>Create Service</span>
-                </Link>
-              )}
             </div>
 
-            {/* Services Display */}
+            {/* Results */}
             {loading ? (
-              <div className="text-center py-20 glass-card rounded-2xl">
-                <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-primary mb-4" />
-                <p className="text-slate-400">Loading services...</p>
+              <div className={viewMode === 'card' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <Skeleton className="h-48 w-full rounded-2xl" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                ))}
               </div>
             ) : services.length === 0 ? (
-              <div className="text-center py-20 glass-card rounded-2xl">
-                <p className="text-slate-400 mb-6 text-lg">No services found</p>
-                {isAuthenticated && (
-                  <Link
-                    to="/services/new"
-                    className="px-8 py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1 transition-all"
-                  >
-                    Create First Service
-                  </Link>
-                )}
-              </div>
+              <Card className="border-dashed border-2 bg-slate-50/50 py-20">
+                <CardContent className="flex flex-col items-center text-center gap-4">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-400">
+                    <Package className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">No services found</h3>
+                    <p className="text-slate-500 max-w-xs mx-auto">Try adjusting your filters or search terms to find what you're looking for.</p>
+                  </div>
+                  <Button variant="outline" onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}>
+                    Clear all filters
+                  </Button>
+                </CardContent>
+              </Card>
             ) : viewMode === 'card' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {services.map((service) => (
-                  <Link
-                    key={service.id}
-                    to={`/services/${service.id}`}
-                    className="glass-card rounded-2xl overflow-hidden hover:border-primary/20 transition-all hover:scale-[1.02] group"
-                  >
-                    <div className="h-48 relative overflow-hidden">
-                      {service.adImage ? (
-                        <div className="relative h-full flex items-center justify-center">
+                  <Card key={service.id} className="overflow-hidden group hover:border-primary/50 transition-all hover:shadow-md border-slate-200">
+                    <Link to={`/services/${service.id}`}>
+                      <div className="h-48 relative bg-slate-50 overflow-hidden">
+                        {service.adImage ? (
                           <ImageWithLoader
                             src={service.adImage}
                             alt={service.title}
-                            className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             containerClassName="w-full h-full"
-                            showBlurBackground={true}
                           />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-300">
+                            <Package className="w-12 h-12" />
+                          </div>
+                        )}
+                        <div className="absolute top-3 right-3">
+                          <Badge className="bg-white/90 text-slate-900 hover:bg-white backdrop-blur-sm border-none shadow-sm font-bold">
+                            ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}
+                          </Badge>
                         </div>
-                      ) : (
-                        <div className="h-full flex items-center justify-center bg-gradient-to-br from-blue-900 to-purple-900">
-                          <div className="text-6xl text-blue-400">📦</div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-6">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors line-clamp-2">
-                          {service.title}
-                        </h3>
                       </div>
-                      <p className="text-slate-400 text-sm mb-4 line-clamp-2">{service.adText}</p>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center">
-                          <StarRating
-                            rating={
-                              service.averageRating !== undefined && service.averageRating > 0
-                                ? service.averageRating
-                                : service.rating
-                                  ? typeof service.rating === 'number'
-                                    ? service.rating
-                                    : parseFloat(service.rating as any)
-                                  : 0
-                            }
-                          />
-                        </div>
-                        <span className="text-2xl font-bold text-primary">
-                          ${typeof service.balance === 'number'
-                            ? (Math.round(service.balance * 100) / 100).toFixed(2)
-                            : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
+                    </Link>
+                    <CardHeader className="p-5 pb-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
+                          {service.category?.title || 'Uncategorized'}
                         </span>
+                        <StarRating rating={service.averageRating || service.rating || 0} />
                       </div>
-                      {service.category && (
-                        <div className="text-xs text-slate-400 mb-2">Category: {service.category.title}</div>
-                      )}
-                      {service.tags && service.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {service.tags.slice(0, 3).map((tag) => (
-                            <span
-                              key={tag.id}
-                              className="px-2 py-1 glass-card text-slate-300 text-xs rounded-full"
-                            >
-                              {tag.title}
-                            </span>
-                          ))}
-                          {service.tags.length > 3 && (
-                            <span className="px-2 py-1 glass-card text-slate-300 text-xs rounded-full">
-                              +{service.tags.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </Link>
+                      <CardTitle className="text-lg line-clamp-1 group-hover:text-primary transition-colors">
+                        <Link to={`/services/${service.id}`}>{service.title}</Link>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-5 pt-0">
+                      <p className="text-slate-500 text-sm line-clamp-2 leading-relaxed">
+                        {service.adText}
+                      </p>
+                    </CardContent>
+                    <CardFooter className="p-5 pt-0 flex flex-wrap gap-1">
+                      {service.tags?.slice(0, 3).map((tag) => (
+                        <Badge key={tag.id} variant="secondary" className="bg-slate-100 text-slate-600 hover:bg-slate-200 border-none px-2 py-0 h-5 text-[10px] font-medium">
+                          #{tag.title}
+                        </Badge>
+                      ))}
+                    </CardFooter>
+                  </Card>
                 ))}
               </div>
             ) : (
-              <div className="glass-card rounded-2xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-white/10">
-                    <thead className="glass-card">
-                      <tr>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                          Image
-                        </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                          Title
-                        </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                          Category
-                        </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                          Rating
-                        </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                          Price
-                        </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                          Tags
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/10">
-                      {services.map((service) => (
-                        <tr key={service.id} className="hover:bg-white/5 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Link to={`/services/${service.id}`}>
-                              <div className="w-16 h-16 rounded-lg overflow-hidden relative">
-                                {service.adImage ? (
-                                  <ImageWithLoader
-                                    src={service.adImage}
-                                    alt={service.title}
-                                    className="max-w-full max-h-full object-contain"
-                                    containerClassName="w-full h-full"
-                                    showBlurBackground={true}
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-gray-700 text-2xl">📦</div>
-                                )}
-                              </div>
-                            </Link>
-                          </td>
-                          <td className="px-6 py-4">
-                            <Link to={`/services/${service.id}`} className="block">
-                              <div className="text-sm font-semibold text-white max-w-xs truncate hover:text-primary transition-colors">
-                                {service.title}
-                              </div>
-                              <div className="text-xs text-slate-400 mt-1 line-clamp-2 max-w-xs">{service.adText}</div>
-                            </Link>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-white">{service.category?.title || 'N/A'}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <StarRating
-                                rating={
-                                  service.averageRating !== undefined && service.averageRating > 0
-                                    ? service.averageRating
-                                    : service.rating
-                                      ? typeof service.rating === 'number'
-                                        ? service.rating
-                                        : parseFloat(service.rating as any)
-                                      : 0
-                                }
+              <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                <Table>
+                  <TableHeader className="bg-slate-50/50">
+                    <TableRow>
+                      <TableHead className="w-[80px]">Image</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Rating</TableHead>
+                      <TableHead className="text-right">Price</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {services.map((service) => (
+                      <TableRow key={service.id} className="group cursor-pointer" onClick={() => navigate(`/services/${service.id}`)}>
+                        <TableCell>
+                          <div className="w-12 h-12 rounded-lg bg-slate-100 overflow-hidden relative border border-slate-200">
+                            {service.adImage ? (
+                              <ImageWithLoader
+                                src={service.adImage}
+                                alt={service.title}
+                                className="w-full h-full object-cover"
                               />
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-semibold text-primary">
-                              ${typeof service.balance === 'number'
-                                ? (Math.round(service.balance * 100) / 100).toFixed(2)
-                                : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            {service.tags && service.tags.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {service.tags.slice(0, 3).map((tag) => (
-                                  <span
-                                    key={tag.id}
-                                    className="px-2 py-1 glass-card text-slate-300 text-xs rounded-full"
-                                  >
-                                    {tag.title}
-                                  </span>
-                                ))}
-                                {service.tags.length > 3 && (
-                                  <span className="px-2 py-1 glass-card text-slate-300 text-xs rounded-full">
-                                    +{service.tags.length - 3}
-                                  </span>
-                                )}
-                              </div>
                             ) : (
-                              <span className="text-xs text-slate-500">No tags</span>
+                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                <Package className="w-5 h-5" />
+                              </div>
                             )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-semibold text-slate-900 group-hover:text-primary transition-colors">{service.title}</div>
+                          <div className="text-xs text-slate-500 truncate max-w-[200px]">{service.adText}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-medium text-[10px]">{service.category?.title || 'N/A'}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <StarRating rating={service.averageRating || service.rating || 0} />
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-primary">
+                          ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
 
             {/* Pagination */}
-            {!loading && (
-              <div className="glass-card rounded-2xl p-6 mt-8">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <div className="text-sm text-slate-400">
-                      Showing {services.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to{' '}
-                      {Math.min(currentPage * itemsPerPage, total)} of {total} services
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <label className="text-sm text-slate-400">Items per page:</label>
-                      <select
-                        value={itemsPerPage}
-                        onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                        className="px-3 py-1 glass-card rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50"
-                      >
-                        <option value={6}>6</option>
-                        <option value={12}>12</option>
-                        <option value={24}>24</option>
-                        <option value={48}>48</option>
-                      </select>
-                    </div>
+            {!loading && totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-100">
+                <p className="text-sm text-slate-500">
+                  Showing <span className="font-semibold text-slate-900">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-semibold text-slate-900">{Math.min(currentPage * itemsPerPage, total)}</span> of <span className="font-semibold text-slate-900">{total}</span> services
+                </p>
+                
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-1"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Prev</span>
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => 
+                      p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)
+                    ).map((p, i, arr) => (
+                      <div key={p} className="flex items-center">
+                        {i > 0 && arr[i-1] !== p - 1 && <span className="text-slate-300 px-1">...</span>}
+                        <Button
+                          variant={currentPage === p ? "default" : "ghost"}
+                          size="sm"
+                          className={`h-9 w-9 p-0 ${currentPage === p ? "shadow-md shadow-primary/20" : ""}`}
+                          onClick={() => setCurrentPage(p)}
+                        >
+                          {p}
+                        </Button>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      className="px-4 py-2 glass-card rounded-full font-medium text-slate-300 hover:bg-white/15 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                    >
-                      <FontAwesomeIcon icon={faChevronLeft} />
-                      <span>Previous</span>
-                    </button>
 
-                    <div className="flex items-center space-x-1">
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum: number
-                        if (totalPages <= 5) {
-                          pageNum = i + 1
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i
-                        } else {
-                          pageNum = currentPage - 2 + i
-                        }
-
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => setCurrentPage(pageNum)}
-                            className={`px-4 py-2 rounded-full font-medium transition-all ${currentPage === pageNum
-                                ? 'bg-primary text-primary-foreground shadow-glow-primary'
-                                : 'glass-card text-slate-300 hover:bg-white/15'
-                              }`}
-                          >
-                            {pageNum}
-                          </button>
-                        )
-                      })}
-                    </div>
-
-                    <button
-                      onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                      className="px-4 py-2 glass-card rounded-full font-medium text-slate-300 hover:bg-white/15 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                    >
-                      <span>Next</span>
-                      <FontAwesomeIcon icon={faChevronRight} />
-                    </button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-1"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             )}
@@ -507,4 +419,3 @@ function Services() {
 }
 
 export default Services
-

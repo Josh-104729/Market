@@ -87,7 +87,7 @@ function Referral() {
       pending: { label: 'Pending', className: 'bg-yellow-900 text-yellow-300' },
       active: { label: 'Active', className: 'bg-blue-900 text-blue-300' },
       completed: { label: 'Completed', className: 'bg-green-900 text-green-300' },
-      expired: { label: 'Expired', className: 'bg-gray-700 text-gray-300' },
+      expired: { label: 'Expired', className: 'bg-neutral-700 text-neutral-300' },
     };
 
     const config = statusConfig[status.toLowerCase()] || statusConfig.pending;
@@ -110,7 +110,7 @@ function Referral() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 p-6">
+      <div className="min-h-screen bg-neutral-900 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -121,9 +121,9 @@ function Referral() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
+    <div className="min-h-screen bg-neutral-900 p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-100 mb-6">Referral Program</h1>
+        <h1 className="text-3xl font-bold text-neutral-100 mb-6">Referral Program</h1>
 
         {stats ? (
           <>
@@ -134,20 +134,20 @@ function Referral() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <p className="text-gray-400 text-sm mb-2">Total Referrals</p>
-                <p className="text-3xl font-bold text-gray-100">{stats.totalReferrals}</p>
+              <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
+                <p className="text-neutral-400 text-sm mb-2">Total Referrals</p>
+                <p className="text-3xl font-bold text-neutral-100">{stats.totalReferrals}</p>
               </div>
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <p className="text-gray-400 text-sm mb-2">Active Referrals</p>
+              <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
+                <p className="text-neutral-400 text-sm mb-2">Active Referrals</p>
                 <p className="text-3xl font-bold text-blue-400">{stats.activeReferrals}</p>
               </div>
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <p className="text-gray-400 text-sm mb-2">Completed</p>
+              <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
+                <p className="text-neutral-400 text-sm mb-2">Completed</p>
                 <p className="text-3xl font-bold text-green-400">{stats.completedReferrals}</p>
               </div>
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <p className="text-gray-400 text-sm mb-2">Total Earnings</p>
+              <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
+                <p className="text-neutral-400 text-sm mb-2">Total Earnings</p>
                 <p className="text-3xl font-bold text-purple-400">
                   {stats.totalEarnings.toFixed(2)} USD
                 </p>
@@ -156,22 +156,22 @@ function Referral() {
           </>
         ) : (
           <div className="mb-6">
-            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-              <p className="text-gray-400">Loading referral code...</p>
+            <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
+              <p className="text-neutral-400">Loading referral code...</p>
             </div>
           </div>
         )}
 
         {/* Tabs - Always visible */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700">
-          <div className="border-b border-gray-700">
+        <div className="bg-neutral-800 rounded-lg border border-neutral-700">
+          <div className="border-b border-neutral-700">
             <div className="flex">
               <button
                 onClick={() => setActiveTab('referrals')}
                 className={`px-6 py-4 font-semibold transition-colors ${
                   activeTab === 'referrals'
                     ? 'text-blue-400 border-b-2 border-blue-400'
-                    : 'text-gray-400 hover:text-gray-300'
+                    : 'text-neutral-400 hover:text-neutral-300'
                 }`}
               >
                 My Referrals {stats && `(${stats.totalReferrals})`}
@@ -181,7 +181,7 @@ function Referral() {
                 className={`px-6 py-4 font-semibold transition-colors ${
                   activeTab === 'rewards'
                     ? 'text-blue-400 border-b-2 border-blue-400'
-                    : 'text-gray-400 hover:text-gray-300'
+                    : 'text-neutral-400 hover:text-neutral-300'
                 }`}
               >
                 Reward History
@@ -195,11 +195,11 @@ function Referral() {
                 {loadingReferrals ? (
                   <div className="text-center py-12">
                     <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <p className="text-gray-400 mt-4">Loading referrals...</p>
+                    <p className="text-neutral-400 mt-4">Loading referrals...</p>
                   </div>
                 ) : referrals.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-gray-400">No referrals yet. Start sharing your code!</p>
+                    <p className="text-neutral-400">No referrals yet. Start sharing your code!</p>
                   </div>
                 ) : (
                   <>
@@ -207,10 +207,10 @@ function Referral() {
                       {referrals.map((referral) => (
                         <div
                           key={referral.id}
-                          className="bg-gray-900 rounded-lg p-4 border border-gray-700 flex items-center justify-between"
+                          className="bg-neutral-900 rounded-lg p-4 border border-neutral-700 flex items-center justify-between"
                         >
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center">
+                            <div className="w-12 h-12 bg-neutral-700 rounded-full flex items-center justify-center">
                               {referral.referredUser.avatar ? (
                                 <img
                                   src={referral.referredUser.avatar}
@@ -218,7 +218,7 @@ function Referral() {
                                   className="w-12 h-12 rounded-full"
                                 />
                               ) : (
-                                <span className="text-gray-400 font-semibold">
+                                <span className="text-neutral-400 font-semibold">
                                   {referral.referredUser.firstName?.[0] ||
                                     referral.referredUser.userName?.[0] ||
                                     'U'}
@@ -226,12 +226,12 @@ function Referral() {
                               )}
                             </div>
                             <div>
-                              <p className="text-gray-100 font-semibold">
+                              <p className="text-neutral-100 font-semibold">
                                 {referral.referredUser.firstName && referral.referredUser.lastName
                                   ? `${referral.referredUser.firstName} ${referral.referredUser.lastName}`
                                   : referral.referredUser.userName || referral.referredUser.email}
                               </p>
-                              <p className="text-gray-400 text-sm">
+                              <p className="text-neutral-400 text-sm">
                                 {new Date(referral.referredAt).toLocaleDateString()}
                               </p>
                             </div>
@@ -239,7 +239,7 @@ function Referral() {
                           <div className="flex items-center gap-4">
                             {getStatusBadge(referral.status)}
                             <div className="text-right">
-                              <p className="text-gray-400 text-sm">Earnings</p>
+                              <p className="text-neutral-400 text-sm">Earnings</p>
                               <p className="text-green-400 font-semibold">
                                 {referral.earnings.toFixed(2)} USD
                               </p>
@@ -253,11 +253,11 @@ function Referral() {
                         <button
                           onClick={() => setReferralsPage((p) => Math.max(1, p - 1))}
                           disabled={referralsPage === 1}
-                          className="px-4 py-2 bg-gray-700 text-gray-300 rounded disabled:opacity-50"
+                          className="px-4 py-2 bg-neutral-700 text-neutral-300 rounded disabled:opacity-50"
                         >
                           Previous
                         </button>
-                        <span className="px-4 py-2 text-gray-400">
+                        <span className="px-4 py-2 text-neutral-400">
                           Page {referralsPage} of {referralsTotalPages}
                         </span>
                         <button
@@ -265,7 +265,7 @@ function Referral() {
                             setReferralsPage((p) => Math.min(referralsTotalPages, p + 1))
                           }
                           disabled={referralsPage === referralsTotalPages}
-                          className="px-4 py-2 bg-gray-700 text-gray-300 rounded disabled:opacity-50"
+                          className="px-4 py-2 bg-neutral-700 text-neutral-300 rounded disabled:opacity-50"
                         >
                           Next
                         </button>
@@ -279,11 +279,11 @@ function Referral() {
                 {loadingRewards ? (
                   <div className="text-center py-12">
                     <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <p className="text-gray-400 mt-4">Loading rewards...</p>
+                    <p className="text-neutral-400 mt-4">Loading rewards...</p>
                   </div>
                 ) : rewards.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-gray-400">No rewards yet.</p>
+                    <p className="text-neutral-400">No rewards yet.</p>
                   </div>
                 ) : (
                   <>
@@ -291,27 +291,27 @@ function Referral() {
                       {rewards.map((reward) => (
                         <div
                           key={reward.id}
-                          className="bg-gray-900 rounded-lg p-4 border border-gray-700"
+                          className="bg-neutral-900 rounded-lg p-4 border border-neutral-700"
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-gray-100 font-semibold">
+                              <p className="text-neutral-100 font-semibold">
                                 {getRewardTypeLabel(reward.rewardType)}
                               </p>
-                              <p className="text-gray-400 text-sm">
+                              <p className="text-neutral-400 text-sm">
                                 {reward.referredUser.firstName && reward.referredUser.lastName
                                   ? `${reward.referredUser.firstName} ${reward.referredUser.lastName}`
                                   : reward.referredUser.userName || 'User'}
                               </p>
                               {reward.description && (
-                                <p className="text-gray-500 text-xs mt-1">{reward.description}</p>
+                                <p className="text-neutral-500 text-xs mt-1">{reward.description}</p>
                               )}
                             </div>
                             <div className="text-right">
                               <p className="text-green-400 font-bold text-lg">
                                 +{reward.amount.toFixed(2)} {reward.currency}
                               </p>
-                              <p className="text-gray-400 text-xs">
+                              <p className="text-neutral-400 text-xs">
                                 {reward.processedAt
                                   ? new Date(reward.processedAt).toLocaleDateString()
                                   : 'Pending'}
@@ -331,11 +331,11 @@ function Referral() {
                         <button
                           onClick={() => setRewardsPage((p) => Math.max(1, p - 1))}
                           disabled={rewardsPage === 1}
-                          className="px-4 py-2 bg-gray-700 text-gray-300 rounded disabled:opacity-50"
+                          className="px-4 py-2 bg-neutral-700 text-neutral-300 rounded disabled:opacity-50"
                         >
                           Previous
                         </button>
-                        <span className="px-4 py-2 text-gray-400">
+                        <span className="px-4 py-2 text-neutral-400">
                           Page {rewardsPage} of {rewardsTotalPages}
                         </span>
                         <button
@@ -343,7 +343,7 @@ function Referral() {
                             setRewardsPage((p) => Math.min(rewardsTotalPages, p + 1))
                           }
                           disabled={rewardsPage === rewardsTotalPages}
-                          className="px-4 py-2 bg-gray-700 text-gray-300 rounded disabled:opacity-50"
+                          className="px-4 py-2 bg-neutral-700 text-neutral-300 rounded disabled:opacity-50"
                         >
                           Next
                         </button>

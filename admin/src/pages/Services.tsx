@@ -28,7 +28,7 @@ const StarRating = ({ rating }: { rating: number }) => {
       ))}
       {hasHalfStar && <FontAwesomeIcon icon={faStarHalfStroke} className="text-yellow-400" />}
       {[...Array(emptyStars)].map((_, i) => (
-        <FontAwesomeIcon key={`empty-${i}`} icon={faStarRegular} className="text-gray-300" />
+        <FontAwesomeIcon key={`empty-${i}`} icon={faStarRegular} className="text-neutral-300" />
       ))}
     </div>
   )
@@ -148,7 +148,7 @@ function Services() {
 
   const getStatusBadge = (status: string) => {
     const badges = {
-      draft: 'bg-gray-700 text-gray-200',
+      draft: 'bg-neutral-700 text-neutral-200',
       active: 'bg-green-900 text-green-200',
       blocked: 'bg-red-900 text-red-200',
     }
@@ -156,7 +156,7 @@ function Services() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-neutral-900">
       {/* Header Section */}
       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -167,31 +167,31 @@ function Services() {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search */}
-        <div className="bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <div className="bg-neutral-800 rounded-xl shadow-md p-6 mb-6">
           <div className="relative">
             <FontAwesomeIcon
               icon={faSearch}
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+              className="absolute left-4 top-1/2 transform -tranneutral-y-1/2 text-neutral-400"
             />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search services by title, description, or tags..."
-              className="w-full pl-12 pr-4 py-3 border border-gray-700 bg-gray-700 text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-12 pr-4 py-3 border border-neutral-700 bg-neutral-700 text-neutral-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>
 
         {/* Status Filter Bar */}
-        <div className="bg-gray-800 rounded-xl shadow-md p-4 mb-6 overflow-x-auto">
+        <div className="bg-neutral-800 rounded-xl shadow-md p-4 mb-6 overflow-x-auto">
           <div className="flex items-center space-x-2 min-w-max">
             <button
               onClick={() => setStatusFilter('')}
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                 statusFilter === ''
                   ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
               }`}
             >
               All Statuses
@@ -200,8 +200,8 @@ function Services() {
               onClick={() => setStatusFilter('draft')}
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                 statusFilter === 'draft'
-                  ? 'bg-gray-600 text-white shadow-md'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  ? 'bg-neutral-600 text-white shadow-md'
+                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
               }`}
             >
               Draft
@@ -211,7 +211,7 @@ function Services() {
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                 statusFilter === 'active'
                   ? 'bg-green-600 text-white shadow-md'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
               }`}
             >
               Active
@@ -221,7 +221,7 @@ function Services() {
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                 statusFilter === 'blocked'
                   ? 'bg-red-600 text-white shadow-md'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
               }`}
             >
               Blocked
@@ -230,14 +230,14 @@ function Services() {
         </div>
 
         {/* Category Filter Bar */}
-        <div className="bg-gray-800 rounded-xl shadow-md p-4 mb-8 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-700">
+        <div className="bg-neutral-800 rounded-xl shadow-md p-4 mb-8 overflow-x-auto scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-neutral-700">
           <div className="flex items-center space-x-2 min-w-max">
             <button
               onClick={() => setSelectedCategory('')}
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all flex items-center space-x-2 ${
                 selectedCategory === ''
                   ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
               }`}
             >
               <span>All Categories</span>
@@ -260,7 +260,7 @@ function Services() {
                 className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all flex items-center space-x-2 ${
                   selectedCategory === category.id
                     ? 'bg-blue-600 text-white shadow-md'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
                 }`}
               >
                 {category.icon && (
@@ -287,52 +287,52 @@ function Services() {
 
         {/* Services Table */}
         {loading ? (
-          <div className="text-center py-20 bg-gray-800 rounded-xl shadow-md">
+          <div className="text-center py-20 bg-neutral-800 rounded-xl shadow-md">
             <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-400 mb-4" />
-            <p className="text-gray-400">Loading services...</p>
+            <p className="text-neutral-400">Loading services...</p>
           </div>
         ) : services.length === 0 ? (
-          <div className="text-center py-20 bg-gray-800 rounded-xl shadow-md">
-            <p className="text-gray-400 mb-6 text-lg">No services found</p>
+          <div className="text-center py-20 bg-neutral-800 rounded-xl shadow-md">
+            <p className="text-neutral-400 mb-6 text-lg">No services found</p>
           </div>
         ) : (
-          <div className="bg-gray-800 rounded-xl shadow-md overflow-hidden">
+          <div className="bg-neutral-800 rounded-xl shadow-md overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-700">
-                <thead className="bg-gradient-to-r from-gray-700 to-gray-800">
+              <table className="min-w-full divide-y divide-neutral-700">
+                <thead className="bg-gradient-to-r from-neutral-700 to-neutral-800">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
                       Image
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
                       Title
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
                       Category
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
                       Seller
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
                       Rating
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
                       Price
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
                       Created
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-neutral-300 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-gray-800 divide-y divide-gray-700">
+                <tbody className="bg-neutral-800 divide-y divide-neutral-700">
                   {services.map((service) => (
-                    <tr key={service.id} className="hover:bg-gray-700 transition-colors">
+                    <tr key={service.id} className="hover:bg-neutral-700 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="w-16 h-16 rounded-lg overflow-hidden relative">
                           {service.adImage ? (
@@ -344,24 +344,24 @@ function Services() {
                               showBlurBackground={true}
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-700 text-2xl">📦</div>
+                            <div className="w-full h-full flex items-center justify-center bg-neutral-700 text-2xl">📦</div>
                           )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div
-                          className="text-sm font-semibold text-gray-100 max-w-xs truncate cursor-pointer hover:text-blue-400 transition-colors"
+                          className="text-sm font-semibold text-neutral-100 max-w-xs truncate cursor-pointer hover:text-blue-400 transition-colors"
                           onClick={() => navigate(`/services/${service.id}`)}
                         >
                           {service.title}
                         </div>
-                        <div className="text-xs text-gray-400 mt-1 line-clamp-2 max-w-xs">{service.adText}</div>
+                        <div className="text-xs text-neutral-400 mt-1 line-clamp-2 max-w-xs">{service.adText}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-100">{service.category?.title || 'N/A'}</div>
+                        <div className="text-sm text-neutral-100">{service.category?.title || 'N/A'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-100">
+                        <div className="text-sm text-neutral-100">
                           {service.user?.firstName && service.user?.lastName
                             ? `${service.user.firstName} ${service.user.lastName}`
                             : service.user?.userName || service.user?.email || 'N/A'}
@@ -383,7 +383,7 @@ function Services() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-100">
+                        <div className="text-sm font-semibold text-neutral-100">
                           ${typeof service.balance === 'number' 
                             ? (Math.round(service.balance * 100) / 100).toFixed(2)
                             : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
@@ -398,7 +398,7 @@ function Services() {
                           {service.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-400">
                         {new Date(service.createdAt).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
@@ -449,19 +449,19 @@ function Services() {
 
         {/* Pagination */}
         {!loading && (
-          <div className="bg-gray-800 rounded-xl shadow-md p-6 mt-8">
+          <div className="bg-neutral-800 rounded-xl shadow-md p-6 mt-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-neutral-400">
                   Showing {services.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to{' '}
                   {Math.min(currentPage * itemsPerPage, total)} of {total} services
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-400">Items per page:</label>
+                  <label className="text-sm text-neutral-400">Items per page:</label>
                   <select
                     value={itemsPerPage}
                     onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                    className="px-3 py-1 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-1 bg-neutral-700 border border-neutral-600 rounded-lg text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value={5}>5</option>
                     <option value={10}>10</option>
@@ -474,7 +474,7 @@ function Services() {
                 <button
                   onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-600 rounded-lg font-medium text-gray-300 hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  className="px-4 py-2 border border-neutral-600 rounded-lg font-medium text-neutral-300 hover:bg-neutral-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
                   <FontAwesomeIcon icon={faChevronLeft} />
                   <span>Previous</span>
@@ -500,7 +500,7 @@ function Services() {
                         className={`px-4 py-2 rounded-lg font-medium transition-all ${
                           currentPage === pageNum
                             ? 'bg-blue-600 text-white shadow-md'
-                            : 'border border-gray-600 text-gray-300 hover:bg-gray-700'
+                            : 'border border-neutral-600 text-neutral-300 hover:bg-neutral-700'
                         }`}
                       >
                         {pageNum}
@@ -512,7 +512,7 @@ function Services() {
                 <button
                   onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-gray-600 rounded-lg font-medium text-gray-300 hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  className="px-4 py-2 border border-neutral-600 rounded-lg font-medium text-neutral-300 hover:bg-neutral-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
                   <span>Next</span>
                   <FontAwesomeIcon icon={faChevronRight} />
@@ -529,7 +529,7 @@ function Services() {
             onClick={() => setConfirmDialog(null)}
           >
             <div
-              className="bg-gray-800 rounded-xl shadow-2xl max-w-md w-full"
+              className="bg-neutral-800 rounded-xl shadow-2xl max-w-md w-full"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-6">
@@ -551,14 +551,14 @@ function Services() {
                     />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-100">
+                    <h3 className="text-xl font-bold text-neutral-100">
                       {confirmDialog.action === 'approve'
                         ? 'Approve Service'
                         : confirmDialog.action === 'block'
                         ? 'Block Service'
                         : 'Unblock Service'}
                     </h3>
-                    <p className="text-sm text-gray-400 mt-1">
+                    <p className="text-sm text-neutral-400 mt-1">
                       {confirmDialog.action === 'approve'
                         ? 'This will make the service visible to users'
                         : confirmDialog.action === 'block'
@@ -567,14 +567,14 @@ function Services() {
                     </p>
                   </div>
                 </div>
-                <p className="text-gray-300 mb-6">
+                <p className="text-neutral-300 mb-6">
                   Are you sure you want to {confirmDialog.action} the service{' '}
                   <span className="font-semibold">"{confirmDialog.serviceTitle}"</span>?
                 </p>
                 <div className="flex justify-end space-x-3">
                   <button
                     onClick={() => setConfirmDialog(null)}
-                    className="px-6 py-3 border-2 border-gray-600 rounded-lg text-gray-300 font-semibold hover:bg-gray-700 transition-all"
+                    className="px-6 py-3 border-2 border-neutral-600 rounded-lg text-neutral-300 font-semibold hover:bg-neutral-700 transition-all"
                   >
                     Cancel
                   </button>

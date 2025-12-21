@@ -19,7 +19,7 @@ const StarRating = ({ rating }: { rating: number }) => {
       ))}
       {hasHalfStar && <FontAwesomeIcon icon={faStarHalfStroke} className="text-yellow-400" />}
       {[...Array(emptyStars)].map((_, i) => (
-        <FontAwesomeIcon key={`empty-${i}`} icon={faStarRegular} className="text-gray-300" />
+        <FontAwesomeIcon key={`empty-${i}`} icon={faStarRegular} className="text-neutral-300" />
       ))}
     </div>
   )
@@ -158,10 +158,10 @@ function ServiceDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
         <div className="text-center">
           <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-400 mb-4" />
-          <p className="text-gray-400">Loading service...</p>
+          <p className="text-neutral-400">Loading service...</p>
         </div>
       </div>
     )
@@ -169,9 +169,9 @@ function ServiceDetail() {
 
   if (!service) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-400 mb-4">Service not found</p>
+          <p className="text-neutral-400 mb-4">Service not found</p>
           <Link
             to="/services"
             className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
@@ -184,18 +184,18 @@ function ServiceDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 py-8">
+    <div className="min-h-screen bg-neutral-900 py-8">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
         <button
           onClick={() => navigate('/services')}
-          className="mb-6 flex items-center space-x-2 text-gray-400 hover:text-blue-400 transition-colors"
+          className="mb-6 flex items-center space-x-2 text-neutral-400 hover:text-blue-400 transition-colors"
         >
           <FontAwesomeIcon icon={faArrowLeft} />
           <span>Back to Services</span>
         </button>
 
-        <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+        <div className="bg-neutral-800 rounded-xl shadow-lg overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
             {/* Left Side - Image */}
             <div className="relative rounded-lg overflow-hidden min-h-[400px]">
@@ -210,8 +210,8 @@ function ServiceDetail() {
                   />
                 </div>
               ) : (
-                <div className="h-full min-h-[400px] flex items-center justify-center bg-gray-700">
-                  <div className="text-9xl text-gray-500">📦</div>
+                <div className="h-full min-h-[400px] flex items-center justify-center bg-neutral-700">
+                  <div className="text-9xl text-neutral-500">📦</div>
                 </div>
               )}
             </div>
@@ -225,11 +225,11 @@ function ServiceDetail() {
                     {service.category.title}
                   </span>
                 )}
-                <h1 className="text-4xl font-bold text-gray-100 mb-4">{service.title}</h1>
+                <h1 className="text-4xl font-bold text-neutral-100 mb-4">{service.title}</h1>
               </div>
 
               {/* Rating and Price */}
-              <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-700">
+              <div className="flex items-center justify-between mb-6 pb-6 border-b border-neutral-700">
                 <div className="flex items-center">
                   <StarRating
                     rating={
@@ -243,7 +243,7 @@ function ServiceDetail() {
                     }
                   />
                   {service.averageRating !== undefined && service.averageRating > 0 && (
-                    <span className="ml-2 text-gray-300 text-sm">
+                    <span className="ml-2 text-neutral-300 text-sm">
                       ({service.averageRating.toFixed(2)})
                     </span>
                   )}
@@ -254,54 +254,54 @@ function ServiceDetail() {
                       ? (Math.round(service.balance * 100) / 100).toFixed(2)
                       : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
                   </div>
-                  <div className="text-sm text-gray-400">Price</div>
+                  <div className="text-sm text-neutral-400">Price</div>
                 </div>
               </div>
 
               {/* Milestone Statistics */}
-              <div className="mb-6 p-4 bg-gray-700 rounded-lg">
-                <h2 className="text-xl font-semibold text-gray-100 mb-4 flex items-center space-x-2">
+              <div className="mb-6 p-4 bg-neutral-700 rounded-lg">
+                <h2 className="text-xl font-semibold text-neutral-100 mb-4 flex items-center space-x-2">
                   <FontAwesomeIcon icon={faClipboardList} />
                   <span>Milestone Statistics</span>
                 </h2>
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-gray-800 p-3 rounded-lg">
+                  <div className="bg-neutral-800 p-3 rounded-lg">
                     <div className="text-2xl font-bold text-blue-400">
                       {service.totalMilestones ?? 0}
                     </div>
-                    <div className="text-sm text-gray-400">Total Milestones</div>
+                    <div className="text-sm text-neutral-400">Total Milestones</div>
                   </div>
-                  <div className="bg-gray-800 p-3 rounded-lg">
+                  <div className="bg-neutral-800 p-3 rounded-lg">
                     <div className="text-2xl font-bold text-green-400 flex items-center space-x-1">
                       <FontAwesomeIcon icon={faCheckCircle} className="text-sm" />
                       <span>{service.completedMilestones ?? 0}</span>
                     </div>
-                    <div className="text-sm text-gray-400">Completed</div>
+                    <div className="text-sm text-neutral-400">Completed</div>
                   </div>
-                  <div className="bg-gray-800 p-3 rounded-lg">
+                  <div className="bg-neutral-800 p-3 rounded-lg">
                     <div className="text-2xl font-bold text-purple-400">
                       {service.feedbackCount ?? 0}
                     </div>
-                    <div className="text-sm text-gray-400">Feedbacks</div>
+                    <div className="text-sm text-neutral-400">Feedbacks</div>
                   </div>
                 </div>
               </div>
 
               {/* Description */}
               <div className="mb-6">
-                <h2 className="text-xl font-semibold text-gray-100 mb-3">Description</h2>
-                <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{service.adText}</p>
+                <h2 className="text-xl font-semibold text-neutral-100 mb-3">Description</h2>
+                <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap">{service.adText}</p>
               </div>
 
               {/* Tags */}
               {service.tags && service.tags.length > 0 && (
                 <div className="mb-6">
-                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Tags</h2>
+                  <h2 className="text-xl font-semibold text-neutral-100 mb-3">Tags</h2>
                   <div className="flex flex-wrap gap-2">
                     {service.tags.map((tag) => (
                       <span
                         key={tag.id}
-                        className="px-3 py-1 bg-gray-700 text-gray-300 text-sm font-medium rounded-full"
+                        className="px-3 py-1 bg-neutral-700 text-neutral-300 text-sm font-medium rounded-full"
                       >
                         {tag.title}
                       </span>
@@ -312,19 +312,19 @@ function ServiceDetail() {
 
               {/* Seller Info */}
               {service.user && (
-                <div className="mb-6 p-4 bg-gray-700 rounded-lg">
-                  <h2 className="text-xl font-semibold text-gray-100 mb-3">Seller Information</h2>
+                <div className="mb-6 p-4 bg-neutral-700 rounded-lg">
+                  <h2 className="text-xl font-semibold text-neutral-100 mb-3">Seller Information</h2>
                   <div className="flex items-center space-x-3">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-lg">
                       {service.user.firstName?.[0] || service.user.userName?.[0] || <FontAwesomeIcon icon={faUser} />}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-100">
+                      <p className="font-semibold text-neutral-100">
                         {service.user.firstName && service.user.lastName
                           ? `${service.user.firstName} ${service.user.lastName}`
                           : service.user.userName || 'Anonymous'}
                       </p>
-                      <p className="text-sm text-gray-400">Service Provider</p>
+                      <p className="text-sm text-neutral-400">Service Provider</p>
                     </div>
                   </div>
                 </div>
@@ -332,18 +332,18 @@ function ServiceDetail() {
 
               {/* Connected Clients (Provider View) */}
               {service && user && isAuthenticated && service.userId === user.id && (
-                <div className="mb-6 p-4 bg-gray-700 rounded-lg">
-                  <h2 className="text-xl font-semibold text-gray-100 mb-3 flex items-center space-x-2">
+                <div className="mb-6 p-4 bg-neutral-700 rounded-lg">
+                  <h2 className="text-xl font-semibold text-neutral-100 mb-3 flex items-center space-x-2">
                     <FontAwesomeIcon icon={faComments} />
                     <span>Connected Clients</span>
                     {loadingClients && (
-                      <FontAwesomeIcon icon={faSpinner} className="animate-spin text-sm text-gray-400" />
+                      <FontAwesomeIcon icon={faSpinner} className="animate-spin text-sm text-neutral-400" />
                     )}
                   </h2>
                   {loadingClients ? (
-                    <p className="text-gray-400 text-sm">Loading clients...</p>
+                    <p className="text-neutral-400 text-sm">Loading clients...</p>
                   ) : connectedClients.length === 0 ? (
-                    <p className="text-gray-400 text-sm">No clients have connected yet</p>
+                    <p className="text-neutral-400 text-sm">No clients have connected yet</p>
                   ) : (
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {connectedClients.map((conversation) => {
@@ -355,26 +355,26 @@ function ServiceDetail() {
                           <button
                             key={conversation.id}
                             onClick={() => handleClientClick(conversation.id)}
-                            className="w-full p-3 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors text-left"
+                            className="w-full p-3 bg-neutral-600 hover:bg-neutral-500 rounded-lg transition-colors text-left"
                           >
                             <div className="flex items-center space-x-3">
                               <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-500 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
                                 {client?.firstName?.[0] || client?.userName?.[0] || <FontAwesomeIcon icon={faUser} />}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-gray-100 truncate">
+                                <p className="font-semibold text-neutral-100 truncate">
                                   {client?.firstName && client?.lastName
                                     ? `${client.firstName} ${client.lastName}`
                                     : client?.userName || 'Anonymous'}
                                 </p>
                                 {lastMessage && (
-                                  <p className="text-xs text-gray-400 truncate mt-1">
+                                  <p className="text-xs text-neutral-400 truncate mt-1">
                                     {lastMessage.message}
                                   </p>
                                 )}
                               </div>
                               {lastMessage && (
-                                <span className="text-xs text-gray-400 flex-shrink-0">
+                                <span className="text-xs text-neutral-400 flex-shrink-0">
                                   {new Date(lastMessage.createdAt).toLocaleTimeString([], {
                                     hour: '2-digit',
                                     minute: '2-digit',
@@ -412,7 +412,7 @@ function ServiceDetail() {
               </div>
 
               {/* Additional Info */}
-              <div className="mt-6 pt-6 border-t border-gray-700 text-sm text-gray-400">
+              <div className="mt-6 pt-6 border-t border-neutral-700 text-sm text-neutral-400">
                 <p>Service ID: {service.id}</p>
                 <p>Created: {new Date(service.createdAt).toLocaleDateString()}</p>
               </div>
@@ -421,11 +421,11 @@ function ServiceDetail() {
 
           {/* Feedbacks Section */}
           {feedbacks && feedbacks.length > 0 && (
-            <div className="mt-8 p-8 bg-gray-800 rounded-xl shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-100 mb-6 flex items-center space-x-2">
+            <div className="mt-8 p-8 bg-neutral-800 rounded-xl shadow-lg">
+              <h2 className="text-2xl font-bold text-neutral-100 mb-6 flex items-center space-x-2">
                 <FontAwesomeIcon icon={faComments} />
                 <span>Customer Feedbacks</span>
-                <span className="text-lg font-normal text-gray-400">
+                <span className="text-lg font-normal text-neutral-400">
                   ({service.feedbackCount ?? 0})
                 </span>
               </h2>
@@ -433,7 +433,7 @@ function ServiceDetail() {
                 {feedbacks.map((feedback) => (
                   <div
                     key={feedback.id}
-                    className="bg-gray-700 rounded-lg p-6 border border-gray-600"
+                    className="bg-neutral-700 rounded-lg p-6 border border-neutral-600"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center space-x-3">
@@ -443,12 +443,12 @@ function ServiceDetail() {
                           )}
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-100">
+                          <p className="font-semibold text-neutral-100">
                             {feedback.client.firstName && feedback.client.lastName
                               ? `${feedback.client.firstName} ${feedback.client.lastName}`
                               : feedback.client.userName || 'Anonymous'}
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-neutral-400">
                             {new Date(feedback.createdAt).toLocaleDateString('en-US', {
                               year: 'numeric',
                               month: 'long',
@@ -459,15 +459,15 @@ function ServiceDetail() {
                       </div>
                       <div className="flex items-center space-x-2">
                         <StarRating rating={feedback.rating} />
-                        <span className="text-gray-300 text-sm">({feedback.rating})</span>
+                        <span className="text-neutral-300 text-sm">({feedback.rating})</span>
                       </div>
                     </div>
                     <div className="mb-2">
-                      <p className="text-sm font-semibold text-gray-300 mb-1">
+                      <p className="text-sm font-semibold text-neutral-300 mb-1">
                         Milestone: {feedback.title}
                       </p>
                     </div>
-                    <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                    <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap">
                       {feedback.feedback}
                     </p>
                   </div>
@@ -496,12 +496,12 @@ function ServiceDetail() {
 
           {/* No Feedbacks Message */}
           {(!feedbacks || feedbacks.length === 0) && (service.feedbackCount === 0 || !service.feedbackCount) && (
-            <div className="mt-8 p-8 bg-gray-800 rounded-xl shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-100 mb-4 flex items-center space-x-2">
+            <div className="mt-8 p-8 bg-neutral-800 rounded-xl shadow-lg">
+              <h2 className="text-2xl font-bold text-neutral-100 mb-4 flex items-center space-x-2">
                 <FontAwesomeIcon icon={faComments} />
                 <span>Customer Feedbacks</span>
               </h2>
-              <p className="text-gray-400">No feedbacks yet. Be the first to leave a review!</p>
+              <p className="text-neutral-400">No feedbacks yet. Be the first to leave a review!</p>
             </div>
           )}
         </div>

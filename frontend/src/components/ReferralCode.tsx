@@ -20,10 +20,10 @@ function ReferralCode({ code }: ReferralCodeProps) {
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-      <h3 className="text-lg font-semibold text-gray-100 mb-4">Your Referral Code</h3>
+    <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
+      <h3 className="text-lg font-semibold text-neutral-100 mb-4">Your Referral Code</h3>
       <div className="flex items-center gap-3">
-        <div className="flex-1 bg-gray-900 px-4 py-3 rounded-lg border border-gray-700">
+        <div className="flex-1 bg-neutral-900 px-4 py-3 rounded-lg border border-neutral-700">
           <code className="text-2xl font-bold text-blue-400 tracking-wider">{code}</code>
         </div>
         <button
@@ -47,7 +47,7 @@ function ReferralCode({ code }: ReferralCodeProps) {
           )}
         </button>
       </div>
-      <p className="text-sm text-gray-400 mt-4">
+      <p className="text-sm text-neutral-400 mt-4">
         Share this code with friends! When they sign up using your code, you'll earn rewards.
       </p>
     </div>

@@ -120,7 +120,7 @@ function Blog() {
 
   const getStatusBadge = (status: string) => {
     const badges = {
-      draft: 'bg-gray-700 text-gray-200',
+      draft: 'bg-neutral-700 text-neutral-200',
       published: 'bg-green-900 text-green-200',
       archived: 'bg-yellow-900 text-yellow-200',
     }
@@ -136,7 +136,7 @@ function Blog() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-neutral-900">
       {/* Header Section */}
       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -147,31 +147,31 @@ function Blog() {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search */}
-        <div className="bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <div className="bg-neutral-800 rounded-xl shadow-md p-6 mb-6">
           <div className="relative">
             <FontAwesomeIcon
               icon={faSearch}
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+              className="absolute left-4 top-1/2 transform -tranneutral-y-1/2 text-neutral-400"
             />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search posts by content or author..."
-              className="w-full pl-12 pr-4 py-3 border border-gray-700 bg-gray-700 text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-12 pr-4 py-3 border border-neutral-700 bg-neutral-700 text-neutral-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>
 
         {/* Status Filter Bar */}
-        <div className="bg-gray-800 rounded-xl shadow-md p-4 mb-6 overflow-x-auto">
+        <div className="bg-neutral-800 rounded-xl shadow-md p-4 mb-6 overflow-x-auto">
           <div className="flex items-center space-x-2 min-w-max">
             <button
               onClick={() => setStatusFilter('')}
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                 statusFilter === ''
                   ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
               }`}
             >
               All Statuses
@@ -180,8 +180,8 @@ function Blog() {
               onClick={() => setStatusFilter('draft')}
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                 statusFilter === 'draft'
-                  ? 'bg-gray-600 text-white shadow-md'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  ? 'bg-neutral-600 text-white shadow-md'
+                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
               }`}
             >
               Draft
@@ -191,7 +191,7 @@ function Blog() {
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                 statusFilter === 'published'
                   ? 'bg-green-600 text-white shadow-md'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
               }`}
             >
               Published
@@ -201,7 +201,7 @@ function Blog() {
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                 statusFilter === 'archived'
                   ? 'bg-yellow-600 text-white shadow-md'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
               }`}
             >
               Archived
@@ -211,23 +211,23 @@ function Blog() {
 
         {/* Posts List */}
         {loading ? (
-          <div className="text-center py-20 bg-gray-800 rounded-xl shadow-md">
+          <div className="text-center py-20 bg-neutral-800 rounded-xl shadow-md">
             <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-400 mb-4" />
-            <p className="text-gray-400">Loading posts...</p>
+            <p className="text-neutral-400">Loading posts...</p>
           </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-20 bg-gray-800 rounded-xl shadow-md">
-            <p className="text-gray-400 mb-6 text-lg">No posts found</p>
+          <div className="text-center py-20 bg-neutral-800 rounded-xl shadow-md">
+            <p className="text-neutral-400 mb-6 text-lg">No posts found</p>
           </div>
         ) : (
           <div className="space-y-4">
             {posts.map((post) => (
-              <div key={post.id} className="bg-gray-800 rounded-xl shadow-md border border-gray-700 p-6">
+              <div key={post.id} className="bg-neutral-800 rounded-xl shadow-md border border-neutral-700 p-6">
                 <div className="flex items-start space-x-4">
                   {/* Post Images */}
                   {post.images && post.images.length > 0 && (
                     <div className="flex-shrink-0">
-                      <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-700">
+                      <div className="w-24 h-24 rounded-lg overflow-hidden bg-neutral-700">
                         <img
                           src={`http://localhost:3000${post.images[0]}`}
                           alt="Post"
@@ -235,7 +235,7 @@ function Blog() {
                         />
                       </div>
                       {post.images.length > 1 && (
-                        <div className="text-xs text-gray-400 mt-1 text-center">+{post.images.length - 1} more</div>
+                        <div className="text-xs text-neutral-400 mt-1 text-center">+{post.images.length - 1} more</div>
                       )}
                     </div>
                   )}
@@ -254,7 +254,7 @@ function Blog() {
                             {post.status}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-neutral-400">
                           {new Date(post.createdAt).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'short',
@@ -265,8 +265,8 @@ function Blog() {
                         </p>
                       </div>
                     </div>
-                    <p className="text-gray-200 mb-3 line-clamp-3">{post.content}</p>
-                    <div className="flex items-center space-x-4 text-sm text-gray-400">
+                    <p className="text-neutral-200 mb-3 line-clamp-3">{post.content}</p>
+                    <div className="flex items-center space-x-4 text-sm text-neutral-400">
                       {post.likeCount !== undefined && (
                         <span>❤️ {post.likeCount} likes</span>
                       )}
@@ -325,9 +325,9 @@ function Blog() {
 
         {/* Pagination */}
         {!loading && totalPages > 1 && (
-          <div className="bg-gray-800 rounded-xl shadow-md p-6 mt-8">
+          <div className="bg-neutral-800 rounded-xl shadow-md p-6 mt-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-neutral-400">
                 Showing {posts.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to{' '}
                 {Math.min(currentPage * itemsPerPage, total)} of {total} posts
               </div>
@@ -335,7 +335,7 @@ function Blog() {
                 <button
                   onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-600 rounded-lg font-medium text-gray-300 hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  className="px-4 py-2 border border-neutral-600 rounded-lg font-medium text-neutral-300 hover:bg-neutral-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
                   <FontAwesomeIcon icon={faChevronLeft} />
                   <span>Previous</span>
@@ -361,7 +361,7 @@ function Blog() {
                         className={`px-4 py-2 rounded-lg font-medium transition-all ${
                           currentPage === pageNum
                             ? 'bg-blue-600 text-white shadow-md'
-                            : 'border border-gray-600 text-gray-300 hover:bg-gray-700'
+                            : 'border border-neutral-600 text-neutral-300 hover:bg-neutral-700'
                         }`}
                       >
                         {pageNum}
@@ -373,7 +373,7 @@ function Blog() {
                 <button
                   onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-gray-600 rounded-lg font-medium text-gray-300 hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  className="px-4 py-2 border border-neutral-600 rounded-lg font-medium text-neutral-300 hover:bg-neutral-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
                   <span>Next</span>
                   <FontAwesomeIcon icon={faChevronRight} />
@@ -390,7 +390,7 @@ function Blog() {
             onClick={() => setConfirmDialog(null)}
           >
             <div
-              className="bg-gray-800 rounded-xl shadow-2xl max-w-md w-full"
+              className="bg-neutral-800 rounded-xl shadow-2xl max-w-md w-full"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-6">
@@ -416,14 +416,14 @@ function Blog() {
                     />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-100">
+                    <h3 className="text-xl font-bold text-neutral-100">
                       {confirmDialog.action === 'delete'
                         ? 'Delete Post'
                         : confirmDialog.action === 'archive'
                         ? 'Archive Post'
                         : 'Publish Post'}
                     </h3>
-                    <p className="text-sm text-gray-400 mt-1">
+                    <p className="text-sm text-neutral-400 mt-1">
                       {confirmDialog.action === 'delete'
                         ? 'This action cannot be undone'
                         : confirmDialog.action === 'archive'
@@ -432,14 +432,14 @@ function Blog() {
                     </p>
                   </div>
                 </div>
-                <p className="text-gray-300 mb-6">
+                <p className="text-neutral-300 mb-6">
                   Are you sure you want to {confirmDialog.action} the post{' '}
                   <span className="font-semibold">"{confirmDialog.postContent}"</span>?
                 </p>
                 <div className="flex justify-end space-x-3">
                   <button
                     onClick={() => setConfirmDialog(null)}
-                    className="px-6 py-3 border-2 border-gray-600 rounded-lg text-gray-300 font-semibold hover:bg-gray-700 transition-all"
+                    className="px-6 py-3 border-2 border-neutral-600 rounded-lg text-neutral-300 font-semibold hover:bg-neutral-700 transition-all"
                   >
                     Cancel
                   </button>

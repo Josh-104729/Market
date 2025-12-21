@@ -84,7 +84,7 @@ export default function ImageWithLoader({
           {placeholder || (
             <div className="flex flex-col items-center space-y-3">
               <FontAwesomeIcon icon={faSpinner} className="animate-spin text-3xl text-blue-400" />
-              <span className="text-sm text-gray-300 font-medium">Loading image...</span>
+              <span className="text-sm text-neutral-300 font-medium">Loading image...</span>
             </div>
           )}
         </div>
@@ -92,7 +92,7 @@ export default function ImageWithLoader({
 
       {/* Error state */}
       {error ? (
-        <div className="w-full h-full flex items-center justify-center bg-gray-700/80 backdrop-blur-sm">
+        <div className="w-full h-full flex items-center justify-center bg-neutral-700/80 backdrop-blur-sm">
           <div className="text-4xl">📦</div>
         </div>
       ) : (

@@ -20,7 +20,7 @@ const StarRating = ({ rating }: { rating: number }) => {
       ))}
       {hasHalfStar && <FontAwesomeIcon icon={faStarHalfStroke} className="text-yellow-400" />}
       {[...Array(emptyStars)].map((_, i) => (
-        <FontAwesomeIcon key={`empty-${i}`} icon={faStarRegular} className="text-gray-300" />
+        <FontAwesomeIcon key={`empty-${i}`} icon={faStarRegular} className="text-neutral-300" />
       ))}
     </div>
   )
@@ -98,7 +98,7 @@ function MyServices() {
 
   const getStatusBadge = (status: string) => {
     const badges = {
-      draft: 'bg-gray-700 text-gray-200',
+      draft: 'bg-neutral-700 text-neutral-200',
       active: 'bg-green-900 text-green-200',
       blocked: 'bg-red-900 text-red-200',
     }
@@ -123,7 +123,7 @@ function MyServices() {
                   className={`w-full px-4 py-3 rounded-xl font-medium transition-all flex items-center justify-between ${
                     selectedCategory === ''
                       ? 'bg-primary text-primary-foreground shadow-glow-primary'
-                      : 'glass-card text-slate-300 hover:bg-white/15'
+                      : 'glass-card text-neutral-300 hover:bg-white/15'
                   }`}
                 >
                   <span>All Categories</span>
@@ -146,7 +146,7 @@ function MyServices() {
                     className={`w-full px-4 py-3 rounded-xl font-medium transition-all flex items-center justify-between ${
                       selectedCategory === category.id
                         ? 'bg-primary text-primary-foreground shadow-glow-primary'
-                        : 'glass-card text-slate-300 hover:bg-white/15'
+                        : 'glass-card text-neutral-300 hover:bg-white/15'
                     }`}
                   >
                     <div className="flex items-center space-x-2">
@@ -186,7 +186,7 @@ function MyServices() {
                     className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all ${
                       statusFilter === ''
                         ? 'bg-primary text-primary-foreground shadow-glow-primary'
-                        : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                        : 'bg-white/5 text-neutral-300 hover:bg-white/10'
                     }`}
                   >
                     All Statuses
@@ -195,8 +195,8 @@ function MyServices() {
                     onClick={() => setStatusFilter('draft')}
                     className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all ${
                       statusFilter === 'draft'
-                        ? 'bg-slate-600 text-white shadow-md'
-                        : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                        ? 'bg-neutral-600 text-white shadow-md'
+                        : 'bg-white/5 text-neutral-300 hover:bg-white/10'
                     }`}
                   >
                     Draft
@@ -206,7 +206,7 @@ function MyServices() {
                     className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all ${
                       statusFilter === 'active'
                         ? 'bg-green-600 text-white shadow-md'
-                        : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                        : 'bg-white/5 text-neutral-300 hover:bg-white/10'
                     }`}
                   >
                     Active
@@ -216,7 +216,7 @@ function MyServices() {
                     className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all ${
                       statusFilter === 'blocked'
                         ? 'bg-red-600 text-white shadow-md'
-                        : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                        : 'bg-white/5 text-neutral-300 hover:bg-white/10'
                     }`}
                   >
                     Blocked
@@ -227,7 +227,7 @@ function MyServices() {
               {/* Create Service Button */}
               <Link
                 to="/services/new"
-                className="inline-flex items-center justify-center space-x-2 px-6 py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1 transition-all whitespace-nowrap"
+                className="inline-flex items-center justify-center space-x-2 px-6 py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-tranneutral-y-1 transition-all whitespace-nowrap"
               >
                 <FontAwesomeIcon icon={faPlus} />
                 <span>Create Service</span>
@@ -238,14 +238,14 @@ function MyServices() {
             {loading ? (
               <div className="text-center py-20 glass-card rounded-2xl">
                 <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-primary mb-4" />
-                <p className="text-slate-400">Loading services...</p>
+                <p className="text-neutral-400">Loading services...</p>
               </div>
             ) : services.length === 0 ? (
               <div className="text-center py-20 glass-card rounded-2xl">
-                <p className="text-slate-400 mb-6 text-lg">No services found</p>
+                <p className="text-neutral-400 mb-6 text-lg">No services found</p>
                 <Link
                   to="/services/new"
-                  className="px-8 py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-translate-y-1 transition-all"
+                  className="px-8 py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 shadow-glow-primary hover:shadow-glow-primary-lg hover:-tranneutral-y-1 transition-all"
                 >
                   Create Your First Service
                 </Link>
@@ -284,7 +284,7 @@ function MyServices() {
                         {service.status}
                       </span>
                     </div>
-                    <p className="text-slate-400 text-sm mb-4 line-clamp-2">{service.adText}</p>
+                    <p className="text-neutral-400 text-sm mb-4 line-clamp-2">{service.adText}</p>
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center">
                         <StarRating
@@ -329,7 +329,7 @@ function MyServices() {
                 {totalPages > 1 && (
                   <div className="glass-card rounded-2xl p-6 mt-8">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div className="text-sm text-slate-400">
+                      <div className="text-sm text-neutral-400">
                         Showing {services.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to{' '}
                         {Math.min(currentPage * itemsPerPage, total)} of {total} services
                       </div>
@@ -337,7 +337,7 @@ function MyServices() {
                         <button
                           onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                           disabled={currentPage === 1}
-                          className="px-4 py-2 glass-card rounded-full font-medium text-slate-300 hover:bg-white/15 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                          className="px-4 py-2 glass-card rounded-full font-medium text-neutral-300 hover:bg-white/15 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                         >
                           <FontAwesomeIcon icon={faChevronLeft} />
                           <span>Previous</span>
@@ -363,7 +363,7 @@ function MyServices() {
                                 className={`px-4 py-2 rounded-full font-medium transition-all ${
                                   currentPage === pageNum
                                     ? 'bg-primary text-primary-foreground shadow-glow-primary'
-                                    : 'glass-card text-slate-300 hover:bg-white/15'
+                                    : 'glass-card text-neutral-300 hover:bg-white/15'
                                 }`}
                               >
                                 {pageNum}
@@ -375,7 +375,7 @@ function MyServices() {
                         <button
                           onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                           disabled={currentPage === totalPages}
-                          className="px-4 py-2 glass-card rounded-full font-medium text-slate-300 hover:bg-white/15 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                          className="px-4 py-2 glass-card rounded-full font-medium text-neutral-300 hover:bg-white/15 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                         >
                           <span>Next</span>
                           <FontAwesomeIcon icon={faChevronRight} />

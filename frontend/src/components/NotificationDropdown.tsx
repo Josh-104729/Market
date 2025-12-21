@@ -1,10 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBell, faCheck, faCheckDouble, faTrash, faTimes, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { notificationApi, Notification } from '../services/api';
 import { getSocket } from '../services/socket';
 import { Socket } from 'socket.io-client';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Bell, Check, CheckCheck, Trash2, X, ArrowRight, Loader2 } from "lucide-react";
 
 interface NotificationDropdownProps {
   userId: string;
@@ -16,39 +23,29 @@ function NotificationDropdown({ userId }: NotificationDropdownProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    // Fetch unread count first to ensure badge shows correct count
     fetchUnreadCount();
     fetchNotifications();
 
-    // Set up WebSocket listener
     const socket = getSocket();
     if (socket) {
       socketRef.current = socket;
-
       const handleNewNotification = (notification: Notification) => {
         setNotifications((prev) => [notification, ...prev]);
         setUnreadCount((prev) => prev + 1);
       };
-
       const handleNotificationRead = async () => {
-        // Refresh notifications to get updated readAt from server
         await fetchNotifications();
         await fetchUnreadCount();
       };
-
       const handleAllNotificationsRead = async () => {
-        // Refresh notifications to get updated readAt from server
         await fetchNotifications();
         await fetchUnreadCount();
       };
-
       const handleNotificationDeleted = (data: { notificationId: string }) => {
         setNotifications((prev) => prev.filter((notif) => notif.id !== data.notificationId));
-        // Refresh unread count after deletion
         fetchUnreadCount();
       };
 
@@ -66,26 +63,11 @@ function NotificationDropdown({ userId }: NotificationDropdownProps) {
     }
   }, [userId]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
-
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const response = await notificationApi.getAll({ page: 1, limit: 5 });
+      const response = await notificationApi.getAll({ page: 1, limit: 10 });
       setNotifications(response.data);
-      // Don't update unreadCount from getAll response, use dedicated endpoint instead
-      // This ensures we always have the accurate unread count
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     } finally {
@@ -110,7 +92,6 @@ function NotificationDropdown({ userId }: NotificationDropdownProps) {
           notif.id === notificationId ? updatedNotification : notif
         )
       );
-      // Refresh unread count
       await fetchUnreadCount();
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
@@ -120,7 +101,6 @@ function NotificationDropdown({ userId }: NotificationDropdownProps) {
   const handleMarkAllAsRead = async () => {
     try {
       await notificationApi.markAllAsRead();
-      // Refresh notifications and unread count
       await fetchNotifications();
       await fetchUnreadCount();
     } catch (error) {
@@ -132,7 +112,6 @@ function NotificationDropdown({ userId }: NotificationDropdownProps) {
     try {
       await notificationApi.delete(notificationId);
       setNotifications((prev) => prev.filter((notif) => notif.id !== notificationId));
-      // Refresh unread count after deletion
       await fetchUnreadCount();
     } catch (error) {
       console.error('Failed to delete notification:', error);
@@ -155,118 +134,110 @@ function NotificationDropdown({ userId }: NotificationDropdownProps) {
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-slate-400 hover:text-white transition-colors"
-        aria-label="Notifications"
-      >
-        <FontAwesomeIcon icon={faBell} className="text-xl" />
-        {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
-      </button>
-
-      {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-80 md:w-96 backdrop-blur-xl bg-[rgba(13,17,28,0.95)] border border-white/10 rounded-2xl shadow-2xl z-50 max-h-[500px] flex flex-col">
-          <div className="p-4 border-b border-white/10 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white">Notifications</h3>
-            <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
-                <button
-                  onClick={handleMarkAllAsRead}
-                  className="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1"
-                >
-                  <FontAwesomeIcon icon={faCheckDouble} className="text-xs" />
-                  Mark all read
-                </button>
-              )}
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                <FontAwesomeIcon icon={faTimes} />
-              </button>
-            </div>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] border-2 border-white">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </Badge>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 md:w-96 p-0 shadow-xl border-slate-200" align="end">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+          <h3 className="font-semibold text-slate-900">Notifications</h3>
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={handleMarkAllAsRead} className="h-8 text-xs gap-1 text-slate-500">
+                <CheckCheck className="h-3 w-3" /> Mark all read
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8 text-slate-400">
+              <X className="h-4 w-4" />
+            </Button>
           </div>
+        </div>
 
-          <div className="overflow-y-auto flex-1">
-            {loading ? (
-              <div className="p-8 text-center text-slate-400">Loading...</div>
-            ) : notifications.length === 0 ? (
-              <div className="p-8 text-center text-slate-400">No notifications</div>
-            ) : (
-              <div className="divide-y divide-white/10">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={`p-4 hover:bg-white/5 transition-colors ${
-                      !notification.readAt || notification.readAt === null ? 'bg-primary/10' : ''
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-semibold text-white truncate">
-                            {notification.title}
-                          </h4>
-                          {(!notification.readAt || notification.readAt === null) && (
-                            <span className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></span>
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-400 line-clamp-2">
-                          {notification.message}
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {formatDate(notification.createdAt)}
-                        </p>
+        <ScrollArea className="h-[350px]">
+          {loading && notifications.length === 0 ? (
+            <div className="p-8 text-center flex flex-col items-center gap-2 text-slate-400">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <p className="text-sm">Loading notifications...</p>
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 text-sm">
+              No notifications yet
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`p-4 transition-colors group relative ${
+                    !notification.readAt ? 'bg-slate-50' : 'bg-white hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`h-2 w-2 rounded-full shrink-0 ${!notification.readAt ? 'bg-primary' : 'bg-transparent'}`} />
+                        <h4 className="text-sm font-semibold text-slate-900 truncate">
+                          {notification.title}
+                        </h4>
                       </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        {(!notification.readAt || notification.readAt === null) && (
-                          <button
-                            onClick={() => handleMarkAsRead(notification.id)}
-                            className="p-1 text-slate-400 hover:text-primary transition-colors"
-                            title="Mark as read"
-                          >
-                            <FontAwesomeIcon icon={faCheck} className="text-xs" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDelete(notification.id)}
-                          className="p-1 text-slate-400 hover:text-red-500 transition-colors"
-                          title="Delete"
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                        {notification.message}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-2 font-medium">
+                        {formatDate(notification.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {!notification.readAt && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
+                          onClick={() => handleMarkAsRead(notification.id)}
                         >
-                          <FontAwesomeIcon icon={faTrash} className="text-xs" />
-                        </button>
-                      </div>
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-slate-400 hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDelete(notification.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {notifications.length > 0 && (
-            <div className="p-4 border-t border-white/10">
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  navigate('/notifications');
-                }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-              >
-                <span>More notifications</span>
-                <FontAwesomeIcon icon={faArrowRight} className="text-xs" />
-              </button>
+                </div>
+              ))}
             </div>
           )}
-        </div>
-      )}
-    </div>
+        </ScrollArea>
+        
+        {notifications.length > 0 && (
+          <div className="p-2 border-t border-slate-100">
+            <Button
+              variant="ghost"
+              className="w-full h-9 text-xs text-primary font-semibold gap-2 hover:bg-primary/5"
+              onClick={() => {
+                setIsOpen(false);
+                navigate('/notifications');
+              }}
+            >
+              View all notifications <ArrowRight className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
 
 export default NotificationDropdown;
-

@@ -1,9 +1,20 @@
 import { ReactNode } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSignOutAlt, faHome, faFolder, faBriefcase, faNewspaper, faWallet, faMoneyBillWave, faBullhorn, faGavel } from '@fortawesome/free-solid-svg-icons'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { logout } from '../store/slices/authSlice'
+import { Button } from "@/components/ui/button"
+import {
+  LayoutDashboard,
+  FolderTree,
+  Briefcase,
+  FileText,
+  Wallet,
+  ArrowUpRight,
+  Gavel,
+  Megaphone,
+  LogOut,
+  Menu,
+} from "lucide-react"
 
 interface LayoutProps {
   children: ReactNode
@@ -21,57 +32,80 @@ function Layout({ children }: LayoutProps) {
   }
 
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: faHome },
-    { path: '/categories', label: 'Categories', icon: faFolder },
-    { path: '/services', label: 'Services', icon: faBriefcase },
-    { path: '/blog', label: 'Blog', icon: faNewspaper },
-    { path: '/temp-wallets', label: 'Temp Wallets', icon: faWallet },
-    { path: '/withdraws', label: 'Withdraws', icon: faMoneyBillWave },
-    { path: '/disputes', label: 'Disputes', icon: faGavel },
-    { path: '/broadcast', label: 'Broadcast', icon: faBullhorn },
+    { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/categories', label: 'Categories', icon: FolderTree },
+    { path: '/services', label: 'Services', icon: Briefcase },
+    { path: '/blog', label: 'Blog', icon: FileText },
+    { path: '/temp-wallets', label: 'Temp Wallets', icon: Wallet },
+    { path: '/withdraws', label: 'Withdraws', icon: ArrowUpRight },
+    { path: '/disputes', label: 'Disputes', icon: Gavel },
+    { path: '/broadcast', label: 'Broadcast', icon: Megaphone },
   ]
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0a0f1f 0%, #0f172a 100%)' }}>
-      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/20 border-b border-white/10">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between">
-            <h2 className="text-xl md:text-2xl font-bold text-white">OmniMart Admin</h2>
-            <div className="flex items-center space-x-4">
-              <span className="text-slate-300 text-sm md:text-base">
-                {user?.email || 'Admin'}
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      {/* Top Navigation */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border shadow-sm">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <Link to="/" className="flex items-center gap-2 group">
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold group-hover:scale-105 transition-transform">
+                O
+              </div>
+              <span className="text-lg font-bold tracking-tight text-foreground hidden sm:block">
+                OmniMart Admin
               </span>
-              <button
-                onClick={handleLogout}
-                className="text-white glass-card hover:bg-white/15 px-4 py-2 rounded-full font-semibold transition-all flex items-center space-x-2"
-              >
-                <FontAwesomeIcon icon={faSignOutAlt} />
-                <span>Logout</span>
-              </button>
-            </div>
+            </Link>
+
+            <nav className="hidden lg:flex items-center gap-1">
+              {navItems.map((item) => (
+                <Button
+                  key={item.path}
+                  variant={location.pathname === item.path ? "secondary" : "ghost"}
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => navigate(item.path)}
+                >
+                  <item.icon className="w-4 h-4" />
+                  <span>{item.label}</span>
+                </Button>
+              ))}
+            </nav>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {navItems.map((item) => (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${
-                  location.pathname === item.path
-                    ? 'bg-primary text-white'
-                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                <FontAwesomeIcon icon={item.icon} />
-                <span>{item.label}</span>
-              </button>
-            ))}
+
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex flex-col items-end">
+              <span className="text-sm font-medium text-foreground leading-none">
+                {user?.userName || 'Admin'}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {user?.email}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-muted-foreground border-border"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
+            <Button variant="ghost" size="icon" className="lg:hidden">
+              <Menu className="w-5 h-5" />
+            </Button>
           </div>
         </div>
-      </nav>
-      <main className="pt-32">{children}</main>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 pt-20 pb-12">
+        <div className="container mx-auto px-4">
+          {children}
+        </div>
+      </main>
     </div>
   )
 }
 
 export default Layout
-

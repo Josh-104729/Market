@@ -196,14 +196,14 @@ function ChatList() {
             <div className="relative">
               <FontAwesomeIcon 
                 icon={faSearch} 
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm"
+                className="absolute left-3 top-1/2 transform -tranneutral-y-1/2 text-neutral-400 text-sm"
               />
               <input
                 type="text"
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-black/30 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-primary/50 transition-colors text-sm"
+                className="w-full pl-9 pr-4 py-2 bg-black/30 border border-white/10 rounded-lg text-white placeholder-neutral-400 focus:outline-none focus:border-primary/50 transition-colors text-sm"
               />
             </div>
           </div>
@@ -212,11 +212,11 @@ function ChatList() {
           <div className="flex-1 overflow-y-auto">
             {filteredConversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center px-4">
-                <FontAwesomeIcon icon={faComments} className="text-slate-500 text-4xl mb-3" />
-                <p className="text-slate-400 text-sm mb-1">
+                <FontAwesomeIcon icon={faComments} className="text-neutral-500 text-4xl mb-3" />
+                <p className="text-neutral-400 text-sm mb-1">
                   {searchQuery ? 'No conversations found' : 'No conversations yet'}
                 </p>
-                <p className="text-slate-500 text-xs">
+                <p className="text-neutral-500 text-xs">
                   {searchQuery 
                     ? 'Try a different search term' 
                     : 'Start a conversation by connecting with a service provider'}
@@ -248,23 +248,23 @@ function ChatList() {
                         {/* Content */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <h3 className={`font-semibold truncate text-sm ${isUnread || isSelected ? 'text-white' : 'text-slate-300'}`}>
+                            <h3 className={`font-semibold truncate text-sm ${isUnread || isSelected ? 'text-white' : 'text-neutral-300'}`}>
                               {otherUserName}
                             </h3>
                             {conversation.lastMessage && (
-                              <span className="text-xs text-slate-500 flex-shrink-0 ml-2">
+                              <span className="text-xs text-neutral-500 flex-shrink-0 ml-2">
                                 {formatTime(conversation.lastMessage.createdAt)}
                               </span>
                             )}
                           </div>
                           
                           {conversation.service && (
-                            <p className="text-xs text-slate-500 mb-1 truncate">
+                            <p className="text-xs text-neutral-500 mb-1 truncate">
                               {conversation.service.title}
                             </p>
                           )}
                           
-                          <p className={`text-xs truncate ${isUnread || isSelected ? 'text-white font-medium' : 'text-slate-400'}`}>
+                          <p className={`text-xs truncate ${isUnread || isSelected ? 'text-white font-medium' : 'text-neutral-400'}`}>
                             {formatMessagePreview(conversation.lastMessage)}
                           </p>
                         </div>
@@ -289,9 +289,9 @@ function ChatList() {
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center px-6">
-                <FontAwesomeIcon icon={faComments} className="text-slate-500 text-6xl mb-4" />
-                <p className="text-slate-400 text-lg mb-2">Select a conversation</p>
-                <p className="text-slate-500 text-sm">
+                <FontAwesomeIcon icon={faComments} className="text-neutral-500 text-6xl mb-4" />
+                <p className="text-neutral-400 text-lg mb-2">Select a conversation</p>
+                <p className="text-neutral-500 text-sm">
                   Choose a conversation from the list to start chatting
                 </p>
               </div>
