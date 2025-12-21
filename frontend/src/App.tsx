@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from "@/components/ui/toaster"
+import { useAppSelector } from "./store/hooks"
 import Home from './pages/Home'
 import SignIn from './pages/SignIn'
 import SignUp from './pages/SignUp'
@@ -19,8 +20,11 @@ import Notifications from './pages/Notifications'
 import SecuritySettings from './pages/SecuritySettings'
 import Referral from './pages/Referral'
 import Layout from './components/Layout'
+import Dashboard from "./pages/Dashboard"
 
 function App() {
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated)
+
   return (
     <Router>
       <Routes>
@@ -32,7 +36,7 @@ function App() {
           element={
             <Layout>
               <Routes>
-                <Route path="/" element={<Home />} />
+                <Route path="/" element={isAuthenticated ? <Dashboard /> : <Home />} />
                 <Route path="/feed" element={<Feed />} />
                 <Route path="/services" element={<Services />} />
                 <Route path="/my-services" element={<MyServices />} />

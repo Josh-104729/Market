@@ -48,10 +48,10 @@ function SignIn() {
         <CardHeader className="space-y-1 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary mb-4 text-white font-bold text-xl">
             O
-          </div>
+            </div>
           <CardTitle className="text-2xl font-bold">OmniMart Admin</CardTitle>
           <CardDescription>
-            Sign in to access the admin dashboard
+              Sign in to access the admin dashboard
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -67,34 +67,34 @@ function SignIn() {
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="email"
-                    type="email"
+                  id="email"
+                  type="email"
                     placeholder="admin@example.com"
                     className="pl-10"
-                    required
-                    value={formData.email}
+                  required
+                  value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
+                />
+              </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="password"
-                    type="password"
+                  id="password"
+                  type="password"
                     placeholder="••••••••"
                     className="pl-10"
-                    required
-                    value={formData.password}
+                  required
+                  value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  />
-                </div>
+                />
               </div>
             </div>
+            </div>
             <Button 
-              type="submit" 
+              type="submit"
               className="w-full h-11 text-base font-semibold"
               disabled={loading}
             >

@@ -67,7 +67,7 @@ function VerifyEmail() {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Redirecting…
-                </div>
+              </div>
               </AlertDescription>
             </Alert>
           )}
@@ -79,7 +79,7 @@ function VerifyEmail() {
               <AlertDescription className="space-y-4">
                 <div>{message}</div>
                 <Button className="w-full" onClick={() => navigate('/signup')}>
-                  Go to Sign Up
+                Go to Sign Up
                 </Button>
               </AlertDescription>
             </Alert>
