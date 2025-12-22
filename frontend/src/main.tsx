@@ -5,6 +5,22 @@ import { store } from './store/store'
 import App from './App.tsx'
 import './index.css'
 
+// Apply persisted theme ASAP to avoid UI flash.
+try {
+  const userSet = localStorage.getItem("theme_user_set") === "1"
+  const theme = localStorage.getItem("theme")
+
+  // Default LIGHT unless user explicitly chose a theme.
+  if (userSet && theme === "dark") {
+    document.documentElement.classList.add("dark")
+  } else {
+    document.documentElement.classList.remove("dark")
+    localStorage.setItem("theme", "light")
+  }
+} catch {
+  // no-op
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>

@@ -1,8 +1,38 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { paymentApi, Transaction } from '../services/api'
-import { showToast } from '../utils/toast'
-import { useAppSelector } from '../store/hooks'
+import { useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { paymentApi, Transaction } from "../services/api"
+import { showToast } from "../utils/toast"
+import { useAppSelector } from "../store/hooks"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { ArrowDownLeft, ArrowUpRight, Copy, Loader2, RefreshCcw } from "lucide-react"
 
 function Transactions() {
   const navigate = useNavigate()
@@ -12,13 +42,17 @@ function Transactions() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
-  const [filterType, setFilterType] = useState<string>('all')
-  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [filterType, setFilterType] = useState<"all" | Transaction["type"]>("all")
+  const [filterStatus, setFilterStatus] = useState<"all" | Transaction["status"]>("all")
   const limit = 10
 
   useEffect(() => {
     loadTransactions()
   }, [page])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filterType, filterStatus])
 
   const loadTransactions = async () => {
     setLoading(true)
@@ -36,20 +70,8 @@ function Transactions() {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'success':
-        return 'text-green-400 bg-green-400/10'
-      case 'pending':
-        return 'text-yellow-400 bg-yellow-400/10'
-      case 'failed':
-        return 'text-red-400 bg-red-400/10'
-      case 'cancelled':
-        return 'text-neutral-400 bg-neutral-400/10'
-      case 'draft':
-        return 'text-blue-400 bg-blue-400/10'
-      default:
-        return 'text-neutral-400 bg-neutral-400/10'
-    }
+    // kept for backward compatibility if needed elsewhere; UI now uses Badge variants
+    return status
   }
 
   const getTypeLabel = (type: string) => {
@@ -109,368 +131,358 @@ function Transactions() {
   }
 
   // Filter transactions
-  const filteredTransactions = transactions.filter((transaction) => {
-    const typeMatch = filterType === 'all' || transaction.type === filterType
-    const statusMatch = filterStatus === 'all' || transaction.status === filterStatus
-    return typeMatch && statusMatch
-  })
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((transaction) => {
+      const typeMatch = filterType === "all" || transaction.type === filterType
+      const statusMatch = filterStatus === "all" || transaction.status === filterStatus
+      return typeMatch && statusMatch
+    })
+  }, [transactions, filterType, filterStatus])
 
   // Calculate summary
-  const summary = transactions.reduce(
-    (acc, transaction) => {
-      if (transaction.status === 'success') {
-        if (transaction.type === 'charge' || transaction.type === 'milestone_payment') {
-          acc.totalIn += Number(transaction.amount)
-        } else if (transaction.type === 'withdraw') {
-          acc.totalOut += Number(transaction.amount)
+  const summary = useMemo(() => {
+    return transactions.reduce(
+      (acc, transaction) => {
+        if (transaction.status === "success") {
+          if (transaction.type === "charge" || transaction.type === "milestone_payment") {
+            acc.totalIn += Number(transaction.amount)
+          } else if (transaction.type === "withdraw") {
+            acc.totalOut += Number(transaction.amount)
+          }
         }
-      }
-      return acc
-    },
-    { totalIn: 0, totalOut: 0 }
-  )
+        return acc
+      },
+      { totalIn: 0, totalOut: 0 },
+    )
+  }, [transactions])
+
+  const pageItems = useMemo(() => {
+    // Simple pagination window with ellipses
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1)
+    const items: (number | "…")[] = [1]
+    const start = Math.max(2, page - 1)
+    const end = Math.min(totalPages - 1, page + 1)
+    if (start > 2) items.push("…")
+    for (let p = start; p <= end; p++) items.push(p)
+    if (end < totalPages - 1) items.push("…")
+    items.push(totalPages)
+    return items
+  }, [page, totalPages])
+
+  const statusVariant = (status: Transaction["status"]) => {
+    switch (status) {
+      case "success":
+        return "secondary" as const
+      case "pending":
+        return "outline" as const
+      case "failed":
+        return "destructive" as const
+      case "cancelled":
+        return "outline" as const
+      case "draft":
+        return "outline" as const
+      case "withdraw":
+        return "outline" as const
+      default:
+        return "outline" as const
+    }
+  }
+
+  const getSignedAmount = (transaction: Transaction) => {
+    if (!user) return { sign: "", isPositive: true }
+    if (transaction.type === "charge") return { sign: "+", isPositive: true }
+    if (transaction.type === "withdraw") return { sign: "-", isPositive: false }
+    if (transaction.type === "milestone_payment") {
+      // provider receives (+), client pays (-)
+      const isProvider = transaction.providerId === user.id
+      return { sign: isProvider ? "+" : "-", isPositive: isProvider }
+    }
+    return { sign: "", isPositive: true }
+  }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl p-6 md:p-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Transaction History</h1>
-        <p className="text-neutral-400 mb-6">View all your transactions</p>
+    <div className="mx-auto w-full max-w-6xl space-y-6 py-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <div className="text-2xl font-bold tracking-tight">Transactions</div>
+          <div className="text-sm text-muted-foreground">View your payment and milestone history.</div>
+        </div>
+        <Button type="button" variant="outline" className="gap-2" onClick={loadTransactions} disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+          Refresh
+        </Button>
+      </div>
 
-        {/* Summary Cards */}
-        {transactions.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="p-4 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-600/20 border border-green-500/30">
-              <p className="text-sm text-neutral-400 mb-1">Total In</p>
-              <p className="text-2xl font-bold text-green-400">+{summary.totalIn.toFixed(2)} USD</p>
-            </div>
-            <div className="p-4 rounded-xl bg-gradient-to-r from-red-500/20 to-orange-600/20 border border-red-500/30">
-              <p className="text-sm text-neutral-400 mb-1">Total Out</p>
-              <p className="text-2xl font-bold text-red-400">-{summary.totalOut.toFixed(2)} USD</p>
-            </div>
-          </div>
-        )}
+      {transactions.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total in</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-end justify-between">
+              <div className="text-3xl font-bold">+{summary.totalIn.toFixed(2)}</div>
+              <div className="text-sm text-muted-foreground">USD</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total out</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-end justify-between">
+              <div className="text-3xl font-bold">-{summary.totalOut.toFixed(2)}</div>
+              <div className="text-sm text-muted-foreground">USD</div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <label htmlFor="filterType" className="block text-sm font-medium text-white mb-2">
-              Filter by Type
-            </label>
-            <select
-              id="filterType"
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="w-full px-4 py-2 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="all">All Types</option>
-              <option value="charge">Charge</option>
-              <option value="withdraw">Withdraw</option>
-              <option value="milestone_payment">Milestone Payment</option>
-            </select>
-          </div>
-          <div className="flex-1">
-            <label htmlFor="filterStatus" className="block text-sm font-medium text-white mb-2">
-              Filter by Status
-            </label>
-            <select
-              id="filterStatus"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-2 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="all">All Statuses</option>
-              <option value="success">Success</option>
-              <option value="pending">Pending</option>
-              <option value="draft">Draft</option>
-              <option value="failed">Failed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <div className="text-sm font-medium">Type</div>
+          <Tabs value={filterType} onValueChange={(v) => setFilterType(v as any)}>
+            <TabsList>
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="charge">Charge</TabsTrigger>
+              <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
+              <TabsTrigger value="milestone_payment">Milestone</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="text-neutral-400 mt-4">Loading transactions...</p>
-          </div>
-        ) : transactions.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-neutral-400">No transactions found</p>
-          </div>
-        ) : filteredTransactions.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-neutral-400">No transactions match the selected filters</p>
-            <button
-              onClick={() => {
-                setFilterType('all')
-                setFilterStatus('all')
-              }}
-              className="mt-4 px-4 py-2 rounded-xl bg-primary text-white font-medium hover:bg-primary/90 transition-all"
-            >
-              Clear Filters
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-neutral-400">Type</th>
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-neutral-400">Role</th>
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-neutral-400">Amount</th>
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-neutral-400">Status</th>
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-neutral-400">Date</th>
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-neutral-400">Description</th>
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-neutral-400">Hash/Address</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTransactions.map((transaction) => {
-                    const { role, otherParty } = getTransactionRole(transaction)
-                    const isMilestonePayment = transaction.type === 'milestone_payment'
-                    const isClient = role === 'Client'
-                    const isProvider = role === 'Provider'
-                    
-                    // Determine if amount is positive (income) or negative (expense)
-                    let isPositive = false
-                    if (transaction.type === 'charge') {
-                      isPositive = true
-                    } else if (transaction.type === 'withdraw') {
-                      isPositive = false
-                    } else if (transaction.type === 'milestone_payment') {
-                      // If user is provider, they received payment (positive)
-                      // If user is client, they paid (negative)
-                      isPositive = isProvider
-                    }
-                    
-                    return (
-                      <tr key={transaction.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                        <td className="py-4 px-4">
-                          <span className="text-white font-medium">{getTypeLabel(transaction.type)}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          {isMilestonePayment ? (
-                            <div className="flex flex-col">
-                              <span className={`text-xs font-semibold ${isClient ? 'text-blue-400' : isProvider ? 'text-purple-400' : 'text-neutral-400'}`}>
-                                {role}
-                              </span>
-                              {otherParty && (
-                                <span className="text-xs text-neutral-500 mt-1">with {otherParty}</span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-neutral-500 text-sm">-</span>
-                          )}
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className={`font-semibold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                            {isPositive ? '+' : '-'}
-                            {Number(transaction.amount).toFixed(2)} USD
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(transaction.status)}`}>
-                            {transaction.status.toUpperCase()}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-neutral-400 text-sm">{formatDate(transaction.createdAt)}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <span className="text-neutral-300 text-sm">{transaction.description || '-'}</span>
-                            {transaction.milestoneId && (
-                              <button
-                                onClick={() => {
-                                  // Navigate to chat with milestone - you might need to adjust this based on your routing
-                                  navigate(`/transactions?milestone=${transaction.milestoneId}`)
-                                }}
-                                className="text-primary hover:text-primary/80 text-xs underline"
-                              >
-                                View Milestone
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          {transaction.transactionHash ? (
-                            <a
-                              href={`https://tronscan.org/#/transaction/${transaction.transactionHash}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:text-primary/80 text-sm font-mono truncate max-w-xs block"
-                              title={transaction.transactionHash}
-                            >
-                              {transaction.transactionHash.substring(0, 10)}...
-                            </a>
-                          ) : transaction.walletAddress ? (
-                            <span className="text-neutral-400 text-sm font-mono truncate max-w-xs block" title={transaction.walletAddress}>
-                              {transaction.walletAddress.substring(0, 10)}...
-                            </span>
-                          ) : (
-                            <span className="text-neutral-500 text-sm">-</span>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+        <div className="w-full sm:w-64 space-y-2">
+          <div className="text-sm font-medium">Status</div>
+          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
+            <SelectTrigger>
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="success">Success</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="withdraw">Withdraw</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-            {/* Mobile Card View */}
-            <div className="md:hidden space-y-4">
-              {filteredTransactions.map((transaction) => {
-                const { role, otherParty } = getTransactionRole(transaction)
-                const isMilestonePayment = transaction.type === 'milestone_payment'
-                const isClient = role === 'Client'
-                const isProvider = role === 'Provider'
-                
-                // Determine if amount is positive (income) or negative (expense)
-                let isPositive = false
-                if (transaction.type === 'charge') {
-                  isPositive = true
-                } else if (transaction.type === 'withdraw') {
-                  isPositive = false
-                } else if (transaction.type === 'milestone_payment') {
-                  // If user is provider, they received payment (positive)
-                  // If user is client, they paid (negative)
-                  isPositive = isProvider
-                }
-                
-                return (
-                  <div
-                    key={transaction.id}
-                    className="p-4 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-white font-medium">{getTypeLabel(transaction.type)}</span>
-                          {isMilestonePayment && (
-                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                              isClient ? 'text-blue-400 bg-blue-400/10' : isProvider ? 'text-purple-400 bg-purple-400/10' : 'text-neutral-400 bg-neutral-400/10'
-                            }`}>
-                              {role}
-                            </span>
-                          )}
-                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(transaction.status)}`}>
-                            {transaction.status.toUpperCase()}
-                          </span>
-                        </div>
-                        {isMilestonePayment && otherParty && (
-                          <div className="mt-1">
-                            <span className="text-xs text-neutral-500">with {otherParty}</span>
-                          </div>
-                        )}
-                      </div>
-                      <span className={`font-semibold text-lg ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                        {isPositive ? '+' : '-'}
-                        {Number(transaction.amount).toFixed(2)} USD
-                      </span>
-                    </div>
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <span className="text-neutral-400">Date: </span>
-                        <span className="text-neutral-300">{formatDate(transaction.createdAt)}</span>
-                      </div>
-                      {transaction.description && (
-                        <div>
-                          <span className="text-neutral-400">Description: </span>
-                          <span className="text-neutral-300">{transaction.description}</span>
-                        </div>
-                      )}
-                      {transaction.milestoneId && (
-                        <div>
-                          <button
-                            onClick={() => navigate(`/transactions?milestone=${transaction.milestoneId}`)}
-                            className="text-primary hover:text-primary/80 text-xs underline"
-                          >
-                            View Milestone
-                          </button>
-                        </div>
-                      )}
-                      {transaction.transactionHash && (
-                        <div>
-                          <span className="text-neutral-400">Hash: </span>
-                          <a
-                            href={`https://tronscan.org/#/transaction/${transaction.transactionHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:text-primary/80 font-mono text-xs"
-                          >
-                            {transaction.transactionHash.substring(0, 20)}...
-                          </a>
-                        </div>
-                      )}
-                      {transaction.walletAddress && (
-                        <div>
-                          <span className="text-neutral-400">Address: </span>
-                          <span className="text-neutral-300 font-mono text-xs">{transaction.walletAddress.substring(0, 20)}...</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-base">History</CardTitle>
+              <CardDescription>
+                Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total}
+              </CardDescription>
             </div>
+            {(filterType !== "all" || filterStatus !== "all") ? (
+              <Button type="button" variant="ghost" onClick={() => { setFilterType("all"); setFilterStatus("all") }}>
+                Clear filters
+              </Button>
+            ) : null}
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="space-y-3 p-6">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : transactions.length === 0 ? (
+            <div className="p-10 text-center">
+              <div className="text-sm text-muted-foreground">No transactions found.</div>
+            </div>
+          ) : filteredTransactions.length === 0 ? (
+            <div className="p-10 text-center">
+              <div className="text-sm text-muted-foreground">No transactions match your filters.</div>
+              <div className="pt-4">
+                <Button type="button" variant="outline" onClick={() => { setFilterType("all"); setFilterStatus("all") }}>
+                  Reset filters
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Hash / Address</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTransactions.map((transaction) => {
+                      const { role, otherParty } = getTransactionRole(transaction)
+                      const isMilestonePayment = transaction.type === "milestone_payment"
+                      const { sign, isPositive } = getSignedAmount(transaction)
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between mt-6 pt-6 border-t border-white/10 gap-4">
-                <div className="text-sm text-neutral-400">
-                  Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} transactions
-                </div>
-                <div className="flex gap-2 flex-wrap justify-center">
-                  <button
-                    onClick={() => setPage(page - 1)}
-                    disabled={page === 1}
-                    className="px-4 py-2 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white font-medium hover:bg-white/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  <div className="flex items-center gap-2 flex-wrap justify-center">
-                    {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => {
-                      let pageNum
-                      if (totalPages <= 10) {
-                        pageNum = i + 1
-                      } else if (page <= 5) {
-                        pageNum = i + 1
-                      } else if (page >= totalPages - 4) {
-                        pageNum = totalPages - 9 + i
-                      } else {
-                        pageNum = page - 4 + i
+                      const canOpenDetails =
+                        (transaction.type === "charge" && !!transaction.walletAddress) ||
+                        transaction.type === "withdraw"
+
+                      const openDetails = () => {
+                        if (transaction.type === "charge" && transaction.walletAddress) {
+                          navigate(`/charge/${transaction.walletAddress}`)
+                          return
+                        }
+                        if (transaction.type === "withdraw") {
+                          navigate(`/withdraw/${transaction.id}`, { state: { transaction } })
+                          return
+                        }
                       }
                       return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setPage(pageNum)}
-                          className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                            page === pageNum
-                              ? 'bg-primary text-white'
-                              : 'bg-[rgba(2,4,8,0.7)] border border-white/10 text-neutral-400 hover:bg-white/5'
-                          }`}
+                        <TableRow
+                          key={transaction.id}
+                          className={canOpenDetails ? "cursor-pointer hover:bg-muted/30" : undefined}
+                          onClick={canOpenDetails ? openDetails : undefined}
                         >
-                          {pageNum}
-                        </button>
+                          <TableCell className="font-medium">{getTypeLabel(transaction.type)}</TableCell>
+                          <TableCell>
+                            {isMilestonePayment ? (
+                              <div className="space-y-0.5">
+                                <div className="text-xs font-semibold">{role}</div>
+                                {otherParty ? (
+                                  <div className="text-xs text-muted-foreground">with {otherParty}</div>
+                                ) : null}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className={["inline-flex items-center gap-2 font-semibold", isPositive ? "text-foreground" : "text-foreground"].join(" ")}>
+                              {isPositive ? <ArrowDownLeft className="h-4 w-4 text-emerald-600" /> : <ArrowUpRight className="h-4 w-4 text-rose-600" />}
+                              <span className={isPositive ? "text-emerald-600" : "text-rose-600"}>
+                                {sign}{Number(transaction.amount).toFixed(2)} USD
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={statusVariant(transaction.status)}>
+                              {transaction.status.toUpperCase()}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{formatDate(transaction.createdAt)}</TableCell>
+                          <TableCell className="max-w-[360px]">
+                            <div className="truncate text-sm">{transaction.description || "-"}</div>
+                            {transaction.milestoneId ? (
+                              <Button
+                                type="button"
+                                variant="link"
+                                className="h-auto px-0 py-0 text-xs"
+                                onClick={() => navigate(`/transactions?milestone=${transaction.milestoneId}`)}
+                              >
+                                View milestone
+                              </Button>
+                            ) : null}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {transaction.transactionHash ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="gap-2 font-mono"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  navigator.clipboard.writeText(transaction.transactionHash!)
+                                  showToast.success("Hash copied")
+                                }}
+                                title={transaction.transactionHash}
+                              >
+                                <Copy className="h-4 w-4" />
+                                {transaction.transactionHash.substring(0, 10)}…
+                              </Button>
+                            ) : transaction.walletAddress ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="gap-2 font-mono"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  navigator.clipboard.writeText(transaction.walletAddress!)
+                                  showToast.success("Address copied")
+                                }}
+                                title={transaction.walletAddress}
+                              >
+                                <Copy className="h-4 w-4" />
+                                {transaction.walletAddress.substring(0, 10)}…
+                              </Button>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
                       )
                     })}
-                  </div>
-                  <button
-                    onClick={() => setPage(page + 1)}
-                    disabled={page === totalPages}
-                    className="px-4 py-2 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white font-medium hover:bg-white/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </div>
+                  </TableBody>
+                </Table>
               </div>
-            )}
-          </>
-        )}
-      </div>
+
+              <div className="flex flex-col gap-3 border-t p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-xs text-muted-foreground">
+                  Page {page} of {totalPages}
+                </div>
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setPage((p) => Math.max(1, p - 1))
+                        }}
+                        className={page === 1 ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                    {pageItems.map((it, idx) =>
+                      it === "…" ? (
+                        <PaginationItem key={`e-${idx}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      ) : (
+                        <PaginationItem key={it}>
+                          <PaginationLink
+                            href="#"
+                            isActive={it === page}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              setPage(it)
+                            }}
+                            className={totalPages <= 1 ? "pointer-events-none opacity-50" : ""}
+                          >
+                            {it}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    )}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setPage((p) => Math.min(totalPages, p + 1))
+                        }}
+                        className={page === totalPages ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

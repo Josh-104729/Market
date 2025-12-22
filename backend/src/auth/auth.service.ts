@@ -23,6 +23,7 @@ import { EmailService } from './email.service';
 // import { SmsService } from './sms.service'; // SMS phone verification disabled
 import { TwoFactorService } from './two-factor.service';
 import { ReferralService } from '../referral/referral.service';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class AuthService {
@@ -38,6 +39,7 @@ export class AuthService {
     // private smsService: SmsService, // SMS phone verification disabled
     private twoFactorService: TwoFactorService,
     private referralService: ReferralService,
+    private storageService: StorageService,
   ) {}
 
   async signUpStep1(dto: SignUpStep1Dto) {
@@ -472,6 +474,22 @@ export class AuthService {
     if (dto.address !== undefined) user.address = dto.address;
     if (dto.phoneNumber !== undefined) user.phoneNumber = dto.phoneNumber;
 
+    await this.userRepository.save(user);
+
+    return this.getProfile(userId);
+  }
+
+  async updateAvatar(userId: string, file: Express.Multer.File) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const avatarUrl = await this.storageService.uploadFile(file, 'avatars');
+    user.avatar = avatarUrl;
     await this.userRepository.save(user);
 
     return this.getProfile(userId);

@@ -1,9 +1,25 @@
-import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { paymentApi, Balance } from '../services/api'
-import { showToast } from '../utils/toast'
-import { getSocket } from '../services/socket'
-import { Socket } from 'socket.io-client'
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
+import { paymentApi, Balance } from "../services/api"
+import { showToast } from "../utils/toast"
+import { getSocket } from "../services/socket"
+import type { Socket } from "socket.io-client"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { CheckCircle2, Clock, Copy, ExternalLink, Loader2, QrCode, Wallet } from "lucide-react"
 
 interface ChargeData {
   walletAddress: string
@@ -29,9 +45,16 @@ function ChargeDetail() {
   const intervalRef = useRef<number | null>(null)
   const countdownRef = useRef<number | null>(null)
   const socketRef = useRef<Socket | null>(null)
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   
   // Get paymentNetwork from location state (passed from Charge page)
   const paymentNetworkFromState = location.state?.paymentNetwork as 'USDT_TRC20' | 'USDC_POLYGON' | undefined
+  const currency = useMemo(() => (chargeData?.paymentNetwork === "USDC_POLYGON" ? "USDC" : "USDT"), [chargeData?.paymentNetwork])
+  const networkLabel = useMemo(
+    () => (chargeData?.paymentNetwork === "USDC_POLYGON" ? "USDC (Polygon)" : "USDT (TRC20)"),
+    [chargeData?.paymentNetwork],
+  )
 
   useEffect(() => {
     if (!walletAddress) {
@@ -221,176 +244,253 @@ function ChargeDetail() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <div className="backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl p-8">
-          <div className="flex items-center justify-center py-12">
-            <div className="text-white">Loading...</div>
-          </div>
-        </div>
+      <div className="mx-auto w-full max-w-2xl space-y-6 py-4">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-72 w-full" />
+        <Skeleton className="h-64 w-full" />
       </div>
     )
   }
 
   if (!chargeData) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <div className="backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl p-8">
-          <div className="text-center py-12">
-            <p className="text-white mb-4">Charge information not found</p>
-            <button
-              onClick={() => navigate('/charge')}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-primary to-emerald-600 text-white font-semibold hover:shadow-lg hover:shadow-primary/50 transition-all"
-            >
-              Go to Charge Page
-            </button>
-          </div>
-        </div>
+      <div className="mx-auto w-full max-w-2xl py-10">
+        <Card>
+          <CardContent className="space-y-4 py-10 text-center">
+            <div className="text-sm text-muted-foreground">Charge information not found.</div>
+            <div>
+              <Button type="button" onClick={() => navigate("/charge")}>
+                Back to Charge
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
+  const statusVariant: "secondary" | "outline" = transactionStatus === "success" ? "secondary" : "outline"
+  const statusLabel =
+    transactionStatus === "success"
+      ? "Paid"
+      : transactionStatus === "pending"
+        ? "Waiting for payment"
+        : transactionStatus
+          ? transactionStatus.toUpperCase()
+          : "UNKNOWN"
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <div className="backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl p-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Charge Balance</h1>
-        <p className="text-neutral-400 mb-6">
-          Send {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC on Polygon network' : 'USDT TRC20'} to the address below
-        </p>
-
-        {balance && (
-          <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-primary/20 to-emerald-600/20 border border-primary/30">
-            <p className="text-sm text-neutral-400 mb-1">Current Balance</p>
-            <p className="text-2xl font-bold text-white">{Number(balance.amount).toFixed(2)} USD</p>
+    <div className="mx-auto w-full max-w-2xl space-y-6 py-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <div className="text-2xl font-bold tracking-tight">Charge details</div>
+          <div className="text-sm text-muted-foreground">
+            Send <b>{currency}</b> on <b>{networkLabel}</b> to the address below.
           </div>
-        )}
+        </div>
+        <Button type="button" variant="outline" onClick={() => navigate("/charge")}>
+          {transactionStatus === "success" ? "Charge again" : "Back"}
+        </Button>
+      </div>
 
-        <div className="space-y-6">
-          {/* Status Badge */}
-          <div className="flex items-center justify-center gap-2">
-            <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
-              transactionStatus === 'success' 
-                ? 'text-green-400 bg-green-400/10' 
-                : transactionStatus === 'pending'
-                ? 'text-yellow-400 bg-yellow-400/10'
-                : 'text-neutral-400 bg-neutral-400/10'
-            }`}>
-              {transactionStatus === 'success' ? 'PAID' : transactionStatus === 'pending' ? 'WAITING FOR PAYMENT' : transactionStatus.toUpperCase()}
-            </span>
-            {transactionStatus === 'pending' && (
-              <span className="text-xs text-neutral-400 animate-pulse">
-                Checking for payment...
-              </span>
-            )}
+      {balance ? (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Wallet className="h-4 w-4" />
+              Current balance
+            </CardTitle>
+            <CardDescription>Updates automatically after payment confirmation.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{Number(balance.amount).toFixed(2)}</div>
+            <div className="text-sm text-muted-foreground">USD</div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-base">Payment status</CardTitle>
+              <CardDescription>We’ll keep checking while this is pending.</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={statusVariant} className="gap-2">
+                {transactionStatus === "success" ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                {statusLabel}
+              </Badge>
+              {transactionStatus === "pending" ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Checking...
+                </div>
+              ) : null}
+            </div>
           </div>
-
-          {/* QR Code */}
+        </CardHeader>
+        <CardContent className="space-y-6">
           <div className="flex justify-center">
-            <div className="p-4 bg-white rounded-xl">
+            <div className="rounded-xl border bg-card p-4">
               <img
                 src={generateQRCode(chargeData.walletAddress)}
                 alt="Wallet Address QR Code"
-                className="w-64 h-64"
+                className="h-64 w-64 bg-white p-3"
               />
-            </div>
-          </div>
-
-          {/* Wallet Address */}
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              Wallet Address
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={chargeData.walletAddress}
-                readOnly
-                className="flex-1 px-4 py-3 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white font-mono text-sm"
-              />
-              <button
-                onClick={() => copyToClipboard(chargeData.walletAddress)}
-                className="px-4 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-all"
-              >
-                Copy
-              </button>
-            </div>
-          </div>
-
-          {/* Amount Breakdown */}
-          <div className="p-4 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 space-y-2">
-            <div className="flex justify-between text-neutral-300">
-              <span>Network:</span>
-              <span className="font-semibold">{chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC Polygon' : 'USDT TRC20'}</span>
-            </div>
-            <div className="flex justify-between text-neutral-300">
-              <span>Amount:</span>
-              <span className="font-semibold">{Number(chargeData.amount).toFixed(2)} {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'}</span>
-            </div>
-            <div className="flex justify-between text-neutral-300">
-              <span>Platform Fee:</span>
-              <span className="font-semibold">{Number(chargeData.platformFee).toFixed(2)} {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'}</span>
-            </div>
-            <div className="pt-2 border-t border-white/10 flex justify-between text-white">
-              <span className="font-semibold">Total to Send:</span>
-              <span className="font-bold text-lg">{Number(chargeData.total).toFixed(2)} {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'}</span>
-            </div>
-          </div>
-
-          {/* Expiration */}
-          {transactionStatus === 'pending' && chargeData.expiresAt && (
-            <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
-              <div className="text-center">
-                <p className="text-xs text-yellow-400/70 mb-2">Time Remaining</p>
-                <p className="text-3xl font-bold text-yellow-300 font-mono tracking-wider">
-                  {timeRemaining || getTimeRemaining(chargeData.expiresAt)}
-                </p>
-                {timeRemaining === 'Expired' && (
-                  <p className="text-xs text-red-400 mt-2">This transaction has expired</p>
-                )}
+              <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <QrCode className="h-3 w-3" />
+                Scan to copy address in your wallet
               </div>
-              <p className="text-xs text-yellow-400/70 text-center mt-3 pt-3 border-t border-yellow-500/20">
-                Expires at: {formatDate(chargeData.expiresAt)}
-              </p>
             </div>
-          )}
-
-          {/* Instructions */}
-          <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
-            <p className="text-sm text-blue-300 mb-2">
-              <strong>Instructions:</strong>
-            </p>
-            <ol className="text-sm text-blue-300/80 list-decimal list-inside space-y-1">
-              <li>Send exactly <strong>{Number(chargeData.total).toFixed(2)} {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'}</strong> to the wallet address above</li>
-              <li>Make sure you're sending {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'USDC on the Polygon network' : 'USDT on the TRC20 network'}</li>
-              <li>Your balance will be updated automatically once the payment is confirmed</li>
-              <li>This page will update automatically when payment is received</li>
-            </ol>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-4">
-            <button
-              onClick={() => navigate('/charge')}
-              className="flex-1 px-6 py-3 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white font-semibold hover:bg-white/5 transition-all"
+          <div className="space-y-2">
+            <div className="text-sm font-medium">Wallet address</div>
+            <div className="flex items-center gap-2">
+              <Input value={chargeData.walletAddress} readOnly className="font-mono text-xs sm:text-sm" />
+              <Button type="button" variant="secondary" className="gap-2" onClick={() => copyToClipboard(chargeData.walletAddress)}>
+                <Copy className="h-4 w-4" />
+                Copy
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-3">
+            <div className="text-sm font-semibold">Amount</div>
+            <div className="rounded-lg border bg-muted/20 p-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Network</span>
+                <span className="font-medium">{networkLabel}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Amount</span>
+                <span className="font-medium">{Number(chargeData.amount).toFixed(2)} {currency}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Platform fee</span>
+                <span className="font-medium">{Number(chargeData.platformFee).toFixed(2)} {currency}</span>
+              </div>
+              <Separator className="my-3" />
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">Total to send</span>
+                <span className="text-lg font-bold">{Number(chargeData.total).toFixed(2)} {currency}</span>
+              </div>
+            </div>
+          </div>
+
+          {transactionStatus === "pending" && chargeData.expiresAt ? (
+            <Alert>
+              <Clock className="h-4 w-4" />
+              <AlertTitle>Time remaining</AlertTitle>
+              <AlertDescription>
+                <div className="mt-2 flex items-center justify-between gap-4 rounded-md border bg-background px-3 py-2">
+                  <div className="text-xs text-muted-foreground">Expires at: {formatDate(chargeData.expiresAt)}</div>
+                  <div className="font-mono text-lg font-semibold">
+                    {timeRemaining || getTimeRemaining(chargeData.expiresAt)}
+                  </div>
+                </div>
+                {timeRemaining === "Expired" ? (
+                  <div className="mt-2 text-sm text-destructive">This transaction has expired.</div>
+                ) : null}
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          <Alert>
+            <Wallet className="h-4 w-4" />
+            <AlertTitle>Instructions</AlertTitle>
+            <AlertDescription>
+              <ol className="mt-2 list-decimal space-y-1 pl-4">
+                <li>
+                  Send exactly <b>{Number(chargeData.total).toFixed(2)} {currency}</b> to the wallet address above.
+                </li>
+                <li>
+                  Make sure you’re sending <b>{currency}</b> on <b>{networkLabel}</b>.
+                </li>
+                <li>Your balance will update automatically once the payment is confirmed.</li>
+                <li>This page updates automatically when payment is received.</li>
+              </ol>
+            </AlertDescription>
+          </Alert>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            {transactionStatus === "pending" ? (
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => setCancelOpen(true)}
+                  disabled={cancelling}
+                >
+                  Cancel charge
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => {
+                    if (chargeData.paymentNetwork === "USDC_POLYGON") {
+                      window.open(`https://polygonscan.com/address/${chargeData.walletAddress}`, "_blank")
+                    } else {
+                      window.open(`https://tronscan.org/#/address/${chargeData.walletAddress}`, "_blank")
+                    }
+                  }}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  View on {chargeData.paymentNetwork === "USDC_POLYGON" ? "PolygonScan" : "TronScan"}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel this charge?</DialogTitle>
+            <DialogDescription>
+              This will cancel the pending charge request. If you already sent funds, do not cancel — wait for confirmation.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setCancelOpen(false)} disabled={cancelling}>
+              Keep waiting
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={cancelling}
+              className="gap-2"
+              onClick={async () => {
+                try {
+                  setCancelling(true)
+                  await paymentApi.cancelCharge(chargeData.transactionId)
+
+                  if (intervalRef.current) window.clearInterval(intervalRef.current)
+                  if (countdownRef.current) window.clearInterval(countdownRef.current)
+
+                  setTransactionStatus("cancelled")
+                  setChargeData((prev) => (prev ? { ...prev, status: "cancelled" } : prev))
+                  showToast.success("Charge cancelled")
+                  setCancelOpen(false)
+                } catch (err: any) {
+                  const msg = err.response?.data?.message || "Failed to cancel charge"
+                  showToast.error(msg)
+                } finally {
+                  setCancelling(false)
+                }
+              }}
             >
-              {transactionStatus === 'success' ? 'Charge Again' : 'Back to Charge'}
-            </button>
-            {transactionStatus === 'pending' && (
-              <button
-                onClick={() => {
-                  if (chargeData.paymentNetwork === 'USDC_POLYGON') {
-                    window.open(`https://polygonscan.com/address/${chargeData.walletAddress}`, '_blank')
-                  } else {
-                    window.open(`https://tronscan.org/#/address/${chargeData.walletAddress}`, '_blank')
-                  }
-                }}
-                className="px-6 py-3 rounded-xl bg-primary/20 border border-primary/30 text-primary font-semibold hover:bg-primary/30 transition-all"
-              >
-                View on {chargeData.paymentNetwork === 'USDC_POLYGON' ? 'PolygonScan' : 'TronScan'}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+              {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {cancelling ? "Cancelling..." : "Cancel charge"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

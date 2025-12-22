@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Query, Param, DefaultValuePipe, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, UseGuards, Request, Query, Param, DefaultValuePipe, ParseIntPipe } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { InitiateChargeDto } from './dto/initiate-charge.dto';
@@ -52,6 +52,11 @@ export class PaymentController {
   @Get('charge/wallet/:walletAddress')
   async getChargeByWalletAddress(@Request() req, @Param('walletAddress') walletAddress: string) {
     return this.paymentService.getChargeByWalletAddress(walletAddress, req.user.id);
+  }
+
+  @Patch('charge/cancel/:transactionId')
+  async cancelCharge(@Request() req, @Param('transactionId') transactionId: string) {
+    return this.paymentService.cancelCharge(transactionId, req.user.id);
   }
 
   // Withdraw endpoints

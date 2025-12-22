@@ -971,6 +971,38 @@ export class PaymentService {
   }
 
   /**
+   * Cancel a pending charge transaction (user-initiated)
+   */
+  async cancelCharge(transactionId: string, userId: string): Promise<{ status: string }> {
+    const transaction = await this.transactionRepository.findOne({
+      where: { id: transactionId, clientId: userId, type: TransactionType.CHARGE },
+    });
+
+    if (!transaction) {
+      throw new NotFoundException('Charge transaction not found');
+    }
+
+    if (transaction.status === TransactionStatus.SUCCESS) {
+      throw new BadRequestException('Cannot cancel a successful charge');
+    }
+
+    if (transaction.status === TransactionStatus.CANCELLED) {
+      throw new BadRequestException('Charge is already cancelled');
+    }
+
+    if (transaction.status !== TransactionStatus.PENDING) {
+      throw new BadRequestException(`Cannot cancel charge with status ${transaction.status}`);
+    }
+
+    transaction.status = TransactionStatus.CANCELLED;
+    transaction.expiresAt = new Date();
+    transaction.description = `Charge cancelled by user`;
+    await this.transactionRepository.save(transaction);
+
+    return { status: transaction.status };
+  }
+
+  /**
    * Monitor temp wallet and process payment when detected
    * This should be called periodically (e.g., every 30 seconds) for pending charge transactions
    */

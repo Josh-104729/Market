@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { logout } from '../store/slices/authSlice'
 import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/theme-toggle"
 import {
   LayoutDashboard,
   FolderTree,
@@ -82,6 +83,7 @@ function Layout({ children }: LayoutProps) {
                 {user?.email}
               </span>
             </div>
+            <ThemeToggle />
             <Button
               variant="outline"
               size="sm"

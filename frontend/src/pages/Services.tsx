@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAppSelector } from '../store/hooks'
 import { categoryApi, serviceApi, Service, Category } from '../services/api'
 import { renderIcon } from '../utils/iconHelper'
 import ImageWithLoader from '../components/ImageWithLoader'
+import { showToast } from "../utils/toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Card,
   CardContent,
@@ -30,24 +32,71 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import { 
   Search, 
   Plus, 
   Star, 
   LayoutGrid, 
   Table as TableIcon, 
-  ChevronLeft, 
-  ChevronRight,
   Filter,
   Package,
   StarHalf
 } from "lucide-react"
 
 type ViewMode = 'card' | 'table'
+type ServicesScope = "all" | "my"
 
 const STORAGE_KEY = 'services_view_mode'
+
+type PaginationToken = number | "ellipsis"
+
+function getPaginationTokens(currentPage: number, totalPages: number, siblingCount = 1): PaginationToken[] {
+  const totalPageNumbers = siblingCount * 2 + 5
+
+  if (totalPages <= totalPageNumbers) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1)
+  }
+
+  const leftSiblingIndex = Math.max(currentPage - siblingCount, 1)
+  const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages)
+
+  const shouldShowLeftEllipsis = leftSiblingIndex > 2
+  const shouldShowRightEllipsis = rightSiblingIndex < totalPages - 1
+
+  const firstPageIndex = 1
+  const lastPageIndex = totalPages
+
+  if (!shouldShowLeftEllipsis && shouldShowRightEllipsis) {
+    const leftItemCount = 3 + 2 * siblingCount
+    const leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1)
+    return [...leftRange, "ellipsis", lastPageIndex]
+  }
+
+  if (shouldShowLeftEllipsis && !shouldShowRightEllipsis) {
+    const rightItemCount = 3 + 2 * siblingCount
+    const start = totalPages - rightItemCount + 1
+    const rightRange = Array.from({ length: rightItemCount }, (_, i) => start + i)
+    return [firstPageIndex, "ellipsis", ...rightRange]
+  }
+
+  const middleRange = Array.from(
+    { length: rightSiblingIndex - leftSiblingIndex + 1 },
+    (_, i) => leftSiblingIndex + i
+  )
+  return [firstPageIndex, "ellipsis", ...middleRange, "ellipsis", lastPageIndex]
+}
 
 const StarRating = ({ rating }: { rating: number }) => {
   const fullStars = Math.floor(rating)
@@ -61,14 +110,16 @@ const StarRating = ({ rating }: { rating: number }) => {
       ))}
       {hasHalfStar && <StarHalf className="w-3.5 h-3.5 text-yellow-400" />}
       {[...Array(emptyStars)].map((_, i) => (
-        <Star key={`empty-${i}`} className="w-3.5 h-3.5 text-slate-200" />
+        <Star key={`empty-${i}`} className="w-3.5 h-3.5 text-muted-foreground/30" />
       ))}
     </div>
   )
 }
 
 function Services() {
+  const navigate = useNavigate()
   const { isAuthenticated } = useAppSelector((state) => state.auth)
+  const [scope, setScope] = useState<ServicesScope>("all")
   const [services, setServices] = useState<Service[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -96,7 +147,7 @@ function Services() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, selectedCategory, itemsPerPage])
+  }, [searchTerm, selectedCategory, itemsPerPage, scope])
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -118,9 +169,12 @@ function Services() {
     try {
       setLoading(true)
       const params: any = {
-        status: 'active',
         page: currentPage,
         limit: itemsPerPage,
+      }
+      // Only show active services in public marketplace.
+      if (scope === "all") {
+        params.status = 'active'
       }
       if (selectedCategory && selectedCategory !== 'all') {
         params.categoryId = selectedCategory
@@ -128,7 +182,10 @@ function Services() {
       if (searchTerm.trim()) {
         params.search = searchTerm.trim()
       }
-      const response = await serviceApi.getAllPaginated(params)
+      const response =
+        scope === "my"
+          ? await serviceApi.getMyServices(params)
+          : await serviceApi.getAllPaginated(params)
       setServices(response.data)
       setTotal(response.total)
       setTotalPages(response.totalPages)
@@ -140,16 +197,31 @@ function Services() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col gap-8">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">Marketplace</h1>
-            <p className="text-slate-500 mt-1">Discover and purchase services from our community.</p>
-          </div>
+    <div className="flex flex-col gap-8 py-4">
+        {/* Tabs row */}
+        <div className="flex items-center justify-between gap-4">
+          <Tabs
+            value={scope}
+            onValueChange={(v) => {
+              if (v !== "all" && v !== "my") return
+              if (v === "my" && !isAuthenticated) {
+                showToast.info("Please sign in to view your services.")
+                navigate("/signin")
+                return
+              }
+              setScope(v)
+            }}
+          >
+            <TabsList>
+              <TabsTrigger value="all">All Services</TabsTrigger>
+              <TabsTrigger value="my" disabled={!isAuthenticated}>
+                My Services
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           {isAuthenticated && (
-            <Button asChild className="gap-2 rounded-full px-6 shadow-md shadow-primary/20">
+            <Button asChild className="gap-2 rounded-full px-6">
               <Link to="/services/new">
                 <Plus className="w-4 h-4" />
                 <span>Create Service</span>
@@ -158,47 +230,61 @@ function Services() {
           )}
         </div>
 
-        <Separator className="bg-slate-100" />
-
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Filters */}
           <aside className="w-full lg:w-64 space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-slate-900 font-semibold">
-                <Filter className="w-4 h-4" />
-                <span>Filters</span>
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">Category</Label>
-                <div className="flex flex-col gap-1">
-                  <Button
-                    variant={selectedCategory === 'all' ? "secondary" : "ghost"}
-                    className="justify-between px-3 h-10 font-medium"
-                    onClick={() => setSelectedCategory('all')}
-                  >
-                    <span>All Categories</span>
-                    <Badge variant="outline" className="ml-2 font-bold text-[10px]">{totalServiceCount}</Badge>
-                  </Button>
-                  {categories.map((category) => (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Filter className="w-4 h-4" />
+                  Filters
+                </CardTitle>
+                <CardDescription>Refine your search</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Category
+                  </Label>
+                  <div className="flex flex-col gap-1">
                     <Button
-                      key={category.id}
-                      variant={selectedCategory === category.id ? "secondary" : "ghost"}
+                      variant={selectedCategory === 'all' ? "secondary" : "ghost"}
                       className="justify-between px-3 h-10 font-medium"
-                      onClick={() => setSelectedCategory(category.id)}
+                      onClick={() => setSelectedCategory('all')}
                     >
-                      <div className="flex items-center gap-2 truncate">
-                        {category.icon && <span className="text-primary">{renderIcon(category.icon, 'w-4 h-4')}</span>}
-                        <span className="truncate">{category.title}</span>
-                      </div>
-                      {category.serviceCount !== undefined && (
-                        <Badge variant="outline" className="ml-2 font-bold text-[10px]">{category.serviceCount}</Badge>
-                      )}
+                      <span>All Categories</span>
+                      {scope === "all" ? (
+                        <Badge variant="outline" className="ml-2 font-bold text-[10px]">
+                          {totalServiceCount}
+                        </Badge>
+                      ) : null}
                     </Button>
-                  ))}
+                    {categories.map((category) => (
+                      <Button
+                        key={category.id}
+                        variant={selectedCategory === category.id ? "secondary" : "ghost"}
+                        className="justify-between px-3 h-10 font-medium"
+                        onClick={() => setSelectedCategory(category.id)}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          {category.icon && (
+                            <span className="text-primary">
+                              {renderIcon(category.icon, 'w-4 h-4')}
+                            </span>
+                          )}
+                          <span className="truncate">{category.title}</span>
+                        </div>
+                        {scope === "all" && category.serviceCount !== undefined && (
+                          <Badge variant="outline" className="ml-2 font-bold text-[10px]">
+                            {category.serviceCount}
+                          </Badge>
+                        )}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </aside>
 
           {/* Main Content Area */}
@@ -206,31 +292,42 @@ function Services() {
             {/* Search and View Toggle */}
             <div className="flex flex-col sm:flex-row gap-4 items-center">
               <div className="relative flex-1 w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search services..."
-                  className="pl-10 h-11 rounded-xl bg-white border-slate-200"
+                  className="pl-10 h-11"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-2 bg-slate-100/50 p-1 rounded-xl border border-slate-200">
-                <Button
-                  variant={viewMode === 'card' ? "white" : "ghost"}
-                  size="icon"
-                  className={`h-9 w-9 rounded-lg ${viewMode === 'card' ? "bg-white shadow-sm" : "text-slate-500"}`}
-                  onClick={() => setViewMode('card')}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'table' ? "white" : "ghost"}
-                  size="icon"
-                  className={`h-9 w-9 rounded-lg ${viewMode === 'table' ? "bg-white shadow-sm" : "text-slate-500"}`}
-                  onClick={() => setViewMode('table')}
-                >
-                  <TableIcon className="w-4 h-4" />
-                </Button>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                <Select value={String(itemsPerPage)} onValueChange={(v) => setItemsPerPage(Number(v))}>
+                  <SelectTrigger className="h-11 w-full sm:w-[150px]">
+                    <SelectValue placeholder="Per page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="12">12 / page</SelectItem>
+                    <SelectItem value="24">24 / page</SelectItem>
+                    <SelectItem value="48">48 / page</SelectItem>
+                  </SelectContent>
+                </Select>
+
+              <ToggleGroup
+                type="single"
+                value={viewMode}
+                onValueChange={(v) => {
+                  if (v === "card" || v === "table") setViewMode(v)
+                }}
+                className="justify-end"
+              >
+                <ToggleGroupItem value="card" aria-label="Card view">
+                  <LayoutGrid className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="table" aria-label="Table view">
+                  <TableIcon className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
               </div>
             </div>
 
@@ -246,14 +343,14 @@ function Services() {
                 ))}
               </div>
             ) : services.length === 0 ? (
-              <Card className="border-dashed border-2 bg-slate-50/50 py-20">
+              <Card className="border-dashed border-2 bg-muted/20 py-20">
                 <CardContent className="flex flex-col items-center text-center gap-4">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-400">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center text-muted-foreground">
                     <Package className="w-8 h-8" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">No services found</h3>
-                    <p className="text-slate-500 max-w-xs mx-auto">Try adjusting your filters or search terms to find what you're looking for.</p>
+                    <h3 className="text-lg font-bold text-foreground">No services found</h3>
+                    <p className="text-muted-foreground max-w-xs mx-auto">Try adjusting your filters or search terms to find what you're looking for.</p>
                   </div>
                   <Button variant="outline" onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}>
                     Clear all filters
@@ -263,9 +360,9 @@ function Services() {
             ) : viewMode === 'card' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {services.map((service) => (
-                  <Card key={service.id} className="overflow-hidden group hover:border-primary/50 transition-all hover:shadow-md border-slate-200">
+                  <Card key={service.id} className="overflow-hidden group hover:border-primary/50 transition-all hover:shadow-md">
                     <Link to={`/services/${service.id}`}>
-                      <div className="h-48 relative bg-slate-50 overflow-hidden">
+                      <div className="h-48 relative bg-muted/20 overflow-hidden">
                         {service.adImage ? (
                           <ImageWithLoader
                             src={service.adImage}
@@ -274,12 +371,12 @@ function Services() {
                             containerClassName="w-full h-full"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-300">
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground/40">
                             <Package className="w-12 h-12" />
                           </div>
                         )}
                         <div className="absolute top-3 right-3">
-                          <Badge className="bg-white/90 text-slate-900 hover:bg-white backdrop-blur-sm border-none shadow-sm font-bold">
+                          <Badge variant="secondary" className="backdrop-blur-sm shadow-sm font-bold">
                             ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}
                           </Badge>
                         </div>
@@ -297,13 +394,13 @@ function Services() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-5 pt-0">
-                      <p className="text-slate-500 text-sm line-clamp-2 leading-relaxed">
+                      <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed">
                         {service.adText}
                       </p>
                     </CardContent>
                     <CardFooter className="p-5 pt-0 flex flex-wrap gap-1">
                       {service.tags?.slice(0, 3).map((tag) => (
-                        <Badge key={tag.id} variant="secondary" className="bg-slate-100 text-slate-600 hover:bg-slate-200 border-none px-2 py-0 h-5 text-[10px] font-medium">
+                        <Badge key={tag.id} variant="secondary" className="px-2 py-0 h-5 text-[10px] font-medium">
                           #{tag.title}
                         </Badge>
                       ))}
@@ -312,9 +409,9 @@ function Services() {
                 ))}
               </div>
             ) : (
-              <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+              <div className="border border-border rounded-xl overflow-hidden bg-card shadow-sm">
                 <Table>
-                  <TableHeader className="bg-slate-50/50">
+                  <TableHeader className="bg-muted/30">
                     <TableRow>
                       <TableHead className="w-[80px]">Image</TableHead>
                       <TableHead>Title</TableHead>
@@ -327,7 +424,7 @@ function Services() {
                     {services.map((service) => (
                       <TableRow key={service.id} className="group cursor-pointer" onClick={() => navigate(`/services/${service.id}`)}>
                         <TableCell>
-                          <div className="w-12 h-12 rounded-lg bg-slate-100 overflow-hidden relative border border-slate-200">
+                          <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden relative border border-border">
                             {service.adImage ? (
                               <ImageWithLoader
                                 src={service.adImage}
@@ -335,15 +432,15 @@ function Services() {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                              <div className="w-full h-full flex items-center justify-center text-muted-foreground/40">
                                 <Package className="w-5 h-5" />
                               </div>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="font-semibold text-slate-900 group-hover:text-primary transition-colors">{service.title}</div>
-                          <div className="text-xs text-slate-500 truncate max-w-[200px]">{service.adText}</div>
+                          <div className="font-semibold text-foreground group-hover:text-primary transition-colors">{service.title}</div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[200px]">{service.adText}</div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="font-medium text-[10px]">{service.category?.title || 'N/A'}</Badge>
@@ -363,58 +460,72 @@ function Services() {
 
             {/* Pagination */}
             {!loading && totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-100">
-                <p className="text-sm text-slate-500">
-                  Showing <span className="font-semibold text-slate-900">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-semibold text-slate-900">{Math.min(currentPage * itemsPerPage, total)}</span> of <span className="font-semibold text-slate-900">{total}</span> services
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-border">
+                <p className="text-sm text-muted-foreground">
+                  Showing{" "}
+                  <span className="font-semibold text-foreground">{(currentPage - 1) * itemsPerPage + 1}</span>{" "}
+                  to{" "}
+                  <span className="font-semibold text-foreground">{Math.min(currentPage * itemsPerPage, total)}</span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-foreground">{total}</span> services
                 </p>
-                
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 gap-1"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    <span>Prev</span>
-                  </Button>
-                  
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => 
-                      p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)
-                    ).map((p, i, arr) => (
-                      <div key={p} className="flex items-center">
-                        {i > 0 && arr[i-1] !== p - 1 && <span className="text-slate-300 px-1">...</span>}
-                        <Button
-                          variant={currentPage === p ? "default" : "ghost"}
-                          size="sm"
-                          className={`h-9 w-9 p-0 ${currentPage === p ? "shadow-md shadow-primary/20" : ""}`}
-                          onClick={() => setCurrentPage(p)}
-                        >
-                          {p}
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 gap-1"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    <span>Next</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
+                <Pagination className="mx-0 w-auto justify-end">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setCurrentPage((prev) => Math.max(1, prev - 1))
+                        }}
+                        aria-disabled={currentPage === 1}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+
+                    {getPaginationTokens(currentPage, totalPages).map((token, idx) => {
+                      if (token === "ellipsis") {
+                        return (
+                          <PaginationItem key={`ellipsis-${idx}`}>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )
+                      }
+                      return (
+                        <PaginationItem key={token}>
+                          <PaginationLink
+                            href="#"
+                            isActive={currentPage === token}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              setCurrentPage(token)
+                            }}
+                          >
+                            {token}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    })}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                        }}
+                        aria-disabled={currentPage === totalPages}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               </div>
             )}
           </div>
         </div>
       </div>
-    </div>
   )
 }
 

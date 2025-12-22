@@ -1,7 +1,21 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { paymentApi, Balance } from '../services/api'
-import { showToast } from '../utils/toast'
+import { useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { paymentApi, Balance } from "../services/api"
+import { showToast } from "../utils/toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Loader2, Wallet, ArrowUpRight, AlertTriangle } from "lucide-react"
 
 function Withdraw() {
   const navigate = useNavigate()
@@ -10,6 +24,9 @@ function Withdraw() {
   const [walletAddress, setWalletAddress] = useState('')
   const [paymentNetwork, setPaymentNetwork] = useState<'USDT_TRC20' | 'USDC_POLYGON'>('USDT_TRC20')
   const [loading, setLoading] = useState(false)
+
+  const currency = useMemo(() => (paymentNetwork === "USDC_POLYGON" ? "USDC" : "USDT"), [paymentNetwork])
+  const walletLabel = useMemo(() => (paymentNetwork === "USDC_POLYGON" ? "Polygon" : "TRC20"), [paymentNetwork])
 
   useEffect(() => {
     paymentApi.getBalance()
@@ -29,7 +46,6 @@ function Withdraw() {
     }
 
     // Validate minimum withdrawal amount (5)
-    const currency = paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'
     if (Number(amount) < 5) {
       showToast.error(`Minimum withdrawal amount is 5 ${currency}`)
       return
@@ -89,107 +105,119 @@ function Withdraw() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <div className="backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl p-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Withdraw Balance</h1>
-        <p className="text-neutral-400 mb-6">Withdraw funds to your wallet</p>
+    <div className="mx-auto w-full max-w-2xl space-y-6 py-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <div className="text-2xl font-bold tracking-tight">Withdraw</div>
+          <div className="text-sm text-muted-foreground">Withdraw funds to your wallet address.</div>
+        </div>
+        <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+          Back
+        </Button>
+      </div>
 
-        {balance && (
-          <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-primary/20 to-emerald-600/20 border border-primary/30">
-            <p className="text-sm text-neutral-400 mb-1">Available Balance</p>
-            <p className="text-2xl font-bold text-white">{Number(balance.amount).toFixed(2)} USD</p>
-          </div>
-        )}
+      {balance ? (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center justify-between gap-3 text-base">
+              <span className="flex items-center gap-2">
+                <Wallet className="h-4 w-4" />
+                Available balance
+              </span>
+              <Badge variant="secondary">USD</Badge>
+            </CardTitle>
+            <CardDescription>Your current balance available for withdrawal.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{Number(balance.amount).toFixed(2)}</div>
+          </CardContent>
+        </Card>
+      ) : null}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="paymentNetwork" className="block text-sm font-medium text-white mb-2">
-              Payment Network
-            </label>
-            <select
-              id="paymentNetwork"
-              value={paymentNetwork}
-              onChange={(e) => setPaymentNetwork(e.target.value as 'USDT_TRC20' | 'USDC_POLYGON')}
-              className="w-full px-4 py-3 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="USDT_TRC20">USDT TRC20</option>
-              <option value="USDC_POLYGON">USDC Polygon</option>
-            </select>
-          </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ArrowUpRight className="h-5 w-5" />
+            Withdrawal request
+          </CardTitle>
+          <CardDescription>Requests are reviewed and processed by admin.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Payment network</Label>
+                <Select value={paymentNetwork} onValueChange={(v) => setPaymentNetwork(v as any)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a network" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USDT_TRC20">USDT (TRC20)</SelectItem>
+                    <SelectItem value="USDC_POLYGON">USDC (Polygon)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-white mb-2">
-              Amount ({paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'})
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                id="amount"
-                step="0.01"
-                min="5"
-                max={balance ? Number(balance.amount) : undefined}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="5.00"
+              <div className="space-y-2">
+                <Label>Amount ({currency})</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    min="5"
+                    max={balance ? Number(balance.amount) : undefined}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="5.00"
+                    required
+                  />
+                  <Button type="button" variant="secondary" onClick={handleMaxAmount} disabled={!balance}>
+                    Max
+                  </Button>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Minimum withdrawal amount: <b>5 {currency}</b>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{walletLabel} wallet address</Label>
+              <Input
+                value={walletAddress}
+                onChange={(e) => setWalletAddress(e.target.value)}
+                placeholder={paymentNetwork === "USDC_POLYGON" ? "0x..." : "Txxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+                className="font-mono text-sm"
                 required
               />
-              <button
-                type="button"
-                onClick={handleMaxAmount}
-                className="px-4 py-3 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white text-sm font-medium hover:bg-white/5 transition-all"
-              >
-                Max
-              </button>
+              <div className="text-xs text-muted-foreground">
+                {paymentNetwork === "USDC_POLYGON"
+                  ? "Polygon address must be 0x followed by 40 hex characters."
+                  : "TRC20 address must start with T and be 34 characters."}
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label htmlFor="walletAddress" className="block text-sm font-medium text-white mb-2">
-              {paymentNetwork === 'USDC_POLYGON' ? 'Polygon' : 'TRC20'} Wallet Address
-            </label>
-            <input
-              type="text"
-              id="walletAddress"
-              value={walletAddress}
-              onChange={(e) => setWalletAddress(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-mono text-sm"
-              placeholder={paymentNetwork === 'USDC_POLYGON' ? '0x...' : 'Txxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}
-              required
-            />
-            <p className="mt-2 text-xs text-neutral-500">
-              Enter your {paymentNetwork === 'USDC_POLYGON' ? 'Polygon wallet address (0x followed by 40 hex characters)' : 'TRC20 wallet address (starts with T)'}
-            </p>
-          </div>
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Double-check your address</AlertTitle>
+              <AlertDescription>
+                Withdrawals are processed manually. If you submit a wrong address, funds may be lost and cannot be recovered.
+              </AlertDescription>
+            </Alert>
 
-          <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
-            <p className="text-sm text-blue-300 mb-2">
-              <strong>Note:</strong> Your withdrawal request will be reviewed by admin. 
-              Please double-check your wallet address before submitting.
-            </p>
-            <p className="text-xs text-blue-400">
-              Minimum withdrawal amount: 5 {paymentNetwork === 'USDC_POLYGON' ? 'USDC' : 'USDT'}
-            </p>
-          </div>
-
-          <div className="flex gap-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-primary to-emerald-600 text-white font-semibold hover:shadow-lg hover:shadow-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Processing...' : 'Withdraw'}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="px-6 py-3 rounded-xl bg-[rgba(2,4,8,0.7)] border border-white/10 text-white font-semibold hover:bg-white/5 transition-all"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={loading}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading} className="gap-2">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {loading ? "Processing..." : "Submit withdrawal"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

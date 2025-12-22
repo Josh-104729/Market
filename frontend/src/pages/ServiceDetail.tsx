@@ -1,11 +1,29 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faStar, faArrowLeft, faSpinner, faUser, faComments, faCheckCircle, faClipboardList } from '@fortawesome/free-solid-svg-icons'
-import { faStar as faStarRegular, faStarHalfStroke } from '@fortawesome/free-regular-svg-icons'
 import { serviceApi, Service, conversationApi, Conversation } from '../services/api'
 import { useAppSelector } from '../store/hooks'
 import ImageWithLoader from '../components/ImageWithLoader'
+import { showToast } from '../utils/toast'
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ClipboardList,
+  Loader2,
+  MessageSquare,
+  Package,
+  Star,
+  StarHalf,
+  User,
+} from "lucide-react"
 
 const StarRating = ({ rating }: { rating: number }) => {
   const fullStars = Math.floor(rating)
@@ -13,13 +31,13 @@ const StarRating = ({ rating }: { rating: number }) => {
   const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
 
   return (
-    <div className="flex items-center space-x-1">
+    <div className="flex items-center gap-0.5">
       {[...Array(fullStars)].map((_, i) => (
-        <FontAwesomeIcon key={`full-${i}`} icon={faStar} className="text-yellow-400" />
+        <Star key={`full-${i}`} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
       ))}
-      {hasHalfStar && <FontAwesomeIcon icon={faStarHalfStroke} className="text-yellow-400" />}
+      {hasHalfStar && <StarHalf className="w-4 h-4 text-yellow-400" />}
       {[...Array(emptyStars)].map((_, i) => (
-        <FontAwesomeIcon key={`empty-${i}`} icon={faStarRegular} className="text-neutral-300" />
+        <Star key={`empty-${i}`} className="w-4 h-4 text-muted-foreground/30" />
       ))}
     </div>
   )
@@ -57,7 +75,7 @@ function ServiceDetail() {
 
   const fetchService = async (feedbackPage: number = 1) => {
     try {
-      setLoading(true)
+      if (feedbackPage === 1) setLoading(true)
       const data = await serviceApi.getById(id!, feedbackPage, 10)
       setService(data)
       setFeedbacks(data.feedbacks || [])
@@ -67,7 +85,7 @@ function ServiceDetail() {
       console.error('Failed to fetch service:', error)
       navigate('/services')
     } finally {
-      setLoading(false)
+      if (feedbackPage === 1) setLoading(false)
     }
   }
 
@@ -143,9 +161,9 @@ function ServiceDetail() {
     } catch (error: any) {
       console.error('Failed to connect with seller:', error)
       if (error.response?.status === 403) {
-        alert('You cannot connect with yourself')
+        showToast.error('You cannot connect with yourself')
       } else {
-        alert('Failed to connect with seller. Please try again.')
+        showToast.error('Failed to connect with seller. Please try again.')
       }
     } finally {
       setConnecting(false)
@@ -156,356 +174,402 @@ function ServiceDetail() {
     navigate(`/chat/${conversationId}`)
   }
 
-  if (loading) {
+  const ratingValue = useMemo(() => {
+    if (!service) return 0
+    const v =
+      service.averageRating !== undefined
+        ? service.averageRating
+        : service.rating
+          ? typeof service.rating === "number"
+            ? service.rating
+            : parseFloat(service.rating as any)
+          : 0
+    return Number.isFinite(v) ? v : 0
+  }, [service])
+
+  const priceValue = useMemo(() => {
+    if (!service) return 0
+    const v =
+      typeof service.balance === "number"
+        ? service.balance
+        : parseFloat(service.balance as any)
+    return Number.isFinite(v) ? v : 0
+  }, [service])
+
+  const isProvider = !!(service && user && isAuthenticated && service.userId === user.id)
+
+  if (!service) {
     return (
-      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
-        <div className="text-center">
-          <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-400 mb-4" />
-          <p className="text-neutral-400">Loading service...</p>
-        </div>
+      <div className="py-4 space-y-4">
+        <Button variant="ghost" className="gap-2" onClick={() => navigate('/services')}>
+          <ArrowLeft className="h-4 w-4" />
+          Back to Services
+        </Button>
+        <Alert>
+          <Package className="h-4 w-4" />
+          <AlertTitle>Service not found</AlertTitle>
+          <AlertDescription>
+            The service you're looking for may have been removed.
+          </AlertDescription>
+        </Alert>
+        <Button asChild>
+          <Link to="/services">Browse Marketplace</Link>
+        </Button>
       </div>
     )
   }
 
-  if (!service) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-neutral-400 mb-4">Service not found</p>
-          <Link
-            to="/services"
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-          >
-            Back to Services
-          </Link>
+      <div className="py-4 space-y-6">
+        <div className="flex items-center justify-between gap-4">
+          <Skeleton className="h-10 w-40" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-[420px] w-full rounded-xl" />
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-5 w-1/2" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900 py-8">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate('/services')}
-          className="mb-6 flex items-center space-x-2 text-neutral-400 hover:text-blue-400 transition-colors"
-        >
-          <FontAwesomeIcon icon={faArrowLeft} />
-          <span>Back to Services</span>
-        </button>
+    <div className="space-y-6 py-4">
+      <div className="flex items-center justify-between gap-4">
+        <Button variant="ghost" className="gap-2" onClick={() => navigate('/services')}>
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+        {service.category && (
+          <Badge variant="outline" className="text-xs">
+            {service.category.title}
+          </Badge>
+        )}
+      </div>
 
-        <div className="bg-neutral-800 rounded-xl shadow-lg overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
-            {/* Left Side - Image */}
-            <div className="relative rounded-lg overflow-hidden min-h-[400px]">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Image */}
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="relative min-h-[360px] bg-muted/20 flex items-center justify-center">
               {service.adImage ? (
-                <div className="relative h-full min-h-[400px] flex items-center justify-center p-8">
-                  <ImageWithLoader
-                    src={service.adImage}
-                    alt={service.title}
-                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-                    containerClassName="w-full h-full"
-                    showBlurBackground={true}
-                  />
-                </div>
+                <ImageWithLoader
+                  src={service.adImage}
+                  alt={service.title}
+                  className="w-full h-full object-cover"
+                  containerClassName="w-full h-full"
+                  showBlurBackground={true}
+                />
               ) : (
-                <div className="h-full min-h-[400px] flex items-center justify-center bg-neutral-700">
-                  <div className="text-9xl text-neutral-500">📦</div>
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <Package className="h-10 w-10" />
+                  <span className="text-sm">No image</span>
                 </div>
               )}
+              <div className="absolute top-4 right-4">
+                <Badge className="text-base font-bold px-3 py-1">
+                  ${priceValue.toFixed(2)}
+                </Badge>
+              </div>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Right Side - Details */}
-            <div className="flex flex-col">
-              {/* Title and Category */}
-              <div className="mb-4">
-                {service.category && (
-                  <span className="inline-block px-3 py-1 bg-blue-900 text-blue-200 text-sm font-medium rounded-full mb-2">
-                    {service.category.title}
-                  </span>
-                )}
-                <h1 className="text-4xl font-bold text-neutral-100 mb-4">{service.title}</h1>
+        {/* Details */}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">{service.title}</h1>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <StarRating rating={ratingValue} />
+                <span className="text-sm text-muted-foreground">
+                  {ratingValue > 0 ? ratingValue.toFixed(2) : "No ratings"}
+                  {service.feedbackCount ? ` • ${service.feedbackCount} reviews` : ""}
+                </span>
               </div>
+              <Badge variant={service.status === "active" ? "secondary" : "outline"}>
+                {service.status}
+              </Badge>
+            </div>
+          </div>
 
-              {/* Rating and Price */}
-              <div className="flex items-center justify-between mb-6 pb-6 border-b border-neutral-700">
-                <div className="flex items-center">
-                  <StarRating
-                    rating={
-                      service.averageRating !== undefined
-                        ? service.averageRating
-                        : service.rating
-                          ? typeof service.rating === 'number'
-                            ? service.rating
-                            : parseFloat(service.rating as any)
-                          : 0
-                    }
-                  />
-                  {service.averageRating !== undefined && service.averageRating > 0 && (
-                    <span className="ml-2 text-neutral-300 text-sm">
-                      ({service.averageRating.toFixed(2)})
-                    </span>
-                  )}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">About this service</CardTitle>
+              <CardDescription>Overview, milestones, and provider details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-lg border border-border bg-muted/20 p-3">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <ClipboardList className="h-4 w-4" /> Milestones
+                  </div>
+                  <div className="mt-1 text-xl font-bold">{service.totalMilestones ?? 0}</div>
                 </div>
-                <div className="text-right">
-                  <div className="text-4xl font-bold text-blue-400">
-                    ${typeof service.balance === 'number' 
-                      ? (Math.round(service.balance * 100) / 100).toFixed(2)
-                      : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
+                <div className="rounded-lg border border-border bg-muted/20 p-3">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-4 w-4" /> Completed
                   </div>
-                  <div className="text-sm text-neutral-400">Price</div>
+                  <div className="mt-1 text-xl font-bold">{service.completedMilestones ?? 0}</div>
                 </div>
-              </div>
-
-              {/* Milestone Statistics */}
-              <div className="mb-6 p-4 bg-neutral-700 rounded-lg">
-                <h2 className="text-xl font-semibold text-neutral-100 mb-4 flex items-center space-x-2">
-                  <FontAwesomeIcon icon={faClipboardList} />
-                  <span>Milestone Statistics</span>
-                </h2>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-neutral-800 p-3 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-400">
-                      {service.totalMilestones ?? 0}
-                    </div>
-                    <div className="text-sm text-neutral-400">Total Milestones</div>
+                <div className="rounded-lg border border-border bg-muted/20 p-3">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <MessageSquare className="h-4 w-4" /> Feedbacks
                   </div>
-                  <div className="bg-neutral-800 p-3 rounded-lg">
-                    <div className="text-2xl font-bold text-green-400 flex items-center space-x-1">
-                      <FontAwesomeIcon icon={faCheckCircle} className="text-sm" />
-                      <span>{service.completedMilestones ?? 0}</span>
-                    </div>
-                    <div className="text-sm text-neutral-400">Completed</div>
-                  </div>
-                  <div className="bg-neutral-800 p-3 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-400">
-                      {service.feedbackCount ?? 0}
-                    </div>
-                    <div className="text-sm text-neutral-400">Feedbacks</div>
-                  </div>
+                  <div className="mt-1 text-xl font-bold">{service.feedbackCount ?? 0}</div>
                 </div>
               </div>
 
-              {/* Description */}
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold text-neutral-100 mb-3">Description</h2>
-                <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap">{service.adText}</p>
+              <Separator />
+
+              <div className="space-y-2">
+                <h2 className="text-sm font-semibold">Description</h2>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {service.adText}
+                </p>
               </div>
 
-              {/* Tags */}
-              {service.tags && service.tags.length > 0 && (
-                <div className="mb-6">
-                  <h2 className="text-xl font-semibold text-neutral-100 mb-3">Tags</h2>
+              {service.tags?.length ? (
+                <div className="space-y-2">
+                  <h2 className="text-sm font-semibold">Tags</h2>
                   <div className="flex flex-wrap gap-2">
                     {service.tags.map((tag) => (
-                      <span
-                        key={tag.id}
-                        className="px-3 py-1 bg-neutral-700 text-neutral-300 text-sm font-medium rounded-full"
-                      >
-                        {tag.title}
-                      </span>
+                      <Badge key={tag.id} variant="secondary">
+                        #{tag.title}
+                      </Badge>
                     ))}
                   </div>
                 </div>
+              ) : null}
+            </CardContent>
+            <CardFooter className="flex flex-col gap-3">
+              <Button
+                onClick={handleConnectSeller}
+                disabled={connecting || isProvider}
+                className="w-full gap-2"
+              >
+                {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                {isProvider ? "You own this service" : "Connect seller"}
+              </Button>
+              {!isAuthenticated && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Sign in to start a conversation with the seller.
+                </p>
               )}
+            </CardFooter>
+          </Card>
 
-              {/* Seller Info */}
-              {service.user && (
-                <div className="mb-6 p-4 bg-neutral-700 rounded-lg">
-                  <h2 className="text-xl font-semibold text-neutral-100 mb-3">Seller Information</h2>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                      {service.user.firstName?.[0] || service.user.userName?.[0] || <FontAwesomeIcon icon={faUser} />}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-neutral-100">
-                        {service.user.firstName && service.user.lastName
-                          ? `${service.user.firstName} ${service.user.lastName}`
-                          : service.user.userName || 'Anonymous'}
-                      </p>
-                      <p className="text-sm text-neutral-400">Service Provider</p>
-                    </div>
-                  </div>
+          {service.user && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Seller</CardTitle>
+                <CardDescription>Service provider</CardDescription>
+              </CardHeader>
+              <CardContent className="flex items-center gap-3">
+                <Avatar className="h-10 w-10 rounded-lg">
+                  <AvatarFallback className="rounded-lg">
+                    {(service.user.firstName?.[0] || service.user.userName?.[0] || "U").toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="font-semibold truncate">
+                    {service.user.firstName && service.user.lastName
+                      ? `${service.user.firstName} ${service.user.lastName}`
+                      : service.user.userName || "Anonymous"}
+                  </p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <User className="h-3.5 w-3.5" /> Provider
+                  </p>
                 </div>
-              )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
 
-              {/* Connected Clients (Provider View) */}
-              {service && user && isAuthenticated && service.userId === user.id && (
-                <div className="mb-6 p-4 bg-neutral-700 rounded-lg">
-                  <h2 className="text-xl font-semibold text-neutral-100 mb-3 flex items-center space-x-2">
-                    <FontAwesomeIcon icon={faComments} />
-                    <span>Connected Clients</span>
-                    {loadingClients && (
-                      <FontAwesomeIcon icon={faSpinner} className="animate-spin text-sm text-neutral-400" />
-                    )}
-                  </h2>
-                  {loadingClients ? (
-                    <p className="text-neutral-400 text-sm">Loading clients...</p>
-                  ) : connectedClients.length === 0 ? (
-                    <p className="text-neutral-400 text-sm">No clients have connected yet</p>
-                  ) : (
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
+      <Tabs defaultValue="feedback" className="w-full">
+        <TabsList>
+          <TabsTrigger value="feedback">Feedback</TabsTrigger>
+          {isProvider && <TabsTrigger value="clients">Clients</TabsTrigger>}
+          <TabsTrigger value="meta">Details</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="feedback" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Customer feedback</CardTitle>
+              <CardDescription>
+                {service.feedbackCount ? `${service.feedbackCount} reviews` : "No reviews yet"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {feedbacks && feedbacks.length > 0 ? (
+                <div className="space-y-3">
+                  {feedbacks.map((feedback) => (
+                    <div key={feedback.id} className="rounded-lg border border-border p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar className="h-9 w-9 rounded-lg">
+                            <AvatarFallback className="rounded-lg">
+                              {(feedback.client.firstName?.[0] || feedback.client.userName?.[0] || "U").toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="font-semibold truncate">
+                              {feedback.client.firstName && feedback.client.lastName
+                                ? `${feedback.client.firstName} ${feedback.client.lastName}`
+                                : feedback.client.userName || "Anonymous"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(feedback.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <StarRating rating={feedback.rating} />
+                          <span className="text-xs text-muted-foreground">({feedback.rating})</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground">
+                          Milestone: <span className="text-foreground font-medium">{feedback.title}</span>
+                        </p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                          {feedback.feedback}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Alert>
+                  <MessageSquare className="h-4 w-4" />
+                  <AlertTitle>No feedback yet</AlertTitle>
+                  <AlertDescription>Be the first to leave a review after completing a milestone.</AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+            {feedbacksHasMore && (
+              <CardFooter>
+                <Button
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={loadMoreFeedbacks}
+                  disabled={loadingMoreFeedbacks}
+                >
+                  {loadingMoreFeedbacks && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Load more feedback
+                </Button>
+              </CardFooter>
+            )}
+          </Card>
+        </TabsContent>
+
+        {isProvider && (
+          <TabsContent value="clients" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Connected clients
+                  {loadingClients && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                </CardTitle>
+                <CardDescription>People who started a conversation about this service</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingClients ? (
+                  <div className="space-y-2">
+                    {[...Array(4)].map((_, i) => (
+                      <Skeleton key={i} className="h-14 w-full" />
+                    ))}
+                  </div>
+                ) : connectedClients.length === 0 ? (
+                  <Alert>
+                    <User className="h-4 w-4" />
+                    <AlertTitle>No clients yet</AlertTitle>
+                    <AlertDescription>When someone connects, they’ll appear here.</AlertDescription>
+                  </Alert>
+                ) : (
+                  <ScrollArea className="h-[320px] pr-2">
+                    <div className="space-y-2">
                       {connectedClients.map((conversation) => {
                         const client = conversation.client
-                        const lastMessage = conversation.messages && conversation.messages.length > 0
-                          ? conversation.messages[0] // First message is the most recent (ordered DESC)
-                          : null
+                        const lastMessage =
+                          conversation.messages && conversation.messages.length > 0
+                            ? conversation.messages[0]
+                            : null
+                        const clientName =
+                          client?.firstName && client?.lastName
+                            ? `${client.firstName} ${client.lastName}`
+                            : client?.userName || "Anonymous"
+
                         return (
-                          <button
+                          <Button
                             key={conversation.id}
+                            variant="outline"
+                            className="w-full justify-between h-auto py-3"
                             onClick={() => handleClientClick(conversation.id)}
-                            className="w-full p-3 bg-neutral-600 hover:bg-neutral-500 rounded-lg transition-colors text-left"
                           >
-                            <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-500 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
-                                {client?.firstName?.[0] || client?.userName?.[0] || <FontAwesomeIcon icon={faUser} />}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-neutral-100 truncate">
-                                  {client?.firstName && client?.lastName
-                                    ? `${client.firstName} ${client.lastName}`
-                                    : client?.userName || 'Anonymous'}
-                                </p>
+                            <div className="flex items-center gap-3 min-w-0">
+                              <Avatar className="h-9 w-9 rounded-lg">
+                                <AvatarFallback className="rounded-lg">
+                                  {(client?.firstName?.[0] || client?.userName?.[0] || "U").toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0 text-left">
+                                <p className="font-semibold truncate">{clientName}</p>
                                 {lastMessage && (
-                                  <p className="text-xs text-neutral-400 truncate mt-1">
+                                  <p className="text-xs text-muted-foreground truncate max-w-[420px]">
                                     {lastMessage.message}
                                   </p>
                                 )}
                               </div>
-                              {lastMessage && (
-                                <span className="text-xs text-neutral-400 flex-shrink-0">
-                                  {new Date(lastMessage.createdAt).toLocaleTimeString([], {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </span>
-                              )}
                             </div>
-                          </button>
+                            {lastMessage && (
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                {new Date(lastMessage.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            )}
+                          </Button>
                         )
                       })}
                     </div>
-                  )}
-                </div>
-              )}
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
-              {/* Action Buttons */}
-              <div className="mt-auto">
-                <button
-                  onClick={handleConnectSeller}
-                  disabled={connecting || !isAuthenticated || (service.user && service.user.id === user?.id)}
-                  className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                >
-                  {connecting ? (
-                    <>
-                      <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
-                      <span>Connecting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FontAwesomeIcon icon={faComments} />
-                      <span>Connect Seller</span>
-                    </>
-                  )}
-                </button>
+        <TabsContent value="meta" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Service details</CardTitle>
+              <CardDescription>Metadata</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Service ID</span>
+                <span className="font-mono text-xs">{service.id}</span>
               </div>
-
-              {/* Additional Info */}
-              <div className="mt-6 pt-6 border-t border-neutral-700 text-sm text-neutral-400">
-                <p>Service ID: {service.id}</p>
-                <p>Created: {new Date(service.createdAt).toLocaleDateString()}</p>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Created</span>
+                <span>{new Date(service.createdAt).toLocaleDateString()}</span>
               </div>
-            </div>
-          </div>
-
-          {/* Feedbacks Section */}
-          {feedbacks && feedbacks.length > 0 && (
-            <div className="mt-8 p-8 bg-neutral-800 rounded-xl shadow-lg">
-              <h2 className="text-2xl font-bold text-neutral-100 mb-6 flex items-center space-x-2">
-                <FontAwesomeIcon icon={faComments} />
-                <span>Customer Feedbacks</span>
-                <span className="text-lg font-normal text-neutral-400">
-                  ({service.feedbackCount ?? 0})
-                </span>
-              </h2>
-              <div className="space-y-4">
-                {feedbacks.map((feedback) => (
-                  <div
-                    key={feedback.id}
-                    className="bg-neutral-700 rounded-lg p-6 border border-neutral-600"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                          {feedback.client.firstName?.[0] || feedback.client.userName?.[0] || (
-                            <FontAwesomeIcon icon={faUser} />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-neutral-100">
-                            {feedback.client.firstName && feedback.client.lastName
-                              ? `${feedback.client.firstName} ${feedback.client.lastName}`
-                              : feedback.client.userName || 'Anonymous'}
-                          </p>
-                          <p className="text-xs text-neutral-400">
-                            {new Date(feedback.createdAt).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <StarRating rating={feedback.rating} />
-                        <span className="text-neutral-300 text-sm">({feedback.rating})</span>
-                      </div>
-                    </div>
-                    <div className="mb-2">
-                      <p className="text-sm font-semibold text-neutral-300 mb-1">
-                        Milestone: {feedback.title}
-                      </p>
-                    </div>
-                    <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap">
-                      {feedback.feedback}
-                    </p>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Updated</span>
+                <span>{new Date(service.updatedAt).toLocaleDateString()}</span>
               </div>
-              {feedbacksHasMore && (
-                <div className="mt-6 flex justify-center">
-                  <button
-                    onClick={loadMoreFeedbacks}
-                    disabled={loadingMoreFeedbacks}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                  >
-                    {loadingMoreFeedbacks ? (
-                      <>
-                        <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
-                        <span>Loading...</span>
-                      </>
-                    ) : (
-                      <span>Load More Feedbacks</span>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* No Feedbacks Message */}
-          {(!feedbacks || feedbacks.length === 0) && (service.feedbackCount === 0 || !service.feedbackCount) && (
-            <div className="mt-8 p-8 bg-neutral-800 rounded-xl shadow-lg">
-              <h2 className="text-2xl font-bold text-neutral-100 mb-4 flex items-center space-x-2">
-                <FontAwesomeIcon icon={faComments} />
-                <span>Customer Feedbacks</span>
-              </h2>
-              <p className="text-neutral-400">No feedbacks yet. Be the first to leave a review!</p>
-            </div>
-          )}
-        </div>
-      </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

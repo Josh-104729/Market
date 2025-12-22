@@ -1,17 +1,29 @@
-import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus, faTimes, faUpload, faSpinner } from '@fortawesome/free-solid-svg-icons'
-import { useAppSelector } from '../store/hooks'
-import { categoryApi, serviceApi, Category } from '../services/api'
-import { showToast } from '../utils/toast'
+import { useEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { useAppSelector } from "../store/hooks"
+import { categoryApi, serviceApi, Category } from "../services/api"
+import { showToast } from "../utils/toast"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { ArrowLeft, Loader2, Plus, UploadCloud, X } from "lucide-react"
 
 function CreateService() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAppSelector((state) => state.auth)
   const [categories, setCategories] = useState<Category[]>([])
   const [submitting, setSubmitting] = useState(false)
-  
+
   const [formData, setFormData] = useState({
     categoryId: '',
     title: '',
@@ -45,16 +57,16 @@ function CreateService() {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    
+
     // Reset previous state
     setImageFile(null)
     setImagePreview(null)
     setErrors((prev) => ({ ...prev, image: '' }))
-    
+
     if (!file) {
       return
     }
-    
+
     // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
     if (!validTypes.includes(file.type)) {
@@ -107,7 +119,7 @@ function CreateService() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     const newErrors: Record<string, string> = {}
     if (!formData.categoryId) newErrors.categoryId = 'Category is required'
     if (!formData.title.trim()) newErrors.title = 'Title is required'
@@ -153,240 +165,239 @@ function CreateService() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900 py-8">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
-        <div className="bg-neutral-800 rounded-xl shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-neutral-100 mb-8">Create New Service</h1>
-
+    <div className="mx-auto w-full max-w-3xl space-y-6 py-4">
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <CardTitle>Create service</CardTitle>
+              <CardDescription>Add a new listing to the marketplace.</CardDescription>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              onClick={() => {
+                // Go back when possible; otherwise fall back to the services list.
+                if (window.history.length > 1) navigate(-1)
+                else navigate("/services")
+              }}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Category */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Category <span className="text-red-400">*</span>
-              </label>
-              <select
+            <div className="space-y-2">
+              <Label>
+                Category <span className="text-destructive">*</span>
+              </Label>
+              <Select
                 value={formData.categoryId}
-                onChange={(e) => {
-                  setFormData({ ...formData, categoryId: e.target.value })
-                  setErrors({ ...errors, categoryId: '' })
+                onValueChange={(value) => {
+                  setFormData({ ...formData, categoryId: value })
+                  setErrors({ ...errors, categoryId: "" })
                 }}
-                className={`w-full px-4 py-3 border bg-neutral-700 text-neutral-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.categoryId ? 'border-red-500' : 'border-neutral-600'
-                }`}
               >
-                <option value="">Select a category</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.title}
-                  </option>
-                ))}
-              </select>
-              {errors.categoryId && <p className="mt-1 text-sm text-red-400">{errors.categoryId}</p>}
+                <SelectTrigger className={errors.categoryId ? "border-destructive" : undefined}>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.categoryId ? (
+                <p className="text-sm text-destructive">{errors.categoryId}</p>
+              ) : null}
             </div>
 
             {/* Title */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Title <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
+            <div className="space-y-2">
+              <Label htmlFor="title">
+                Title <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="title"
                 value={formData.title}
                 onChange={(e) => {
                   setFormData({ ...formData, title: e.target.value })
-                  setErrors({ ...errors, title: '' })
+                  setErrors({ ...errors, title: "" })
                 }}
-                className={`w-full px-4 py-3 border bg-neutral-700 text-neutral-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.title ? 'border-red-500' : 'border-neutral-600'
-                }`}
+                className={errors.title ? "border-destructive" : undefined}
                 placeholder="Enter service title"
               />
-              {errors.title && <p className="mt-1 text-sm text-red-400">{errors.title}</p>}
+              {errors.title ? <p className="text-sm text-destructive">{errors.title}</p> : null}
             </div>
 
             {/* Description */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Description <span className="text-red-400">*</span>
-              </label>
-              <textarea
+            <div className="space-y-2">
+              <Label htmlFor="description">
+                Description <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="description"
                 value={formData.adText}
                 onChange={(e) => {
                   setFormData({ ...formData, adText: e.target.value })
-                  setErrors({ ...errors, adText: '' })
+                  setErrors({ ...errors, adText: "" })
                 }}
-                rows={6}
-                className={`w-full px-4 py-3 border bg-neutral-700 text-neutral-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.adText ? 'border-red-500' : 'border-neutral-600'
-                }`}
+                className={errors.adText ? "border-destructive" : undefined}
                 placeholder="Describe your service in detail"
+                rows={6}
               />
-              {errors.adText && <p className="mt-1 text-sm text-red-400">{errors.adText}</p>}
+              {errors.adText ? <p className="text-sm text-destructive">{errors.adText}</p> : null}
             </div>
 
-            {/* Balance */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Price <span className="text-red-400">*</span>
-              </label>
-              <input
+            {/* Price */}
+            <div className="space-y-2">
+              <Label htmlFor="price">
+                Price <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="price"
                 type="number"
                 step="0.01"
                 min="0"
+                inputMode="decimal"
                 value={formData.balance}
                 onChange={(e) => {
                   setFormData({ ...formData, balance: e.target.value })
-                  setErrors({ ...errors, balance: '' })
+                  setErrors({ ...errors, balance: "" })
                 }}
-                className={`w-full px-4 py-3 border bg-neutral-700 text-neutral-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.balance ? 'border-red-500' : 'border-neutral-600'
-                }`}
+                className={errors.balance ? "border-destructive" : undefined}
                 placeholder="0.00"
               />
-              {errors.balance && <p className="mt-1 text-sm text-red-400">{errors.balance}</p>}
+              {errors.balance ? <p className="text-sm text-destructive">{errors.balance}</p> : null}
             </div>
 
-            {/* Image Upload */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Service Image <span className="text-red-400">*</span>
-              </label>
-              <div
-                className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors ${
-                  errors.image
-                    ? 'border-red-500 bg-red-900'
-                    : imagePreview
-                    ? 'border-green-700 bg-green-900'
-                    : 'border-neutral-600 hover:border-blue-500'
-                }`}
-              >
-                <div className="space-y-1 text-center">
-                  {imagePreview ? (
-                    <div className="relative">
-                      <img src={imagePreview} alt="Preview" className="max-h-64 mx-auto rounded-lg" />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImageFile(null)
-                          setImagePreview(null)
-                          setErrors((prev) => ({ ...prev, image: '' }))
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = ''
-                          }
-                        }}
-                        className="mt-2 text-sm text-red-400 hover:text-red-300 font-medium"
-                      >
-                        Remove Image
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <FontAwesomeIcon
-                        icon={faUpload}
-                        className={`mx-auto h-12 w-12 ${errors.image ? 'text-red-400' : 'text-neutral-400'}`}
-                      />
-                      <div className="flex text-sm text-neutral-400">
-                        <label className="relative cursor-pointer bg-neutral-700 rounded-md font-medium text-blue-400 hover:text-blue-500">
-                          <span>Upload a file</span>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            className="sr-only"
-                            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                            onChange={handleImageChange}
-                          />
-                        </label>
-                        <p className="pl-1">or drag and drop</p>
-                      </div>
-                      <p className="text-xs text-neutral-400">PNG, JPG, GIF, WEBP up to 5MB</p>
-                    </>
-                  )}
-                </div>
+            {/* Image */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <Label>
+                  Service image <span className="text-destructive">*</span>
+                </Label>
+                {imagePreview ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      setImageFile(null)
+                      setImagePreview(null)
+                      setErrors((prev) => ({ ...prev, image: "" }))
+                      if (fileInputRef.current) fileInputRef.current.value = ""
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                    Remove
+                  </Button>
+                ) : null}
               </div>
-              {errors.image && (
-                <p className="mt-1 text-sm text-red-400 font-medium flex items-center">
-                  <span className="mr-1">⚠</span>
-                  {errors.image}
-                </p>
+
+              {imagePreview ? (
+                <div className="rounded-lg border p-3">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="max-h-64 w-full rounded-md object-contain"
+                  />
+                </div>
+              ) : (
+                <div
+                  className={[
+                    "rounded-lg border border-dashed p-6",
+                    "flex items-center justify-between gap-4",
+                    errors.image ? "border-destructive" : "border-border",
+                  ].join(" ")}
+                >
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium">Upload a file</div>
+                    <div className="text-xs text-muted-foreground">PNG, JPG, GIF, WEBP up to 5MB</div>
+                  </div>
+                  <Button type="button" variant="secondary" className="gap-2" onClick={() => fileInputRef.current?.click()}>
+                    <UploadCloud className="h-4 w-4" />
+                    Choose file
+                  </Button>
+                </div>
               )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                onChange={handleImageChange}
+              />
+
+              {errors.image ? <p className="text-sm text-destructive">{errors.image}</p> : null}
             </div>
 
             {/* Tags */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Tags <span className="text-red-400">*</span>
-              </label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="text"
+            <div className="space-y-2">
+              <Label>
+                Tags <span className="text-destructive">*</span>
+              </Label>
+              <div className="flex gap-2">
+                <Input
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
                       e.preventDefault()
                       handleAddTag()
                     }
                   }}
-                  className={`flex-1 px-4 py-2 border bg-neutral-700 text-neutral-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.tags ? 'border-red-500' : 'border-neutral-600'
-                  }`}
+                  className={errors.tags ? "border-destructive" : undefined}
                   placeholder="Enter a tag and press Enter"
                 />
-                <button
-                  type="button"
-                  onClick={handleAddTag}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <FontAwesomeIcon icon={faPlus} />
-                </button>
+                <Button type="button" variant="secondary" className="shrink-0 gap-2" onClick={handleAddTag}>
+                  <Plus className="h-4 w-4" />
+                  Add
+                </Button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-900 text-blue-200"
-                  >
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="ml-2 text-blue-400 hover:text-blue-200"
-                    >
-                      <FontAwesomeIcon icon={faTimes} className="text-xs" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-              {errors.tags && <p className="mt-1 text-sm text-red-400">{errors.tags}</p>}
+
+              {formData.tags.length > 0 ? (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {formData.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="gap-1">
+                      <span className="max-w-[220px] truncate">{tag}</span>
+                      <button
+                        type="button"
+                        className="ml-1 inline-flex items-center"
+                        onClick={() => handleRemoveTag(tag)}
+                        aria-label={`Remove tag ${tag}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
+
+              {errors.tags ? <p className="text-sm text-destructive">{errors.tags}</p> : null}
             </div>
 
-            {/* Submit Button */}
-            <div className="flex gap-4 pt-4">
-              <button
-                type="button"
-                onClick={() => navigate('/services')}
-                className="flex-1 px-6 py-3 border-2 border-neutral-600 text-neutral-300 rounded-lg font-semibold hover:bg-neutral-700 transition-colors"
-              >
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => navigate("/services")}>
                 Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? (
-                  <>
-                    <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
-                    Creating...
-                  </>
-                ) : (
-                  'Create Service'
-                )}
-              </button>
+              </Button>
+              <Button type="submit" disabled={submitting} className="gap-2">
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {submitting ? "Creating..." : "Create service"}
+              </Button>
             </div>
           </form>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

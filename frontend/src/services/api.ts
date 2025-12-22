@@ -227,6 +227,17 @@ export const authApi = {
     return response.data;
   },
 
+  updateAvatar: async (avatarFile: File) => {
+    const formData = new FormData();
+    formData.append('avatar', avatarFile);
+    const response = await api.patch('/auth/profile/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
   twoFactor: {
     // SMS phone verification disabled - removed 'sms' from method options
     enable: async (method: 'totp' | /* 'sms' | */ 'email') => {
@@ -832,6 +843,11 @@ export const paymentApi = {
     paymentNetwork?: 'USDT_TRC20' | 'USDC_POLYGON';
   }> => {
     const response = await api.get(`/payment/charge/wallet/${walletAddress}`);
+    return response.data;
+  },
+
+  cancelCharge: async (transactionId: string): Promise<{ status: string }> => {
+    const response = await api.patch(`/payment/charge/cancel/${transactionId}`);
     return response.data;
   },
 

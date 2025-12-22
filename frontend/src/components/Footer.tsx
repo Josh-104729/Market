@@ -1,153 +1,144 @@
-import { Link } from 'react-router-dom'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faFacebook, faTwitter, faLinkedin, faInstagram, faGithub } from '@fortawesome/free-brands-svg-icons'
-import { useAppSelector } from '../store/hooks'
+import { Link } from "react-router-dom"
+import { useAppSelector } from "../store/hooks"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
+import { showToast } from "../utils/toast"
+import { Github, Instagram, Linkedin, Send, Twitter } from "lucide-react"
 
 function Footer() {
   const currentYear = new Date().getFullYear()
   const { isAuthenticated } = useAppSelector((state) => state.auth)
 
   return (
-    <footer className="border-t border-white/5 bg-black/20 backdrop-blur-sm mt-auto">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Brand Section */}
+    <footer className="mt-auto border-t border-border bg-background">
+      <div className="container mx-auto px-14 py-10">
+        <div className="grid gap-10 lg:grid-cols-[1.2fr_1fr_1fr_1fr]">
+          {/* Brand */}
           <div className="space-y-4">
-            <Link to="/" className="flex items-center gap-3 mb-4 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center shadow-lg shadow-primary/20 ring-1 ring-white/10 group-hover:scale-110 transition-transform">
-                <span className="text-white font-bold text-xl">O</span>
+            <Link to="/" className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                <span className="text-lg font-bold">O</span>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-xl font-bold tracking-tight text-white">OmniMart</span>
-              </div>
+              <div className="text-lg font-bold tracking-tight">OmniMart</div>
             </Link>
-            <p className="text-neutral-400 font-light max-w-sm leading-relaxed">
-              Anyone can sell anything and buy anything. Your universal marketplace for everything.
+            <p className="max-w-sm text-sm text-muted-foreground">
+              A modern marketplace where anyone can sell and buy services. Discover talent, hire fast, and keep everything in one place.
             </p>
-            {/* Social Media Links */}
-            <div className="flex items-center gap-4 mt-6">
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-primary transition-all"
-                aria-label="Facebook"
-              >
-                <FontAwesomeIcon icon={faFacebook} />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-primary transition-all"
-                aria-label="Twitter"
-              >
-                <FontAwesomeIcon icon={faTwitter} />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-primary transition-all"
-                aria-label="LinkedIn"
-              >
-                <FontAwesomeIcon icon={faLinkedin} />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-primary transition-all"
-                aria-label="Instagram"
-              >
-                <FontAwesomeIcon icon={faInstagram} />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-primary transition-all"
-                aria-label="GitHub"
-              >
-                <FontAwesomeIcon icon={faGithub} />
-              </a>
+
+            {/* Social */}
+            <div className="flex items-center gap-2 pt-1">
+              <Button variant="ghost" size="icon" asChild>
+                <a href="#" aria-label="Twitter">
+                  <Twitter className="h-5 w-5" />
+                </a>
+              </Button>
+              <Button variant="ghost" size="icon" asChild>
+                <a href="#" aria-label="LinkedIn">
+                  <Linkedin className="h-5 w-5" />
+                </a>
+              </Button>
+              <Button variant="ghost" size="icon" asChild>
+                <a href="#" aria-label="Instagram">
+                  <Instagram className="h-5 w-5" />
+                </a>
+              </Button>
+              <Button variant="ghost" size="icon" asChild>
+                <a href="#" aria-label="GitHub">
+                  <Github className="h-5 w-5" />
+                </a>
+              </Button>
             </div>
           </div>
 
-          {/* Quick Links */}
-          {isAuthenticated && (
-            <div>
-              <h3 className="font-bold text-white text-sm mb-4">Quick Links</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link to="/" className="text-sm text-neutral-400 hover:text-primary transition-colors">
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/services" className="text-sm text-neutral-400 hover:text-primary transition-colors">
-                    All Services
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/feed" className="text-sm text-neutral-400 hover:text-primary transition-colors">
-                    Feed
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/profile" className="text-sm text-neutral-400 hover:text-primary transition-colors">
+          {/* Product */}
+          <div className="space-y-3">
+            <div className="text-sm font-semibold">Product</div>
+            <div className="space-y-2 text-sm">
+              <Link to="/services" className="block text-muted-foreground hover:text-foreground">
+                Explore services
+              </Link>
+              <Link to="/feed" className="block text-muted-foreground hover:text-foreground">
+                Community feed
+              </Link>
+              {isAuthenticated ? (
+                <Link to="/notifications" className="block text-muted-foreground hover:text-foreground">
+                  Notifications
+                </Link>
+              ) : null}
+              <Link to="/referral" className="block text-muted-foreground hover:text-foreground">
+                Referral program
+              </Link>
+            </div>
+          </div>
+
+          {/* Account */}
+          <div className="space-y-3">
+            <div className="text-sm font-semibold">Account</div>
+            <div className="space-y-2 text-sm">
+              {isAuthenticated ? (
+                <>
+                  <Link to="/profile" className="block text-muted-foreground hover:text-foreground">
                     Profile
                   </Link>
-                </li>
-              </ul>
+                  <Link to="/transactions" className="block text-muted-foreground hover:text-foreground">
+                    Transactions
+                  </Link>
+                  <Link to="/charge" className="block text-muted-foreground hover:text-foreground">
+                    Charge
+                  </Link>
+                  <Link to="/withdraw" className="block text-muted-foreground hover:text-foreground">
+                    Withdraw
+                  </Link>
+                  <Link to="/settings/security" className="block text-muted-foreground hover:text-foreground">
+                    Security settings
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link to="/signin" className="block text-muted-foreground hover:text-foreground">
+                    Sign in
+                  </Link>
+                  <Link to="/signup" className="block text-muted-foreground hover:text-foreground">
+                    Create account
+                  </Link>
+                </>
+              )}
             </div>
-          )}
+          </div>
 
-          {/* Services */}
-          {isAuthenticated && (
-            <div>
-              <h3 className="font-bold text-white text-sm mb-4">Services</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link to="/services" className="text-sm text-neutral-400 hover:text-primary transition-colors">
-                    Browse Services
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/services/new" className="text-sm text-neutral-400 hover:text-primary transition-colors">
-                    Create Service
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/my-services" className="text-sm text-neutral-400 hover:text-primary transition-colors">
-                    My Services
-                  </Link>
-                </li>
-              </ul>
+          {/* Help */}
+          <div className="space-y-3">
+            <div className="text-sm font-semibold">Help</div>
+            <div className="space-y-2 text-sm">
+              <a href="#" className="block text-muted-foreground hover:text-foreground">
+                Help center
+              </a>
+              <a href="#" className="block text-muted-foreground hover:text-foreground">
+                Contact
+              </a>
+              <a href="#" className="block text-muted-foreground hover:text-foreground">
+                Community guidelines
+              </a>
             </div>
-          )}
-
-          {/* Support */}
-          <div>
-            <h3 className="font-bold text-white text-sm mb-4">Support</h3>
-            <ul className="space-y-2">
-              <li>
-                <a href="#" className="text-sm text-neutral-400 hover:text-primary transition-colors">
-                  Help Center
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-sm text-neutral-400 hover:text-primary transition-colors">
-                  Contact Us
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-sm text-neutral-400 hover:text-primary transition-colors">
-                  Privacy Policy
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-sm text-neutral-400 hover:text-primary transition-colors">
-                  Terms of Service
-                </a>
-              </li>
-            </ul>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="pt-8 border-t border-white/5 text-center text-neutral-500 text-xs">
-          <p>© {currentYear} OmniMart. All rights reserved.</p>
+        <Separator className="my-8" />
+
+        <div className="flex flex-col gap-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <div>© {currentYear} OmniMart. All rights reserved.</div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <a href="#" className="hover:text-foreground">
+              Privacy
+            </a>
+            <a href="#" className="hover:text-foreground">
+              Terms
+            </a>
+            <a href="#" className="hover:text-foreground">
+              Cookies
+            </a>
+          </div>
         </div>
       </div>
     </footer>

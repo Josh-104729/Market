@@ -136,25 +136,38 @@ function NotificationDropdown({ userId }: NotificationDropdownProps) {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900">
+        <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] border-2 border-white">
+            <Badge
+              variant="destructive"
+              className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center p-0 text-[10px] border-2 border-background"
+            >
               {unreadCount > 9 ? '9+' : unreadCount}
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 md:w-96 p-0 shadow-xl border-slate-200" align="end">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="font-semibold text-slate-900">Notifications</h3>
+      <PopoverContent className="w-80 p-0 shadow-xl md:w-96" align="end">
+        <div className="flex items-center justify-between border-b border-border p-4">
+          <h3 className="font-semibold text-foreground">Notifications</h3>
           <div className="flex items-center gap-2">
             {unreadCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={handleMarkAllAsRead} className="h-8 text-xs gap-1 text-slate-500">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleMarkAllAsRead}
+                className="h-8 gap-1 text-xs text-muted-foreground"
+              >
                 <CheckCheck className="h-3 w-3" /> Mark all read
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8 text-slate-400">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsOpen(false)}
+              className="h-8 w-8 text-muted-foreground"
+            >
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -162,35 +175,35 @@ function NotificationDropdown({ userId }: NotificationDropdownProps) {
 
         <ScrollArea className="h-[350px]">
           {loading && notifications.length === 0 ? (
-            <div className="p-8 text-center flex flex-col items-center gap-2 text-slate-400">
+            <div className="flex flex-col items-center gap-2 p-8 text-center text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />
               <p className="text-sm">Loading notifications...</p>
             </div>
           ) : notifications.length === 0 ? (
-            <div className="p-8 text-center text-slate-400 text-sm">
+            <div className="p-8 text-center text-sm text-muted-foreground">
               No notifications yet
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-border">
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
                   className={`p-4 transition-colors group relative ${
-                    !notification.readAt ? 'bg-slate-50' : 'bg-white hover:bg-slate-50'
+                    !notification.readAt ? 'bg-muted/40' : 'hover:bg-muted/30'
                   }`}
                 >
                   <div className="flex gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`h-2 w-2 rounded-full shrink-0 ${!notification.readAt ? 'bg-primary' : 'bg-transparent'}`} />
-                        <h4 className="text-sm font-semibold text-slate-900 truncate">
+                        <h4 className="text-sm font-semibold text-foreground truncate">
                           {notification.title}
                         </h4>
                       </div>
-                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                         {notification.message}
                       </p>
-                      <p className="text-[10px] text-slate-400 mt-2 font-medium">
+                      <p className="mt-2 text-[10px] font-medium text-muted-foreground">
                         {formatDate(notification.createdAt)}
                       </p>
                     </div>
@@ -208,7 +221,7 @@ function NotificationDropdown({ userId }: NotificationDropdownProps) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-slate-400 hover:text-destructive hover:bg-destructive/10"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                         onClick={() => handleDelete(notification.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -222,7 +235,7 @@ function NotificationDropdown({ userId }: NotificationDropdownProps) {
         </ScrollArea>
         
         {notifications.length > 0 && (
-          <div className="p-2 border-t border-slate-100">
+          <div className="border-t border-border p-2">
             <Button
               variant="ghost"
               className="w-full h-9 text-xs text-primary font-semibold gap-2 hover:bg-primary/5"
