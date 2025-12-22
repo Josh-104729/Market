@@ -35,6 +35,38 @@ export class ReferralService {
     private dataSource: DataSource,
   ) {}
 
+  private async assertReferralSchemaReady(): Promise<void> {
+    // If the DB was created from `create-users-table.sql` but the referral ALTER/CREATE scripts
+    // were not executed (and DB_SYNCHRONIZE is disabled), these endpoints will crash with 500.
+    // Provide a clear error instead.
+    try {
+      const [usersHasReferralCode] = await this.dataSource.query(
+        "SHOW COLUMNS FROM `users` LIKE 'referral_code'",
+      );
+      const [usersHasReferralEarnings] = await this.dataSource.query(
+        "SHOW COLUMNS FROM `users` LIKE 'total_referral_earnings'",
+      );
+      const [hasReferralsTable] = await this.dataSource.query(
+        "SHOW TABLES LIKE 'referrals'",
+      );
+      const [hasRewardsTable] = await this.dataSource.query(
+        "SHOW TABLES LIKE 'referral_rewards'",
+      );
+
+      if (!usersHasReferralCode || !usersHasReferralEarnings || !hasReferralsTable || !hasRewardsTable) {
+        throw new BadRequestException(
+          "Referral system is not initialized in the database. Run backend SQL scripts: `add-referral-to-users-table.sql`, `create-referrals-table.sql`, `create-referral-rewards-table.sql` (or enable DB_SYNCHRONIZE).",
+        );
+      }
+    } catch (err: any) {
+      // If SHOW queries fail (e.g., permissions), don't leak details but still hint.
+      if (err instanceof BadRequestException) throw err;
+      throw new BadRequestException(
+        "Referral system is not initialized or cannot be verified. Ensure referral tables/columns exist (run the provided SQL scripts or enable DB_SYNCHRONIZE).",
+      );
+    }
+  }
+
   /**
    * Generate unique referral code for user
    */
@@ -467,6 +499,7 @@ export class ReferralService {
    * Get referral statistics
    */
   async getReferralStats(userId: string) {
+    await this.assertReferralSchemaReady();
     const [totalReferrals, activeReferrals, completedReferrals, pendingReferrals] = await Promise.all([
       this.referralRepository.count({ where: { referrerId: userId } }),
       this.referralRepository.count({ where: { referrerId: userId, status: ReferralStatus.ACTIVE } }),

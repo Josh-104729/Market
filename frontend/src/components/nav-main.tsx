@@ -36,8 +36,8 @@ export function NavMain({
               className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
             >
               <Link to={quickCreateTo}>
-                <PlusCircleIcon />
-                <span>Quick Create</span>
+              <PlusCircleIcon />
+              <span>Quick Create</span>
               </Link>
             </SidebarMenuButton>
             <Button
@@ -47,8 +47,8 @@ export function NavMain({
               asChild
             >
               <Link to={inboxTo}>
-                <MailIcon />
-                <span className="sr-only">Inbox</span>
+              <MailIcon />
+              <span className="sr-only">Inbox</span>
               </Link>
             </Button>
           </SidebarMenuItem>
@@ -66,8 +66,8 @@ export function NavMain({
                 }
               >
                 <Link to={item.to}>
-                  {item.icon && <item.icon />}
-                  <span>{item.title}</span>
+                {item.icon && <item.icon />}
+                <span>{item.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

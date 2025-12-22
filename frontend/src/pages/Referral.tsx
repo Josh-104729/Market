@@ -1,364 +1,441 @@
-import { useState, useEffect } from 'react';
-import { referralApi, ReferralStats, ReferralListItem, RewardListItem } from '../services/api';
-import ReferralCode from '../components/ReferralCode';
-import { showToast } from '../utils/toast';
+import { useEffect, useMemo, useState } from "react"
+import { referralApi, ReferralStats, ReferralListItem, RewardListItem } from "../services/api"
+import ReferralCode from "../components/ReferralCode"
+import { showToast } from "../utils/toast"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { Gift, Users } from "lucide-react"
 
 function Referral() {
-  const [loading, setLoading] = useState(true);
-  const [loadingReferrals, setLoadingReferrals] = useState(false);
-  const [loadingRewards, setLoadingRewards] = useState(false);
-  const [stats, setStats] = useState<ReferralStats | null>(null);
-  const [referrals, setReferrals] = useState<ReferralListItem[]>([]);
-  const [rewards, setRewards] = useState<RewardListItem[]>([]);
-  const [activeTab, setActiveTab] = useState<'referrals' | 'rewards'>('referrals');
-  const [referralsPage, setReferralsPage] = useState(1);
-  const [rewardsPage, setRewardsPage] = useState(1);
-  const [referralsTotalPages, setReferralsTotalPages] = useState(1);
-  const [rewardsTotalPages, setRewardsTotalPages] = useState(1);
-  const [initialLoad, setInitialLoad] = useState(true);
+  const [loading, setLoading] = useState(true)
+  const [loadingReferrals, setLoadingReferrals] = useState(false)
+  const [loadingRewards, setLoadingRewards] = useState(false)
+  const [stats, setStats] = useState<ReferralStats | null>(null)
+  const [referrals, setReferrals] = useState<ReferralListItem[]>([])
+  const [rewards, setRewards] = useState<RewardListItem[]>([])
+  const [activeTab, setActiveTab] = useState<"referrals" | "rewards">("referrals")
+  const [referralsPage, setReferralsPage] = useState(1)
+  const [rewardsPage, setRewardsPage] = useState(1)
+  const [referralsTotalPages, setReferralsTotalPages] = useState(1)
+  const [rewardsTotalPages, setRewardsTotalPages] = useState(1)
+  const [initialLoad, setInitialLoad] = useState(true)
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData()
+  }, [])
 
   useEffect(() => {
     // Skip on initial mount - loadData already loads referrals
     if (initialLoad) {
-      setInitialLoad(false);
-      return;
+      setInitialLoad(false)
+      return
     }
 
     // Load data when tab or page changes
     if (activeTab === 'referrals') {
-      loadReferrals();
+      loadReferrals()
     } else {
-      loadRewards();
+      loadRewards()
     }
-  }, [activeTab, referralsPage, rewardsPage]);
+  }, [activeTab, referralsPage, rewardsPage])
 
   const loadData = async () => {
     try {
       const [statsData, referralsData] = await Promise.all([
         referralApi.getMyStats(),
         referralApi.getMyReferrals({ page: 1, limit: 10 }),
-      ]);
-      setStats(statsData);
-      setReferrals(referralsData.referrals);
-      setReferralsTotalPages(referralsData.totalPages);
+      ])
+      setStats(statsData)
+      setReferrals(referralsData.referrals)
+      setReferralsTotalPages(referralsData.totalPages)
     } catch (error: any) {
-      showToast.error(error.response?.data?.message || 'Failed to load referral data');
+      showToast.error(error.response?.data?.message || "Failed to load referral data")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const loadReferrals = async () => {
-    setLoadingReferrals(true);
+    setLoadingReferrals(true)
     try {
-      const data = await referralApi.getMyReferrals({ page: referralsPage, limit: 10 });
-      setReferrals(data.referrals || []);
-      setReferralsTotalPages(data.totalPages || 1);
+      const data = await referralApi.getMyReferrals({ page: referralsPage, limit: 10 })
+      setReferrals(data.referrals || [])
+      setReferralsTotalPages(data.totalPages || 1)
     } catch (error: any) {
-      console.error('Failed to load referrals:', error);
-      showToast.error(error.response?.data?.message || 'Failed to load referrals');
-      setReferrals([]);
+      console.error("Failed to load referrals:", error)
+      showToast.error(error.response?.data?.message || "Failed to load referrals")
+      setReferrals([])
     } finally {
-      setLoadingReferrals(false);
+      setLoadingReferrals(false)
     }
-  };
+  }
 
   const loadRewards = async () => {
-    setLoadingRewards(true);
+    setLoadingRewards(true)
     try {
-      const data = await referralApi.getRewards({ page: rewardsPage, limit: 10 });
-      setRewards(data.rewards || []);
-      setRewardsTotalPages(data.totalPages || 1);
+      const data = await referralApi.getRewards({ page: rewardsPage, limit: 10 })
+      setRewards(data.rewards || [])
+      setRewardsTotalPages(data.totalPages || 1)
     } catch (error: any) {
-      console.error('Failed to load rewards:', error);
-      showToast.error(error.response?.data?.message || 'Failed to load rewards');
-      setRewards([]);
+      console.error("Failed to load rewards:", error)
+      showToast.error(error.response?.data?.message || "Failed to load rewards")
+      setRewards([])
     } finally {
-      setLoadingRewards(false);
+      setLoadingRewards(false)
     }
-  };
+  }
 
   const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { label: string; className: string }> = {
-      pending: { label: 'Pending', className: 'bg-yellow-900 text-yellow-300' },
-      active: { label: 'Active', className: 'bg-blue-900 text-blue-300' },
-      completed: { label: 'Completed', className: 'bg-green-900 text-green-300' },
-      expired: { label: 'Expired', className: 'bg-neutral-700 text-neutral-300' },
-    };
-
-    const config = statusConfig[status.toLowerCase()] || statusConfig.pending;
-    return (
-      <span className={`px-2 py-1 rounded text-xs font-semibold ${config.className}`}>
-        {config.label}
-      </span>
-    );
-  };
+    const s = (status || "").toLowerCase()
+    const map: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+      pending: { label: "Pending", variant: "outline" },
+      active: { label: "Active", variant: "secondary" },
+      completed: { label: "Completed", variant: "default" },
+      expired: { label: "Expired", variant: "destructive" },
+    }
+    const config = map[s] || map.pending
+    return <Badge variant={config.variant}>{config.label}</Badge>
+  }
 
   const getRewardTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      signup_bonus: 'Signup Bonus',
-      first_purchase: 'First Purchase',
-      milestone: 'Milestone',
-      custom: 'Custom',
-    };
-    return labels[type] || type;
-  };
+      signup_bonus: "Signup Bonus",
+      first_purchase: "First Purchase",
+      milestone: "Milestone",
+      custom: "Custom",
+    }
+    return labels[type] || type
+  }
+
+  const referralsPages = useMemo(() => {
+    const start = Math.max(1, referralsPage - 1)
+    const end = Math.min(referralsTotalPages, referralsPage + 1)
+    const pages: number[] = []
+    for (let p = start; p <= end; p++) pages.push(p)
+    return pages
+  }, [referralsPage, referralsTotalPages])
+
+  const rewardsPages = useMemo(() => {
+    const start = Math.max(1, rewardsPage - 1)
+    const end = Math.min(rewardsTotalPages, rewardsPage + 1)
+    const pages: number[] = []
+    for (let p = start; p <= end; p++) pages.push(p)
+    return pages
+  }, [rewardsPage, rewardsTotalPages])
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-900 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
+      <div className="mx-auto w-full max-w-6xl space-y-6 py-4">
+        <div className="space-y-2">
+          <Skeleton className="h-9 w-52" />
+          <Skeleton className="h-4 w-80" />
         </div>
+        <Skeleton className="h-36 w-full" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+        <Skeleton className="h-80 w-full" />
       </div>
-    );
+    )
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900 p-6">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-neutral-100 mb-6">Referral Program</h1>
-
-        {stats ? (
-          <>
-            {/* Referral Code */}
-            <div className="mb-6">
-              <ReferralCode code={stats.referralCode} />
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
-                <p className="text-neutral-400 text-sm mb-2">Total Referrals</p>
-                <p className="text-3xl font-bold text-neutral-100">{stats.totalReferrals}</p>
-              </div>
-              <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
-                <p className="text-neutral-400 text-sm mb-2">Active Referrals</p>
-                <p className="text-3xl font-bold text-blue-400">{stats.activeReferrals}</p>
-              </div>
-              <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
-                <p className="text-neutral-400 text-sm mb-2">Completed</p>
-                <p className="text-3xl font-bold text-green-400">{stats.completedReferrals}</p>
-              </div>
-              <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
-                <p className="text-neutral-400 text-sm mb-2">Total Earnings</p>
-                <p className="text-3xl font-bold text-purple-400">
-                  {stats.totalEarnings.toFixed(2)} USD
-                </p>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="mb-6">
-            <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
-              <p className="text-neutral-400">Loading referral code...</p>
-            </div>
-          </div>
-        )}
-
-        {/* Tabs - Always visible */}
-        <div className="bg-neutral-800 rounded-lg border border-neutral-700">
-          <div className="border-b border-neutral-700">
-            <div className="flex">
-              <button
-                onClick={() => setActiveTab('referrals')}
-                className={`px-6 py-4 font-semibold transition-colors ${
-                  activeTab === 'referrals'
-                    ? 'text-blue-400 border-b-2 border-blue-400'
-                    : 'text-neutral-400 hover:text-neutral-300'
-                }`}
-              >
-                My Referrals {stats && `(${stats.totalReferrals})`}
-              </button>
-              <button
-                onClick={() => setActiveTab('rewards')}
-                className={`px-6 py-4 font-semibold transition-colors ${
-                  activeTab === 'rewards'
-                    ? 'text-blue-400 border-b-2 border-blue-400'
-                    : 'text-neutral-400 hover:text-neutral-300'
-                }`}
-              >
-                Reward History
-              </button>
-            </div>
-          </div>
-
-          <div className="p-6">
-            {activeTab === 'referrals' ? (
-              <div>
-                {loadingReferrals ? (
-                  <div className="text-center py-12">
-                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <p className="text-neutral-400 mt-4">Loading referrals...</p>
-                  </div>
-                ) : referrals.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-neutral-400">No referrals yet. Start sharing your code!</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-4">
-                      {referrals.map((referral) => (
-                        <div
-                          key={referral.id}
-                          className="bg-neutral-900 rounded-lg p-4 border border-neutral-700 flex items-center justify-between"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-neutral-700 rounded-full flex items-center justify-center">
-                              {referral.referredUser.avatar ? (
-                                <img
-                                  src={referral.referredUser.avatar}
-                                  alt={referral.referredUser.userName || 'User'}
-                                  className="w-12 h-12 rounded-full"
-                                />
-                              ) : (
-                                <span className="text-neutral-400 font-semibold">
-                                  {referral.referredUser.firstName?.[0] ||
-                                    referral.referredUser.userName?.[0] ||
-                                    'U'}
-                                </span>
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-neutral-100 font-semibold">
-                                {referral.referredUser.firstName && referral.referredUser.lastName
-                                  ? `${referral.referredUser.firstName} ${referral.referredUser.lastName}`
-                                  : referral.referredUser.userName || referral.referredUser.email}
-                              </p>
-                              <p className="text-neutral-400 text-sm">
-                                {new Date(referral.referredAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            {getStatusBadge(referral.status)}
-                            <div className="text-right">
-                              <p className="text-neutral-400 text-sm">Earnings</p>
-                              <p className="text-green-400 font-semibold">
-                                {referral.earnings.toFixed(2)} USD
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {referralsTotalPages > 1 && (
-                      <div className="flex justify-center gap-2 mt-6">
-                        <button
-                          onClick={() => setReferralsPage((p) => Math.max(1, p - 1))}
-                          disabled={referralsPage === 1}
-                          className="px-4 py-2 bg-neutral-700 text-neutral-300 rounded disabled:opacity-50"
-                        >
-                          Previous
-                        </button>
-                        <span className="px-4 py-2 text-neutral-400">
-                          Page {referralsPage} of {referralsTotalPages}
-                        </span>
-                        <button
-                          onClick={() =>
-                            setReferralsPage((p) => Math.min(referralsTotalPages, p + 1))
-                          }
-                          disabled={referralsPage === referralsTotalPages}
-                          className="px-4 py-2 bg-neutral-700 text-neutral-300 rounded disabled:opacity-50"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            ) : (
-              <div>
-                {loadingRewards ? (
-                  <div className="text-center py-12">
-                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <p className="text-neutral-400 mt-4">Loading rewards...</p>
-                  </div>
-                ) : rewards.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-neutral-400">No rewards yet.</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-4">
-                      {rewards.map((reward) => (
-                        <div
-                          key={reward.id}
-                          className="bg-neutral-900 rounded-lg p-4 border border-neutral-700"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-neutral-100 font-semibold">
-                                {getRewardTypeLabel(reward.rewardType)}
-                              </p>
-                              <p className="text-neutral-400 text-sm">
-                                {reward.referredUser.firstName && reward.referredUser.lastName
-                                  ? `${reward.referredUser.firstName} ${reward.referredUser.lastName}`
-                                  : reward.referredUser.userName || 'User'}
-                              </p>
-                              {reward.description && (
-                                <p className="text-neutral-500 text-xs mt-1">{reward.description}</p>
-                              )}
-                            </div>
-                            <div className="text-right">
-                              <p className="text-green-400 font-bold text-lg">
-                                +{reward.amount.toFixed(2)} {reward.currency}
-                              </p>
-                              <p className="text-neutral-400 text-xs">
-                                {reward.processedAt
-                                  ? new Date(reward.processedAt).toLocaleDateString()
-                                  : 'Pending'}
-                              </p>
-                              {reward.status === 'processed' && (
-                                <span className="inline-block mt-1 px-2 py-1 bg-green-900 text-green-300 rounded text-xs">
-                                  Processed
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {rewardsTotalPages > 1 && (
-                      <div className="flex justify-center gap-2 mt-6">
-                        <button
-                          onClick={() => setRewardsPage((p) => Math.max(1, p - 1))}
-                          disabled={rewardsPage === 1}
-                          className="px-4 py-2 bg-neutral-700 text-neutral-300 rounded disabled:opacity-50"
-                        >
-                          Previous
-                        </button>
-                        <span className="px-4 py-2 text-neutral-400">
-                          Page {rewardsPage} of {rewardsTotalPages}
-                        </span>
-                        <button
-                          onClick={() =>
-                            setRewardsPage((p) => Math.min(rewardsTotalPages, p + 1))
-                          }
-                          disabled={rewardsPage === rewardsTotalPages}
-                          className="px-4 py-2 bg-neutral-700 text-neutral-300 rounded disabled:opacity-50"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+    <div className="mx-auto w-full max-w-6xl space-y-6 py-4">
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="text-2xl font-bold tracking-tight">Referral</div>
+          <div className="text-sm text-muted-foreground">Invite friends and track your rewards.</div>
         </div>
       </div>
+
+      {stats ? (
+        <>
+          <ReferralCode code={stats.referralCode} />
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Total referrals</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stats.totalReferrals}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Active</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stats.activeReferrals}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stats.completedReferrals}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Total earnings</CardTitle>
+                  <Gift className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stats.totalEarnings.toFixed(2)}</div>
+                <div className="text-sm text-muted-foreground">USD</div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      ) : (
+        <Card>
+          <CardContent className="py-6">
+            <div className="text-sm text-muted-foreground">Loading referral stats…</div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-4">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+              <TabsList>
+                <TabsTrigger value="referrals">My referrals</TabsTrigger>
+                <TabsTrigger value="rewards">Reward history</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            {stats ? (
+              <div className="text-sm text-muted-foreground">
+                {activeTab === "referrals" ? `${stats.totalReferrals} total` : ""}
+              </div>
+            ) : null}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {activeTab === "referrals" ? (
+            <div className="space-y-3">
+              {loadingReferrals ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-20 w-full" />
+                </div>
+              ) : referrals.length === 0 ? (
+                <div className="rounded-lg border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+                  No referrals yet. Start sharing your code!
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {referrals.map((referral) => {
+                    const name =
+                      (referral.referredUser.firstName && referral.referredUser.lastName)
+                        ? `${referral.referredUser.firstName} ${referral.referredUser.lastName}`
+                        : referral.referredUser.userName || referral.referredUser.email
+                    const fallback =
+                      (referral.referredUser.firstName?.[0] ||
+                        referral.referredUser.userName?.[0] ||
+                        "U").toUpperCase()
+                    return (
+                      <div key={referral.id} className="flex items-center justify-between gap-4 rounded-lg border p-4">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={referral.referredUser.avatar || ""} alt={name || "User"} />
+                            <AvatarFallback>{fallback}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold">{name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(referral.referredAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          {getStatusBadge(referral.status)}
+                          <div className="text-right">
+                            <div className="text-xs text-muted-foreground">Earnings</div>
+                            <div className="text-sm font-semibold text-foreground">
+                              {referral.earnings.toFixed(2)} USD
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {referralsTotalPages > 1 ? (
+                <div className="flex justify-center pt-2">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setReferralsPage((p) => Math.max(1, p - 1))
+                          }}
+                          className={referralsPage === 1 ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                      {referralsPages.map((p) => (
+                        <PaginationItem key={p}>
+                          <PaginationLink
+                            href="#"
+                            isActive={p === referralsPage}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              setReferralsPage(p)
+                            }}
+                          >
+                            {p}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setReferralsPage((p) => Math.min(referralsTotalPages, p + 1))
+                          }}
+                          className={referralsPage === referralsTotalPages ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {loadingRewards ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-20 w-full" />
+                </div>
+              ) : rewards.length === 0 ? (
+                <div className="rounded-lg border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+                  No rewards yet.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {rewards.map((reward) => {
+                    const name =
+                      (reward.referredUser.firstName && reward.referredUser.lastName)
+                        ? `${reward.referredUser.firstName} ${reward.referredUser.lastName}`
+                        : reward.referredUser.userName || "User"
+                    return (
+                      <div key={reward.id} className="rounded-lg border p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold">{getRewardTypeLabel(reward.rewardType)}</div>
+                            <div className="text-xs text-muted-foreground">{name}</div>
+                            {reward.description ? (
+                              <div className="pt-1 text-xs text-muted-foreground">{reward.description}</div>
+                            ) : null}
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-semibold text-foreground">
+                              +{reward.amount.toFixed(2)} {reward.currency}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {reward.processedAt ? new Date(reward.processedAt).toLocaleDateString() : "Pending"}
+                            </div>
+                            {reward.status === "processed" ? (
+                              <div className="pt-1">
+                                <Badge variant="secondary">Processed</Badge>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {rewardsTotalPages > 1 ? (
+                <div className="flex justify-center pt-2">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setRewardsPage((p) => Math.max(1, p - 1))
+                          }}
+                          className={rewardsPage === 1 ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                      {rewardsPages.map((p) => (
+                        <PaginationItem key={p}>
+                          <PaginationLink
+                            href="#"
+                            isActive={p === rewardsPage}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              setRewardsPage(p)
+                            }}
+                          >
+                            {p}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setRewardsPage((p) => Math.min(rewardsTotalPages, p + 1))
+                          }}
+                          className={rewardsPage === rewardsTotalPages ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              ) : null}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
-  );
+  )
 }
 
-export default Referral;
+export default Referral
 

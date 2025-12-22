@@ -83,12 +83,12 @@ function Dashboard() {
       <div className="rounded-2xl bg-card text-card-foreground border border-border p-8 md:p-12 shadow-sm overflow-hidden relative">
         <div className="relative z-10 max-w-2xl">
           <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            Admin Dashboard
-          </h1>
+              Admin Dashboard
+            </h1>
           <p className="text-muted-foreground text-lg">
             Welcome to the OmniMart Admin Panel. Manage your platform, services, and users from one central location.
-          </p>
-        </div>
+            </p>
+          </div>
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl" />
         <div className="absolute bottom-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full -mr-12 -mb-12 blur-2xl" />
@@ -104,17 +104,17 @@ function Dashboard() {
           {menuItems.map((item) => {
             const content = (
               <Card className={`h-full transition-all duration-300 border-border ${
-                item.available 
+                  item.available
                   ? 'hover:shadow-md hover:border-primary/50 cursor-pointer group' 
                   : 'opacity-60 cursor-not-allowed bg-muted/40'
               }`}>
                 <CardHeader>
                   <div className={`w-12 h-12 rounded-xl ${item.color} flex items-center justify-center mb-2 shadow-sm transition-transform group-hover:scale-110`}>
                     <item.icon className="w-6 h-6" />
-                  </div>
+                </div>
                   <CardTitle className="text-xl group-hover:text-primary transition-colors flex items-center justify-between">
                     {item.title}
-                    {!item.available && (
+                {!item.available && (
                       <Badge variant="secondary" className="text-[10px] font-bold">Soon</Badge>
                     )}
                   </CardTitle>
