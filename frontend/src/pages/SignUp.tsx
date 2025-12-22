@@ -452,6 +452,17 @@ function SignUp() {
         </CardContent>
 
         <CardFooter className="bg-muted/40 border-t border-border flex flex-col p-6">
+          <div className="mb-4 text-xs text-center text-muted-foreground">
+            By continuing, you agree to our{" "}
+            <Link to="/terms" className="text-primary hover:underline">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy" className="text-primary hover:underline">
+              Privacy Policy
+            </Link>
+            .
+          </div>
           <div className="text-sm text-center text-muted-foreground">
             Already have an account?{" "}
             <Link to="/signin" className="font-bold text-primary hover:underline">

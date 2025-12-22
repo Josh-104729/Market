@@ -127,15 +127,15 @@ function Footer() {
         <div className="flex flex-col gap-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <div>© {currentYear} OmniMart. All rights reserved.</div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <a href="#" className="hover:text-foreground">
+            <Link to="/privacy" className="hover:text-foreground">
               Privacy
-            </a>
-            <a href="#" className="hover:text-foreground">
+            </Link>
+            <Link to="/terms" className="hover:text-foreground">
               Terms
-            </a>
-            <a href="#" className="hover:text-foreground">
+            </Link>
+            <Link to="/cookies" className="hover:text-foreground">
               Cookies
-            </a>
+            </Link>
           </div>
         </div>
       </div>
