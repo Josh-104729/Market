@@ -86,8 +86,11 @@ export interface TempWallet {
   } | null;
   address: string;
   status: string;
+  network?: 'TRON' | 'POLYGON';
   totalReceived: number;
   usdtBalance: number;
+  usdcBalance?: number;
+  maticBalance?: number;
   lastCheckedAt?: string;
   createdAt: string;
   updatedAt: string;

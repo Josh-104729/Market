@@ -12,21 +12,93 @@ const TronWeb = TronWebModule.TronWeb || TronWebModule.default || TronWebModule;
 export class WalletService {
   private tronWeb: any;
   private readonly USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'; // USDT TRC20 contract address
+  private readonly tronApiKey?: string;
+  private readonly tronFullHosts: string[];
 
   constructor(
     @InjectRepository(TempWallet)
     private tempWalletRepository: Repository<TempWallet>,
   ) {
     // Initialize TronWeb
+    this.tronApiKey = process.env.TRON_PRO_API_KEY || process.env.TRONGRID_API_KEY;
+
     const fullNode = process.env.TRON_FULL_NODE || 'https://api.trongrid.io';
-    const solidityNode = process.env.TRON_SOLIDITY_NODE || 'https://api.trongrid.io';
+    const solidityNode = process.env.TRON_SOLIDITY_NODE || process.env.TRON_SOLIDITY_NODE || 'https://api.trongrid.io';
     const eventServer = process.env.TRON_EVENT_SERVER || 'https://api.trongrid.io';
 
-    this.tronWeb = new TronWeb({
-      fullHost: fullNode,
-      solidityNode: solidityNode,
-      eventServer: eventServer,
+    // Allow comma-separated fallback hosts for rate-limit resilience.
+    // Example: TRON_FULL_NODES=https://api.trongrid.io,https://api.tronstack.io
+    const fullHosts = (process.env.TRON_FULL_NODES || process.env.TRON_FULL_HOSTS || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    this.tronFullHosts = Array.from(new Set([fullNode, ...fullHosts]));
+
+    this.tronWeb = this.createTronWeb({
+      fullHost: this.tronFullHosts[0],
+      solidityNode,
+      eventServer,
     });
+  }
+
+  private createTronWeb(opts: { fullHost: string; solidityNode?: string; eventServer?: string }) {
+    const headers = this.tronApiKey ? { 'TRON-PRO-API-KEY': this.tronApiKey } : undefined;
+    return new TronWeb({
+      fullHost: opts.fullHost,
+      solidityNode: opts.solidityNode,
+      eventServer: opts.eventServer,
+      headers,
+    });
+  }
+
+  private tronGridHeaders(): HeadersInit | undefined {
+    if (!this.tronApiKey) return undefined;
+    return { 'TRON-PRO-API-KEY': this.tronApiKey };
+  }
+
+  private async sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private getTronRetryTimeoutMs(): number {
+    const v = Number(process.env.TRON_RETRY_TIMEOUT_MS || 90_000);
+    return Number.isFinite(v) && v > 0 ? v : 90_000;
+  }
+
+  private getTronRetryBaseDelayMs(): number {
+    const v = Number(process.env.TRON_RETRY_BASE_DELAY_MS || 750);
+    return Number.isFinite(v) && v > 0 ? v : 750;
+  }
+
+  private async waitForTxConfirmation(
+    tronWeb: any,
+    txid: string,
+    timeoutMs: number = Number(process.env.TRON_TX_CONFIRM_TIMEOUT_MS || 120_000),
+    pollMs: number = Number(process.env.TRON_TX_CONFIRM_POLL_MS || 2_000),
+  ): Promise<{ confirmed: boolean; receipt?: any }> {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      try {
+        const info = await tronWeb.trx.getTransactionInfo(txid);
+        // When confirmed, Tron returns receipt and blockNumber.
+        const receipt = info?.receipt;
+        const result = receipt?.result || receipt?.result?.toString?.();
+        const blockNumber = info?.blockNumber;
+        if (blockNumber || result === 'SUCCESS') {
+          return { confirmed: true, receipt: info };
+        }
+      } catch (e) {
+        // ignore intermittent / not found while pending
+      }
+      await this.sleep(pollMs);
+    }
+    return { confirmed: false };
+  }
+
+  private isRateLimitError(err: any): boolean {
+    const msg = String(err?.message || '');
+    const status = err?.response?.status;
+    return status === 429 || msg.includes(' 429') || msg.includes('status code 429') || msg.includes('Unable to get params');
   }
 
   async getOrCreateTempWallet(userId: string): Promise<TempWallet> {
@@ -110,6 +182,7 @@ export class WalletService {
       const tronGridUrl = process.env.TRON_GRID_URL || 'https://api.trongrid.io';
       const response = await fetch(
         `${tronGridUrl}/v1/accounts/${walletAddress}/transactions/trc20?only_confirmed=true&limit=50&contract_address=${this.USDT_CONTRACT}`,
+        { headers: this.tronGridHeaders() },
       );
 
       if (!response.ok) {
@@ -157,6 +230,7 @@ export class WalletService {
         const tronGridUrl = process.env.TRON_GRID_URL || 'https://api.trongrid.io';
         const response = await fetch(
           `${tronGridUrl}/v1/accounts/${walletAddress}/tokens?contract_address=${this.USDT_CONTRACT}`,
+          { headers: this.tronGridHeaders() },
         );
 
         if (response.ok) {
@@ -203,47 +277,52 @@ export class WalletService {
   }
 
   private async getUSDTBalanceViaContract(walletAddress: string, retries: number = 1): Promise<number> {
-    for (let attempt = 0; attempt < retries; attempt++) {
+    // Set a default address for the contract call
+    // For read-only operations, any valid address works
+    const defaultAddress = 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb';
+
+    const solidityNode = process.env.TRON_SOLIDITY_NODE || 'https://api.trongrid.io';
+    const eventServer = process.env.TRON_EVENT_SERVER || 'https://api.trongrid.io';
+    const hosts = this.tronFullHosts.length ? this.tronFullHosts : ['https://api.trongrid.io'];
+
+    // Keep retrying (with backoff) until success or timeout, rather than stopping early.
+    // `retries` is kept for backward compatibility; timeout is the real limiter.
+    const timeoutMs = this.getTronRetryTimeoutMs();
+    const baseDelay = this.getTronRetryBaseDelayMs();
+    const started = Date.now();
+    let attempt = 0;
+    while (Date.now() - started < timeoutMs) {
+      const host = hosts[attempt % hosts.length];
       try {
-        // Add delay for retries to avoid rate limiting
         if (attempt > 0) {
-          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff, max 5s
-          await new Promise((resolve) => setTimeout(resolve, delay));
+          const delay = Math.min(baseDelay * Math.pow(2, Math.min(attempt - 1, 6)), 10_000);
+          await this.sleep(delay);
         }
 
-        // Set a default address for the contract call
-        // For read-only operations, any valid address works
-        const defaultAddress = 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb';
-
-        // Create a temporary TronWeb instance with default address
-        const fullNode = process.env.TRON_FULL_NODE || 'https://api.trongrid.io';
-        const solidityNode = process.env.TRON_SOLIDITY_NODE || 'https://api.trongrid.io';
-        const eventServer = process.env.TRON_EVENT_SERVER || 'https://api.trongrid.io';
-
-        const tempTronWeb = new TronWeb({
-          fullHost: fullNode,
-          solidityNode: solidityNode,
-          eventServer: eventServer,
+        // Use headers (TRON-PRO-API-KEY) + host fallback to reduce 429s.
+        const tempTronWeb = this.createTronWeb({
+          fullHost: host,
+          solidityNode,
+          eventServer,
         });
-
-        // Set default address for contract calls
         tempTronWeb.setAddress(defaultAddress);
 
         const contract = await tempTronWeb.contract().at(this.USDT_CONTRACT);
         const balance = await contract.balanceOf(walletAddress).call();
         return Number(balance) / 1e6; // Convert from smallest unit to USDT (6 decimals)
       } catch (error) {
-        // If it's a rate limit error and we have retries left, continue
-        if (attempt < retries - 1 && ((error as any)?.response?.status === 429 || (error as any)?.message?.includes('429'))) {
-          console.warn(`Rate limited (429) when getting USDT balance via contract for ${walletAddress}, retrying... (attempt ${attempt + 1}/${retries})`);
+        if (this.isRateLimitError(error)) {
+          console.warn(
+            `Rate limited (429) when getting USDT balance via contract for ${walletAddress} (host=${host}), retrying...`,
+          );
+          attempt++;
           continue;
         }
 
-        if (attempt === retries - 1) {
-          console.error('Error getting USDT balance via contract:', error);
-          return 0;
-        }
+        console.error('Error getting USDT balance via contract:', error);
+        return 0;
       }
+      attempt++;
     }
 
     return 0;
@@ -268,6 +347,7 @@ export class WalletService {
       const tronGridUrl = process.env.TRON_GRID_URL || 'https://api.trongrid.io';
       const response = await fetch(
         `${tronGridUrl}/v1/accounts/${walletAddress}/transactions/trc20?only_confirmed=true&limit=${limit}&contract_address=${this.USDT_CONTRACT}`,
+        { headers: this.tronGridHeaders() },
       );
 
       if (!response.ok) {
@@ -371,30 +451,60 @@ export class WalletService {
     toAddress: string,
     amountTRX: number,
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
-    try {
-      this.tronWeb.setPrivateKey(fromPrivateKey);
       const amount = Math.floor(amountTRX * 1e6); // TRX has 6 decimals
+    const solidityNode = process.env.TRON_SOLIDITY_NODE || 'https://api.trongrid.io';
+    const eventServer = process.env.TRON_EVENT_SERVER || 'https://api.trongrid.io';
 
-      const transaction = await this.tronWeb.trx.sendTransaction(toAddress, amount);
+    const hosts = this.tronFullHosts.length ? this.tronFullHosts : ['https://api.trongrid.io'];
+    // Keep retrying until success (or timeout), then wait for confirmation before returning success.
+    const timeoutMs = this.getTronRetryTimeoutMs();
+    const baseDelay = this.getTronRetryBaseDelayMs();
+    const started = Date.now();
+    let attempt = 0;
+    while (Date.now() - started < timeoutMs) {
+      const host = hosts[attempt % hosts.length];
+      try {
+        const tw = this.createTronWeb({ fullHost: host, solidityNode, eventServer });
+        tw.setPrivateKey(fromPrivateKey);
 
-      if (transaction) {
-        return {
-          success: true,
-          transactionHash: transaction,
-        };
-      } else {
-        return {
-          success: false,
-          error: 'Transaction failed',
-        };
+        const res = await tw.trx.sendTransaction(toAddress, amount);
+        const txid =
+          typeof res === 'string'
+            ? res
+            : res?.txid || res?.transaction?.txID || res?.transactionHash;
+
+        if (res && (res?.result === true || typeof res === 'string') && txid) {
+          // Wait until the transaction is confirmed on-chain.
+          const confirmed = await this.waitForTxConfirmation(tw, txid);
+          if (confirmed.confirmed) {
+            return { success: true, transactionHash: txid };
+          }
+          return { success: false, error: 'TRX transaction sent but not confirmed before timeout' };
+        }
+
+        // If TronWeb returned something unexpected, fail fast.
+        return { success: false, error: 'TRX transaction failed (no txid returned)' };
+      } catch (error) {
+        const is429 = this.isRateLimitError(error);
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error(`Error sending TRX (host=${host}):`, msg);
+
+        if (is429) {
+          const delay = Math.min(baseDelay * Math.pow(2, Math.min(attempt, 6)), 10_000);
+          await this.sleep(delay);
+          attempt++;
+          continue;
+        }
+
+        return { success: false, error: msg || 'Unknown error' };
       }
-    } catch (error) {
-      console.error('Error sending TRX:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+      attempt++;
     }
+
+    return {
+      success: false,
+      error: 'Timed out while sending TRX. Configure TRON_PRO_API_KEY / TRON_FULL_NODES or increase TRON_RETRY_TIMEOUT_MS.',
+    };
   }
 
   /**
@@ -409,7 +519,6 @@ export class WalletService {
       const privateKey = await this.getDecryptedPrivateKey(tempWallet);
 
       // Get current balances
-      const usdtBalance = await this.getUSDTBalance(tempWallet.address);
       const trxBalance = await this.getTRXBalance(tempWallet.address);
 
       const result: { success: boolean; usdtTxHash?: string; trxTxHash?: string; error?: string } = {
@@ -435,6 +544,7 @@ export class WalletService {
       }
 
       // Transfer USDT if balance > 0
+      const usdtBalance = await this.getUSDTBalance(tempWallet.address);
       console.log('usdtBalance', usdtBalance);
       if (usdtBalance > 0.000001) {
         const usdtResult = await this.sendUSDT(privateKey, masterWallet.address, usdtBalance);

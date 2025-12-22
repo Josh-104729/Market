@@ -61,7 +61,15 @@ export class Transaction extends BaseEntity {
   })
   status: TransactionStatus;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: {
+      to: (value: any) => value,
+      from: (value: any) => (value === null || value === undefined ? value : Number(value)),
+    },
+  })
   amount: number;
 
   @Column({ name: 'transaction_hash', nullable: true })
@@ -80,10 +88,30 @@ export class Transaction extends BaseEntity {
   @JoinColumn({ name: 'temp_wallet_id' })
   tempWallet?: TempWallet;
 
-  @Column({ name: 'expected_amount', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({
+    name: 'expected_amount',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (value: any) => value,
+      from: (value: any) => (value === null || value === undefined ? value : Number(value)),
+    },
+  })
   expectedAmount?: number; // For charge transactions
 
-  @Column({ name: 'platform_fee', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({
+    name: 'platform_fee',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (value: any) => value,
+      from: (value: any) => (value === null || value === undefined ? value : Number(value)),
+    },
+  })
   platformFee?: number;
 
   @Column({ name: 'expires_at', nullable: true })

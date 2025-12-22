@@ -1029,7 +1029,9 @@ export class PaymentService {
     }
 
     const tempWallet = transaction.tempWallet;
-    const expectedAmount = transaction.expectedAmount || transaction.amount + (transaction.platformFee || 0);
+    const expectedAmount = Number(
+      transaction.expectedAmount ?? (Number(transaction.amount) + Number(transaction.platformFee || 0)),
+    );
     const paymentNetwork = transaction.paymentNetwork || PaymentNetwork.USDT_TRC20;
 
     // Check wallet balance based on network (only check token balance, not native balance)
@@ -1108,17 +1110,19 @@ export class PaymentService {
       }
 
       // Verify payment was received
-      const expectedAmount = currentTransaction.expectedAmount || currentTransaction.amount + (currentTransaction.platformFee || 0);
+      const expectedAmount = Number(
+        currentTransaction.expectedAmount ?? (Number(currentTransaction.amount) + Number(currentTransaction.platformFee || 0)),
+      );
       if (tokenBalance < expectedAmount * 0.99) { // Allow 1% tolerance
         return { success: false, message: `Insufficient payment received. Expected: ${expectedAmount.toFixed(2)} ${currency}, Received: ${tokenBalance.toFixed(2)} ${currency}` };
       }
 
       // Calculate amount added to balance: transferred amount - platform fee
-      const amountAdded = tokenBalance - (currentTransaction.platformFee || 0);
+      const amountAdded = tokenBalance - Number(currentTransaction.platformFee || 0);
 
       // Update transaction status to SUCCESS (no automatic transfer)
       currentTransaction.status = TransactionStatus.SUCCESS;
-      currentTransaction.description = `Charge completed. Payment received: ${tokenBalance.toFixed(2)} ${currency}. Amount added to balance: ${amountAdded.toFixed(2)} ${currency} (after ${currentTransaction.platformFee || 0} ${currency} platform fee). Admin transfer pending.`;
+      currentTransaction.description = `Charge completed. Payment received: ${tokenBalance.toFixed(2)} ${currency}. Amount added to balance: ${amountAdded.toFixed(2)} ${currency} (after ${Number(currentTransaction.platformFee || 0).toFixed(2)} ${currency} platform fee). Admin transfer pending.`;
       await queryRunner.manager.save(currentTransaction);
 
       // Update user balance (amount = transferred from user - platform fee)

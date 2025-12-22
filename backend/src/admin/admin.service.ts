@@ -24,6 +24,44 @@ import { PolygonWalletService } from '../wallet/polygon-wallet.service';
 
 @Injectable()
 export class AdminService {
+  // Simple in-memory balance cache to avoid hammering RPC providers on admin list pages.
+  // Key: `${network}:${address}:${asset}`
+  private balanceCache = new Map<string, { value: number; expiresAt: number }>();
+
+  private getCachedBalance(key: string): number | null {
+    const hit = this.balanceCache.get(key);
+    if (!hit) return null;
+    if (Date.now() > hit.expiresAt) {
+      this.balanceCache.delete(key);
+      return null;
+    }
+    return hit.value;
+  }
+
+  private setCachedBalance(key: string, value: number, ttlMs: number) {
+    this.balanceCache.set(key, { value, expiresAt: Date.now() + ttlMs });
+  }
+
+  private async mapWithConcurrency<T, R>(
+    items: T[],
+    concurrency: number,
+    fn: (item: T, index: number) => Promise<R>,
+  ): Promise<R[]> {
+    const results: R[] = new Array(items.length);
+    let nextIndex = 0;
+
+    const worker = async () => {
+      while (true) {
+        const i = nextIndex++;
+        if (i >= items.length) return;
+        results[i] = await fn(items[i], i);
+      }
+    };
+
+    const workers = Array.from({ length: Math.max(1, concurrency) }, () => worker());
+    await Promise.all(workers);
+    return results;
+  }
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -159,29 +197,51 @@ export class AdminService {
       order: { createdAt: 'DESC' },
     });
 
-    // Get balances for each wallet
-    const walletsWithBalances = await Promise.all(
-      wallets.map(async (wallet) => {
-        let usdtBalance = 0;
-        let usdcBalance = 0;
-        let maticBalance = 0;
+    // Get balances for each wallet, but limit concurrency to reduce rate-limits (TronGrid 429).
+    // Cache balances briefly since the admin page can refresh frequently.
+    const TTL_MS = 30_000; // 30s
+    const CONCURRENCY = 3;
 
-        if (wallet.network === WalletNetwork.TRON) {
+    const walletsWithBalances = await this.mapWithConcurrency(wallets, CONCURRENCY, async (wallet) => {
+      let usdtBalance = 0;
+      let usdcBalance = 0;
+      let maticBalance = 0;
+
+      if (wallet.network === WalletNetwork.TRON) {
+        const key = `TRON:${wallet.address}:USDT`;
+        const cached = this.getCachedBalance(key);
+        if (cached !== null) {
+          usdtBalance = cached;
+        } else {
           usdtBalance = await this.walletService.getUSDTBalance(wallet.address);
-        } else if (wallet.network === WalletNetwork.POLYGON) {
+          this.setCachedBalance(key, usdtBalance, TTL_MS);
+        }
+      } else if (wallet.network === WalletNetwork.POLYGON) {
+        const keyUsdc = `POLYGON:${wallet.address}:USDC`;
+        const keyMatic = `POLYGON:${wallet.address}:MATIC`;
+
+        const cachedUsdc = this.getCachedBalance(keyUsdc);
+        const cachedMatic = this.getCachedBalance(keyMatic);
+
+        if (cachedUsdc !== null && cachedMatic !== null) {
+          usdcBalance = cachedUsdc;
+          maticBalance = cachedMatic;
+        } else {
           usdcBalance = await this.polygonWalletService.getUSDCBalance(wallet.address);
           maticBalance = await this.polygonWalletService.getMATICBalance(wallet.address);
+          this.setCachedBalance(keyUsdc, usdcBalance, TTL_MS);
+          this.setCachedBalance(keyMatic, maticBalance, TTL_MS);
         }
+      }
 
-        return {
-          ...wallet,
-          totalReceived: Number(wallet.totalReceived || 0),
-          usdtBalance: wallet.network === WalletNetwork.TRON ? usdtBalance : 0,
-          usdcBalance: wallet.network === WalletNetwork.POLYGON ? usdcBalance : 0,
-          maticBalance: wallet.network === WalletNetwork.POLYGON ? maticBalance : 0,
-        };
-      })
-    );
+      return {
+        ...wallet,
+        totalReceived: Number(wallet.totalReceived || 0),
+        usdtBalance: wallet.network === WalletNetwork.TRON ? usdtBalance : 0,
+        usdcBalance: wallet.network === WalletNetwork.POLYGON ? usdcBalance : 0,
+        maticBalance: wallet.network === WalletNetwork.POLYGON ? maticBalance : 0,
+      };
+    });
 
     return walletsWithBalances;
   }

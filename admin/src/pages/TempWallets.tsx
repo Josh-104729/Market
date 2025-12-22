@@ -1,33 +1,43 @@
-import { useState, useEffect } from 'react'
-import { adminApi } from '../services/api'
-import { showToast } from '../utils/toast'
-
-interface TempWallet {
-  id: string
-  userId: string
-  user: {
-    id: string
-    email: string
-    userName?: string
-    firstName?: string
-    lastName?: string
-  } | null
-  address: string
-  status: string
-  network?: 'TRON' | 'POLYGON'
-  totalReceived: number
-  usdtBalance: number
-  usdcBalance?: number
-  lastCheckedAt?: string
-  createdAt: string
-  updatedAt: string
-}
+import { useEffect, useMemo, useState } from "react"
+import { adminApi, TempWallet } from "../services/api"
+import { showToast } from "../utils/toast"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Copy, RefreshCcw, Send, Wallet as WalletIcon } from "lucide-react"
 
 function TempWallets() {
   const [wallets, setWallets] = useState<TempWallet[]>([])
   const [loading, setLoading] = useState(true)
   const [transferring, setTransferring] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const [search, setSearch] = useState("")
+  const [networkFilter, setNetworkFilter] = useState<"ALL" | "TRON" | "POLYGON">("ALL")
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "COMPLETED">("ALL")
+
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [selectedWallet, setSelectedWallet] = useState<TempWallet | null>(null)
 
   useEffect(() => {
     loadWallets()
@@ -48,20 +58,15 @@ function TempWallets() {
   }
 
   const handleTransfer = async (walletId: string) => {
-    const wallet = wallets.find(w => w.id === walletId)
-    const usdtBalance = Number(wallet?.usdtBalance || 0)
-    const hasUSDT = wallet && usdtBalance > 0
+    const wallet = wallets.find((w) => w.id === walletId) || null
+    if (!wallet) return
+    setSelectedWallet(wallet)
+    setConfirmOpen(true)
+  }
 
-    if (!hasUSDT) {
-      showToast.error('No USDT to transfer')
-      return
-    }
-
-    const confirmMessage = `Are you sure you want to transfer ${usdtBalance.toFixed(2)} USDT from this wallet to the master wallet?`
-
-    if (!confirm(confirmMessage)) {
-      return
-    }
+  const confirmTransfer = async () => {
+    if (!selectedWallet) return
+    const walletId = selectedWallet.id
 
     try {
       setTransferring(walletId)
@@ -69,12 +74,13 @@ function TempWallets() {
       const result = await adminApi.transferFromTempWallet(walletId)
 
       // Show success toast with transaction details
+      const currency = selectedWallet.network === "POLYGON" ? "USDC" : "USDT"
       const message = (
         <div>
           <div className="font-semibold">Transfer successful!</div>
           {result.amountTransferred > 0 && (
             <div className="text-sm mt-1">
-              Amount: {result.amountTransferred.toFixed(2)} USDT
+              Amount: {Number(result.amountTransferred || 0).toFixed(2)} {currency}
             </div>
           )}
           {result.trxTxHash && (
@@ -87,6 +93,16 @@ function TempWallets() {
               USDT TX: {result.usdtTxHash}
             </div>
           )}
+          {result.maticTxHash && (
+            <div className="text-xs mt-1 break-all">
+              MATIC TX: {result.maticTxHash}
+            </div>
+          )}
+          {result.usdcTxHash && (
+            <div className="text-xs mt-1 break-all">
+              USDC TX: {result.usdcTxHash}
+            </div>
+          )}
         </div>
       )
       showToast.success(message, { autoClose: 6000 })
@@ -94,6 +110,8 @@ function TempWallets() {
       // Wait a moment for blockchain to update, then reload wallets to update balances
       await new Promise(resolve => setTimeout(resolve, 2000))
       await loadWallets()
+      setConfirmOpen(false)
+      setSelectedWallet(null)
     } catch (err: any) {
       console.error('Transfer failed:', err)
       let errorMessage = err.response?.data?.message || 'Failed to transfer funds'
@@ -127,181 +145,332 @@ function TempWallets() {
     })
   }
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl p-8">
-          <div className="flex items-center justify-center py-12">
-            <div className="text-white">Loading temp wallets...</div>
-          </div>
-        </div>
-      </div>
-    )
+  const filteredWallets = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return wallets.filter((w) => {
+      if (networkFilter !== "ALL" && w.network !== networkFilter) return false
+      if (statusFilter !== "ALL" && String(w.status).toUpperCase() !== statusFilter) return false
+
+      if (!q) return true
+      const userText = w.user ? `${w.user.email} ${w.user.userName || ""} ${w.user.firstName || ""} ${w.user.lastName || ""}` : ""
+      return (
+        String(w.address).toLowerCase().includes(q) ||
+        String(w.id).toLowerCase().includes(q) ||
+        String(w.userId).toLowerCase().includes(q) ||
+        userText.toLowerCase().includes(q)
+      )
+    })
+  }, [networkFilter, search, statusFilter, wallets])
+
+  const totals = useMemo(() => {
+    const tron = wallets.filter((w) => w.network === "TRON")
+    const polygon = wallets.filter((w) => w.network === "POLYGON")
+    const totalUSDT = tron.reduce((sum, w) => sum + Number((w as any).usdtBalance || 0), 0)
+    const totalUSDC = polygon.reduce((sum, w) => sum + Number((w as any).usdcBalance || 0), 0)
+    const withBalance = wallets.filter((w) => {
+      const bal = w.network === "POLYGON" ? Number((w as any).usdcBalance || 0) : Number((w as any).usdtBalance || 0)
+      return bal > 0
+    }).length
+    return { totalUSDT, totalUSDC, withBalance }
+  }, [wallets])
+
+  const selectedAmount = useMemo(() => {
+    if (!selectedWallet) return 0
+    return selectedWallet.network === "POLYGON"
+      ? Number((selectedWallet as any).usdcBalance || 0)
+      : Number((selectedWallet as any).usdtBalance || 0)
+  }, [selectedWallet])
+
+  const selectedCurrency = selectedWallet?.network === "POLYGON" ? "USDC" : "USDT"
+
+  const statusBadge = (status: string) => {
+    const s = String(status || "").toUpperCase()
+    if (s === "ACTIVE") return <Badge variant="secondary">ACTIVE</Badge>
+    if (s === "COMPLETED") return <Badge>COMPLETED</Badge>
+    return <Badge variant="outline">{s || "UNKNOWN"}</Badge>
+  }
+
+  const networkLabel = (network?: string) => {
+    if (network === "TRON") return { title: "USDT TRC20", sub: "Normal Wallet" }
+    if (network === "POLYGON") return { title: "USDC Polygon", sub: "Normal Wallet" }
+    return { title: "Unknown", sub: "—" }
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="backdrop-blur-xl bg-[rgba(13,17,28,0.9)] border border-white/10 rounded-2xl shadow-2xl p-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-white">Temp Wallets</h1>
-          <button
-            onClick={loadWallets}
-            className="px-4 py-2 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-all"
-          >
-            Refresh
-          </button>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Temp wallets</h1>
+          <p className="text-sm text-muted-foreground">
+            Monitor balances and manually transfer funds to the master wallet.
+          </p>
         </div>
-
-        {error && (
-          <div className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300">
-            {error}
-          </div>
-        )}
-
-        {wallets.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-neutral-400">No temp wallets found</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-4 text-neutral-300 font-semibold">Address</th>
-                  <th className="text-left py-3 px-4 text-neutral-300 font-semibold">Network</th>
-                  <th className="text-left py-3 px-4 text-neutral-300 font-semibold">User</th>
-                  <th className="text-left py-3 px-4 text-neutral-300 font-semibold">Status</th>
-                  <th className="text-right py-3 px-4 text-neutral-300 font-semibold">
-                    USDT Balance <span className="text-xs text-neutral-500">(Real-time)</span>
-                  </th>
-                  <th className="text-right py-3 px-4 text-neutral-300 font-semibold">Total Received</th>
-                  <th className="text-left py-3 px-4 text-neutral-300 font-semibold">Created</th>
-                  <th className="text-center py-3 px-4 text-neutral-300 font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {wallets.map((wallet) => (
-                  <tr key={wallet.id} className="border-b border-white/5 hover:bg-white/5">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-white font-mono text-sm">{wallet.address}</span>
-                        <button
-                          onClick={() => copyToClipboard(wallet.address)}
-                          className="text-primary hover:text-primary/80 text-xs"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      {wallet.network === 'TRON' ? (
-                        <div className="flex flex-col">
-                          <span className="text-white text-sm font-semibold">USDT TRC20</span>
-                          <span className="text-xs text-neutral-400">Normal Wallet</span>
-                        </div>
-                      ) : wallet.network === 'POLYGON' ? (
-                        <div className="flex flex-col">
-                          <span className="text-white text-sm font-semibold">USDC Polygon</span>
-                          <span className="text-xs text-neutral-400">Normal Wallet</span>
-                        </div>
-                      ) : (
-                        <span className="text-neutral-400 text-sm">Unknown</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      {wallet.user ? (
-                        <div>
-                          <div className="text-white text-sm">
-                            {wallet.user.firstName} {wallet.user.lastName}
-                          </div>
-                          <div className="text-neutral-400 text-xs">{wallet.user.email}</div>
-                        </div>
-                      ) : (
-                        <span className="text-neutral-400 text-sm">Unknown</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${wallet.status === 'ACTIVE'
-                        ? 'bg-green-500/20 text-green-300'
-                        : wallet.status === 'COMPLETED'
-                          ? 'bg-blue-500/20 text-blue-300'
-                          : 'bg-neutral-500/20 text-neutral-300'
-                        }`}>
-                        {wallet.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex flex-col items-end">
-                        {wallet.network === 'TRON' ? (
-                          <>
-                            <span className={`font-semibold ${wallet.usdtBalance > 0 ? 'text-green-300' : 'text-neutral-400'
-                              }`}>
-                              {Number(wallet.usdtBalance || 0).toFixed(2)} USDT
-                            </span>
-                            <span className="text-xs text-neutral-500">TRC20 Normal Wallet</span>
-                          </>
-                        ) : wallet.network === 'POLYGON' ? (
-                          <>
-                            <span className={`font-semibold ${(wallet.usdcBalance || 0) > 0 ? 'text-green-300' : 'text-neutral-400'
-                              }`}>
-                              {Number(wallet.usdcBalance || 0).toFixed(2)} USDC
-                            </span>
-                            <span className="text-xs text-neutral-500">Polygon Normal Wallet</span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-neutral-400 font-semibold">
-                              {Number(wallet.usdtBalance || 0).toFixed(2)} USDT
-                            </span>
-                            <span className="text-xs text-neutral-500">Blockchain</span>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <span className="text-neutral-300 font-semibold">
-                        {Number(wallet.totalReceived || 0).toFixed(2)} USDT
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-neutral-400 text-sm">
-                      {formatDate(wallet.createdAt)}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <button
-                        onClick={() => handleTransfer(wallet.id)}
-                        disabled={transferring === wallet.id || Number(wallet.usdtBalance || 0) <= 0}
-                        className={`px-4 py-2 rounded-xl font-semibold transition-all ${Number(wallet.usdtBalance || 0) > 0 && transferring !== wallet.id
-                          ? 'bg-primary text-white hover:bg-primary/90'
-                          : 'bg-neutral-500/20 text-neutral-400 cursor-not-allowed'
-                          }`}
-                      >
-                        {transferring === wallet.id ? 'Transferring...' : 'Transfer'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        <div className="mt-6 space-y-3">
-          <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
-            <p className="text-sm text-blue-300">
-              <strong>Note:</strong> Click "Transfer" to manually transfer USDT from a temp wallet to the master wallet.
-              If the temp wallet doesn't have enough TRX for gas fees, the master wallet will automatically send 30 TRX first.
-              Once payment is received in a temp wallet, the user's balance is automatically credited.
-              Admin must manually transfer funds from temp wallets to the master wallet.
-            </p>
-          </div>
-          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-            <p className="text-sm text-emerald-300">
-              <strong>Real-time Balances:</strong> USDT TRC20 Normal Wallet balances are fetched directly from the blockchain in real-time.
-              Click "Refresh" to update all balances.
-            </p>
-          </div>
-        </div>
+        <Button onClick={() => void loadWallets()} className="gap-2">
+          <RefreshCcw className="h-4 w-4" />
+          Refresh
+        </Button>
       </div>
+
+      {error ? (
+        <Card className="border-destructive/30">
+          <CardContent className="py-4 text-sm text-destructive">{error}</CardContent>
+        </Card>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total wallets</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{wallets.length}</div>
+            <div className="text-xs text-muted-foreground">With balance: {totals.withBalance}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total USDT (TRON)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totals.totalUSDT.toFixed(2)}</div>
+            <div className="text-xs text-muted-foreground">Real-time token balance sum</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total USDC (Polygon)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totals.totalUSDC.toFixed(2)}</div>
+            <div className="text-xs text-muted-foreground">Real-time token balance sum</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Wallet list</CardTitle>
+          <CardDescription>Search, filter, and transfer.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="space-y-2 md:col-span-1">
+              <Label>Search</Label>
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Address, user email, wallet id…"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Network</Label>
+              <Select value={networkFilter} onValueChange={(v) => setNetworkFilter(v as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All networks" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All</SelectItem>
+                  <SelectItem value="TRON">TRON (USDT)</SelectItem>
+                  <SelectItem value="POLYGON">POLYGON (USDC)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All</SelectItem>
+                  <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                  <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Separator />
+
+          {loading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : filteredWallets.length === 0 ? (
+            <div className="rounded-lg border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+              No temp wallets found.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Address</TableHead>
+                  <TableHead>Network</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
+                  <TableHead className="text-right">Total received</TableHead>
+                  <TableHead>Last checked</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredWallets.map((w) => {
+                  const net = networkLabel(w.network)
+                  const balance =
+                    w.network === "POLYGON" ? Number((w as any).usdcBalance || 0) : Number((w as any).usdtBalance || 0)
+                  const currency = w.network === "POLYGON" ? "USDC" : "USDT"
+                  const canTransfer = balance > 0 && transferring !== w.id
+                  const isBusy = transferring === w.id
+                  return (
+                    <TableRow key={w.id}>
+                      <TableCell className="min-w-[260px]">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs">{w.address}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => copyToClipboard(w.address)}
+                            title="Copy address"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">ID: {w.id}</div>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="font-medium">{net.title}</div>
+                        <div className="text-xs text-muted-foreground">{net.sub}</div>
+                      </TableCell>
+
+                      <TableCell className="min-w-[200px]">
+                        {w.user ? (
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium">
+                              {`${w.user.firstName || ""} ${w.user.lastName || ""}`.trim() || w.user.userName || "User"}
+                            </div>
+                            <div className="truncate text-xs text-muted-foreground">{w.user.email}</div>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">Unknown user</div>
+                        )}
+                      </TableCell>
+
+                      <TableCell>{statusBadge(w.status)}</TableCell>
+
+                      <TableCell className="text-right">
+                        <div className={`font-semibold ${balance > 0 ? "text-foreground" : "text-muted-foreground"}`}>
+                          {balance.toFixed(2)} {currency}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Real-time</div>
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <span className="font-medium">{Number((w as any).totalReceived || 0).toFixed(2)}</span>
+                        <span className="text-muted-foreground"> {currency}</span>
+                      </TableCell>
+
+                      <TableCell className="text-sm text-muted-foreground">
+                        {w.lastCheckedAt ? formatDate(w.lastCheckedAt) : "—"}
+                      </TableCell>
+
+                      <TableCell className="text-sm text-muted-foreground">{formatDate(w.createdAt)}</TableCell>
+
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          className="gap-2"
+                          variant={balance > 0 ? "default" : "outline"}
+                          disabled={!canTransfer && !isBusy}
+                          onClick={() => handleTransfer(w.id)}
+                        >
+                          <Send className="h-4 w-4" />
+                          {isBusy ? "Transferring…" : "Transfer"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <WalletIcon className="h-4 w-4 text-muted-foreground" /> How transfers work
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Transfers are manual: once a charge is detected, the user’s balance is credited, and admins transfer funds from temp
+            wallets to the master wallet when ready.
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Notes</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            If the wallet lacks gas (TRX/MATIC), the backend may top it up before transferring tokens. Use “Refresh” to update
+            balances.
+          </CardContent>
+        </Card>
+      </div>
+
+      <Dialog open={confirmOpen} onOpenChange={(v) => {
+        setConfirmOpen(v)
+        if (!v) setSelectedWallet(null)
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm transfer</DialogTitle>
+            <DialogDescription>
+              This will transfer available funds from the selected temp wallet to the master wallet.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedWallet ? (
+            <div className="space-y-3">
+              <div className="rounded-lg border border-border p-3">
+                <div className="text-xs text-muted-foreground">Wallet address</div>
+                <div className="font-mono text-xs break-all">{selectedWallet.address}</div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">Amount to transfer</div>
+                <div className="text-sm font-semibold">
+                  {selectedAmount.toFixed(2)} {selectedCurrency}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => void confirmTransfer()}
+              disabled={!selectedWallet || selectedAmount <= 0 || transferring === selectedWallet?.id}
+              className="gap-2"
+            >
+              <Send className="h-4 w-4" />
+              {selectedWallet && transferring === selectedWallet.id ? "Transferring…" : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
