@@ -15,6 +15,7 @@ import Profile from './pages/Profile'
 import Charge from './pages/Charge'
 import ChargeDetail from './pages/ChargeDetail'
 import Withdraw from './pages/Withdraw'
+import WithdrawDetail from './pages/WithdrawDetail'
 import Transactions from './pages/Transactions'
 import Notifications from './pages/Notifications'
 import SecuritySettings from './pages/SecuritySettings'
@@ -49,6 +50,7 @@ function App() {
                 <Route path="/charge" element={<Charge />} />
                 <Route path="/charge/:walletAddress" element={<ChargeDetail />} />
                 <Route path="/withdraw" element={<Withdraw />} />
+                <Route path="/withdraw/:transactionId" element={<WithdrawDetail />} />
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/referral" element={<Referral />} />
