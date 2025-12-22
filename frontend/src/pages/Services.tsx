@@ -154,7 +154,7 @@ function Services() {
       fetchServices()
     }, searchTerm ? 500 : 0)
     return () => clearTimeout(timeoutId)
-  }, [currentPage, searchTerm, selectedCategory, itemsPerPage])
+  }, [currentPage, searchTerm, selectedCategory, itemsPerPage, scope])
 
   const fetchCategories = async () => {
     try {
