@@ -1038,5 +1038,42 @@ export const referralApi = {
   },
 };
 
+export type HelpRequestStatus = 'pending' | 'approved';
+
+export interface HelpRequest {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  status: HelpRequestStatus;
+  approvedAt?: string;
+  approvedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const helpApi = {
+  create: async (data: { title: string; content: string; imageFile?: File }): Promise<HelpRequest> => {
+    const formData = new FormData();
+    formData.append('title', data.title);
+    formData.append('content', data.content);
+    if (data.imageFile) {
+      formData.append('image', data.imageFile);
+    }
+    const response = await api.post('/help', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  getMy: async (): Promise<HelpRequest[]> => {
+    const response = await api.get('/help/my');
+    return response.data;
+  },
+};
+
 export default api;
 

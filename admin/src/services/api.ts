@@ -25,6 +25,36 @@ export interface AdminSignInData {
   password: string;
 }
 
+export type HelpRequestStatus = 'pending' | 'approved';
+
+export interface HelpRequest {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  status: HelpRequestStatus;
+  approvedAt?: string;
+  approvedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    email: string;
+    userName?: string;
+    firstName?: string;
+    lastName?: string;
+    avatar?: string;
+  };
+  approvedByUser?: {
+    id: string;
+    email: string;
+    userName?: string;
+    firstName?: string;
+    lastName?: string;
+  };
+}
+
 export interface Category {
   id: string;
   title: string;
@@ -101,6 +131,21 @@ export const adminApi = {
 
   releaseMilestone: async (milestoneId: string, amount: number) => {
     const response = await api.post(`/admin/milestones/${milestoneId}/release`, { amount });
+    return response.data;
+  },
+
+  getHelps: async (): Promise<HelpRequest[]> => {
+    const response = await api.get('/admin/help');
+    return response.data;
+  },
+
+  getHelp: async (id: string): Promise<HelpRequest> => {
+    const response = await api.get(`/admin/help/${id}`);
+    return response.data;
+  },
+
+  approveHelp: async (id: string): Promise<HelpRequest> => {
+    const response = await api.post(`/admin/help/${id}/approve`);
     return response.data;
   },
 };

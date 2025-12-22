@@ -4,7 +4,6 @@ import {
   faSearch,
   faSpinner,
   faCheck,
-  faBan,
   faArchive,
   faExclamationTriangle,
   faChevronLeft,

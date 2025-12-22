@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
-import { categoryApi, Category, CreateCategoryData, UpdateCategoryData } from '../services/api'
+import { categoryApi, CreateCategoryData, UpdateCategoryData } from '../services/api'
 import IconSelector from '../components/IconSelector'
 
 function CategoryForm() {
@@ -12,7 +12,6 @@ function CategoryForm() {
 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [category, setCategory] = useState<Category | null>(null)
   const [formData, setFormData] = useState<CreateCategoryData>({
     title: '',
     icon: '',
@@ -28,7 +27,6 @@ function CategoryForm() {
     try {
       setLoading(true)
       const data = await categoryApi.getById(categoryId)
-      setCategory(data)
       setFormData({
         title: data.title,
         icon: data.icon || '',

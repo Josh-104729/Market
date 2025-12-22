@@ -109,12 +109,12 @@ function Footer() {
           <div className="space-y-3">
             <div className="text-sm font-semibold">Help</div>
             <div className="space-y-2 text-sm">
-              <a href="#" className="block text-muted-foreground hover:text-foreground">
+              <Link to="/support" className="block text-muted-foreground hover:text-foreground">
                 Help center
-              </a>
-              <a href="#" className="block text-muted-foreground hover:text-foreground">
+              </Link>
+              <Link to="/support" className="block text-muted-foreground hover:text-foreground">
                 Contact
-              </a>
+              </Link>
               <a href="#" className="block text-muted-foreground hover:text-foreground">
                 Community guidelines
               </a>

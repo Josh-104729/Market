@@ -12,6 +12,8 @@ import Withdraws from './pages/Withdraws'
 import BroadcastNotification from './pages/BroadcastNotification'
 import Disputes from './pages/Disputes'
 import Chat from './pages/Chat'
+import Helps from './pages/Helps'
+import HelpDetail from './pages/HelpDetail'
 import SignIn from './pages/SignIn'
 import Layout from './components/Layout'
 
@@ -102,6 +104,20 @@ function App() {
           <PrivateRoute>
             <Layout>
               <BroadcastNotification />
+            </Layout>
+          </PrivateRoute>
+        } />
+        <Route path="/helps" element={
+          <PrivateRoute>
+            <Layout>
+              <Helps />
+            </Layout>
+          </PrivateRoute>
+        } />
+        <Route path="/helps/:id" element={
+          <PrivateRoute>
+            <Layout>
+              <HelpDetail />
             </Layout>
           </PrivateRoute>
         } />

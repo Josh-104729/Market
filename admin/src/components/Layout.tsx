@@ -13,6 +13,7 @@ import {
   ArrowUpRight,
   Gavel,
   Megaphone,
+  LifeBuoy,
   LogOut,
   Menu,
 } from "lucide-react"
@@ -41,6 +42,7 @@ function Layout({ children }: LayoutProps) {
     { path: '/withdraws', label: 'Withdraws', icon: ArrowUpRight },
     { path: '/disputes', label: 'Disputes', icon: Gavel },
     { path: '/broadcast', label: 'Broadcast', icon: Megaphone },
+    { path: '/helps', label: 'Helps', icon: LifeBuoy },
   ]
 
   return (
