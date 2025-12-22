@@ -9,7 +9,6 @@ import {
   CardContent,
   CardDescription,
   CardFooter,
-  CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { 
   Loader2, 
   Check, 
+  X,
   Mail, 
   Lock, 
   User, 
@@ -26,7 +26,6 @@ import {
   ShieldCheck,
   UserCheck
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 function SignUp() {
   const navigate = useNavigate();

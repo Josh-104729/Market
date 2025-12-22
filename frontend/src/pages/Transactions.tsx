@@ -69,11 +69,6 @@ function Transactions() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    // kept for backward compatibility if needed elsewhere; UI now uses Badge variants
-    return status
-  }
-
   const getTypeLabel = (type: string) => {
     switch (type) {
       case 'charge':
