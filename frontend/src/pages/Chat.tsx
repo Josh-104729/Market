@@ -28,6 +28,12 @@ import { conversationApi, messageApi, milestoneApi, paymentApi, Conversation, Me
 import { useAppSelector } from '../store/hooks'
 import { getSocket } from '../services/socket'
 import { Socket } from 'socket.io-client'
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Separator } from "@/components/ui/separator"
 import { showToast } from '../utils/toast'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
@@ -1683,56 +1689,89 @@ function Chat() {
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-foreground">Milestones</h3>
                 {isClient && (
-                  <button
-                    onClick={() => setShowMilestoneForm(!showMilestoneForm)}
-                    className="text-primary hover:text-primary/80 transition-colors"
+                  <Dialog
+                    open={showMilestoneForm}
+                    onOpenChange={(open) => {
+                      setShowMilestoneForm(open)
+                      if (!open) setMilestoneForm({ title: "", description: "", balance: "" })
+                    }}
                   >
-                    <FontAwesomeIcon icon={faPlus} />
-                  </button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-primary hover:text-primary/80"
+                      onClick={() => setShowMilestoneForm(true)}
+                    >
+                      <FontAwesomeIcon icon={faPlus} />
+                    </Button>
+
+                    <DialogContent className="sm:max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>Create milestone</DialogTitle>
+                        <DialogDescription>
+                          Add a milestone for this service. The provider can accept and complete it.
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <div className="grid gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="milestone-title">Title</Label>
+                          <Input
+                            id="milestone-title"
+                            value={milestoneForm.title}
+                            onChange={(e) => setMilestoneForm({ ...milestoneForm, title: e.target.value })}
+                            placeholder="e.g. Design homepage"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="milestone-description">Description</Label>
+                          <Textarea
+                            id="milestone-description"
+                            value={milestoneForm.description}
+                            onChange={(e) => setMilestoneForm({ ...milestoneForm, description: e.target.value })}
+                            placeholder="Describe what will be delivered..."
+                            rows={4}
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="milestone-balance">Amount (USD)</Label>
+                          <Input
+                            id="milestone-balance"
+                            type="number"
+                            inputMode="decimal"
+                            value={milestoneForm.balance}
+                            onChange={(e) => setMilestoneForm({ ...milestoneForm, balance: e.target.value })}
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setShowMilestoneForm(false)
+                            setMilestoneForm({ title: "", description: "", balance: "" })
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={handleCreateMilestone}
+                          disabled={!milestoneForm.title || !milestoneForm.description || !milestoneForm.balance}
+                        >
+                          Create milestone
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 )}
               </div>
-              {showMilestoneForm && isClient && (
-                <div className="glass-card rounded-xl p-4 space-y-3 mb-4">
-                  <input
-                    type="text"
-                    placeholder="Title"
-                    value={milestoneForm.title}
-                    onChange={(e) => setMilestoneForm({ ...milestoneForm, title: e.target.value })}
-                    className="w-full glass-card text-foreground rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder:text-muted-foreground text-sm"
-                  />
-                  <textarea
-                    placeholder="Description"
-                    value={milestoneForm.description}
-                    onChange={(e) => setMilestoneForm({ ...milestoneForm, description: e.target.value })}
-                    className="w-full glass-card text-foreground rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder:text-muted-foreground text-sm resize-none"
-                    rows={3}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Balance"
-                    value={milestoneForm.balance}
-                    onChange={(e) => setMilestoneForm({ ...milestoneForm, balance: e.target.value })}
-                    className="w-full glass-card text-foreground rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 placeholder:text-muted-foreground text-sm"
-                  />
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={handleCreateMilestone}
-                      className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-full font-semibold hover:bg-primary/90 transition-colors text-sm shadow-glow-primary"
-                    >
-                      Create
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMilestoneForm(false)
-                        setMilestoneForm({ title: '', description: '', balance: '' })
-                      }}
-                      className="flex-1 glass-card text-foreground px-4 py-2 rounded-full font-semibold hover:bg-muted/40 transition-colors text-sm"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
