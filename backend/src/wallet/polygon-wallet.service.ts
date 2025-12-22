@@ -8,7 +8,33 @@ import { ethers } from 'ethers';
 @Injectable()
 export class PolygonWalletService {
   private provider: ethers.JsonRpcProvider;
-  private readonly USDC_CONTRACT = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'; // USDC Polygon contract address
+  /**
+   * Polygon has (at least) two commonly-used "USDC" contracts:
+   * - Native USDC (Circle): 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359
+   * - Bridged USDC (PoS):   0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174
+   *
+   * If you query only one, you can get a misleading 0 balance.
+   *
+   * Override with:
+   * - POLYGON_USDC_CONTRACT (single address), or
+   * - POLYGON_USDC_CONTRACTS (comma-separated list of addresses)
+   */
+  private readonly USDC_CONTRACTS: string[] = (() => {
+    const single = (process.env.POLYGON_USDC_CONTRACT || '').trim();
+    if (single) return [single];
+
+    const multi = (process.env.POLYGON_USDC_CONTRACTS || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (multi.length) return multi;
+
+    // Defaults (Polygon mainnet)
+    return [
+      '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', // Native USDC
+      '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // Bridged USDC (PoS)
+    ];
+  })();
   private readonly POLYGON_RPC_URL = process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com';
 
   constructor(
@@ -17,6 +43,57 @@ export class PolygonWalletService {
   ) {
     // Initialize Polygon provider
     this.provider = new ethers.JsonRpcProvider(this.POLYGON_RPC_URL);
+  }
+
+  private getPrimaryUSDCContractAddress(): string {
+    if (!this.USDC_CONTRACTS.length) {
+      throw new BadRequestException('No Polygon USDC contract configured');
+    }
+    return this.USDC_CONTRACTS[0];
+  }
+
+  /**
+   * Returns per-contract balances for configured Polygon "USDC" contracts.
+   * This is useful because users may hold native USDC or bridged USDC.
+   */
+  private async getUSDCBalancesByContract(
+    walletAddress: string,
+  ): Promise<Array<{ tokenAddress: string; balance: bigint; decimals: bigint }>> {
+    if (!ethers.isAddress(walletAddress)) {
+      throw new BadRequestException(`Invalid wallet address: ${walletAddress}`);
+    }
+
+    const usdcAbi = [
+      'function balanceOf(address owner) view returns (uint256)',
+      'function decimals() view returns (uint8)',
+    ];
+
+    const results: Array<{ tokenAddress: string; balance: bigint; decimals: bigint }> = [];
+    for (const tokenAddress of this.USDC_CONTRACTS) {
+      if (!ethers.isAddress(tokenAddress)) continue;
+
+      // Skip if RPC points to the wrong chain or contract doesn't exist
+      const code = await this.provider.getCode(tokenAddress);
+      if (!code || code === '0x') continue;
+
+      const contract = new ethers.Contract(tokenAddress, usdcAbi, this.provider);
+      
+      const [rawBalance, decimals] = await Promise.all([
+        contract.balanceOf(walletAddress) as Promise<bigint>,
+        contract.decimals() as Promise<unknown>,
+      ]);
+
+      const dec =
+        typeof decimals === 'bigint'
+          ? decimals
+          : typeof decimals === 'number'
+            ? BigInt(decimals)
+            : BigInt(String(decimals));
+
+      results.push({ tokenAddress, balance: rawBalance, decimals: dec });
+    }
+
+    return results;
   }
 
   async getOrCreateTempWallet(userId: string): Promise<TempWallet> {
@@ -134,18 +211,42 @@ export class PolygonWalletService {
           await new Promise((resolve) => setTimeout(resolve, delay));
         }
 
-        // USDC ERC20 ABI (simplified - just balanceOf)
-        const usdcAbi = [
-          'function balanceOf(address owner) view returns (uint256)',
-          'function decimals() view returns (uint8)',
-        ];
+        if (!ethers.isAddress(walletAddress)) {
+          console.error(`Invalid wallet address for Polygon USDC balance: ${walletAddress}`);
+          return 0;
+        }
 
-        const contract = new ethers.Contract(this.USDC_CONTRACT, usdcAbi, this.provider);
-        const balance = await contract.balanceOf(walletAddress);
-        const decimals = await contract.decimals();
-        
-        // USDC has 6 decimals
-        return parseFloat(ethers.formatUnits(balance, decimals));
+        const debug = String(process.env.POLYGON_WALLET_DEBUG || '').toLowerCase() === 'true';
+        if (debug) {
+          try {
+            const net = await this.provider.getNetwork();
+            console.log('[PolygonWalletService.getUSDCBalance] network', {
+              chainId: net.chainId?.toString?.() ?? String(net.chainId),
+              name: net.name,
+            });
+          } catch {
+            // ignore debug network lookup failures
+          }
+          console.log('[PolygonWalletService.getUSDCBalance] walletAddress', walletAddress);
+          console.log('[PolygonWalletService.getUSDCBalance] contracts', this.USDC_CONTRACTS);
+        }
+
+        const targetDecimals = 6n; // USDC is 6 decimals (native + bridged)
+        let total: bigint = 0n;
+
+        const balances = await this.getUSDCBalancesByContract(walletAddress);
+        if (!balances.length) {
+          throw new Error('Failed to query all configured Polygon USDC contracts (no successful responses)');
+        }
+
+        for (const b of balances) {
+          let normalized = b.balance;
+          if (b.decimals > targetDecimals) normalized = b.balance / 10n ** (b.decimals - targetDecimals);
+          if (b.decimals < targetDecimals) normalized = b.balance * 10n ** (targetDecimals - b.decimals);
+          total += normalized;
+        }
+
+        return parseFloat(ethers.formatUnits(total, Number(targetDecimals)));
       } catch (error) {
         if (attempt === retries - 1) {
           console.error('Error getting USDC balance:', error);
@@ -228,6 +329,7 @@ export class PolygonWalletService {
     fromPrivateKey: string,
     toAddress: string,
     amountUSDC: number,
+    tokenContractAddress?: string,
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
     try {
       const wallet = new ethers.Wallet(fromPrivateKey, this.provider);
@@ -238,8 +340,15 @@ export class PolygonWalletService {
         'function decimals() view returns (uint8)',
       ];
 
-      const contract = new ethers.Contract(this.USDC_CONTRACT, usdcAbi, wallet);
-      const decimals = await contract.decimals();
+      const tokenAddress = tokenContractAddress || this.getPrimaryUSDCContractAddress();
+      const contract = new ethers.Contract(tokenAddress, usdcAbi, wallet);
+      const decimalsRaw = await (contract.decimals() as Promise<unknown>);
+      const decimals =
+        typeof decimalsRaw === 'bigint'
+          ? Number(decimalsRaw)
+          : typeof decimalsRaw === 'number'
+            ? decimalsRaw
+            : Number(String(decimalsRaw));
       const amount = ethers.parseUnits(amountUSDC.toString(), decimals);
 
       const transaction = await contract.transfer(toAddress, amount);
@@ -295,32 +404,37 @@ export class PolygonWalletService {
       const masterWallet = this.getMasterWallet();
       const privateKey = await this.getDecryptedPrivateKey(tempWallet);
 
-      // Get current balances
-      const usdcBalance = await this.getUSDCBalance(tempWallet.address);
-
       const result: { success: boolean; usdcTxHash?: string; maticTxHash?: string; error?: string } = {
         success: false,
       };
 
-      // Transfer USDC if balance > 0
-      console.log('usdcBalance', usdcBalance);
-      if (usdcBalance > 0.000001) {
-        const usdcResult = await this.sendUSDC(privateKey, masterWallet.address, usdcBalance);
-        if (!usdcResult.success) {
-          return {
-            success: false,
-            error: `Failed to transfer USDC: ${usdcResult.error}`,
-          };
-        }
-        result.usdcTxHash = usdcResult.transactionHash;
+      // Transfer USDC (native and/or bridged) if present
+      const usdcAbi = ['function transfer(address to, uint256 amount) returns (bool)'];
+      const balances = await this.getUSDCBalancesByContract(tempWallet.address);
+      const nonZero = balances.filter((b) => b.balance > 0n);
 
-        // Wait a bit for transaction to be processed
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-      } else {
+      if (!nonZero.length) {
         result.success = false;
         result.error = `No USDC to transfer.`;
         return result;
       }
+
+      const signer = new ethers.Wallet(privateKey, this.provider);
+      const txHashes: string[] = [];
+
+      for (const b of nonZero) {
+        const contract = new ethers.Contract(b.tokenAddress, usdcAbi, signer);
+        const tx = await contract.transfer(masterWallet.address, b.balance);
+        const receipt = await tx.wait();
+        if (!receipt || receipt.status !== 1) {
+          return { success: false, error: `USDC transfer failed for token ${b.tokenAddress}` };
+        }
+        txHashes.push(receipt.hash);
+        // small delay to reduce nonce/rpc flakiness on some providers
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+
+      result.usdcTxHash = txHashes.join(',');
 
       result.success = true;
       return result;
