@@ -13,15 +13,15 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Loader2, 
-  Check, 
+import {
+  Loader2,
+  Check,
   X,
-  Mail, 
-  Lock, 
-  User, 
-  Globe, 
-  CheckCircle2, 
+  Mail,
+  Lock,
+  User,
+  Globe,
+  CheckCircle2,
   ArrowRight,
   ShieldCheck,
   UserCheck
@@ -247,10 +247,9 @@ function SignUp() {
                   id="referral"
                   type="text"
                   placeholder="ENTER CODE"
-                  className={`uppercase pr-10 ${
-                    referralCodeValid === true ? 'border-green-500' : 
-                    referralCodeValid === false ? 'border-destructive' : ''
-                  }`}
+                  className={`uppercase pr-10 ${referralCodeValid === true ? 'border-green-500' :
+                      referralCodeValid === false ? 'border-destructive' : ''
+                    }`}
                   value={referralCode}
                   onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                   maxLength={12}
@@ -417,18 +416,16 @@ function SignUp() {
               {steps.map((step) => (
                 <div key={step.number} className="relative z-10 flex flex-col items-center gap-2 flex-1">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${
-                      currentStep >= step.number
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${currentStep >= step.number
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-background text-muted-foreground border-border'
-                    }`}
+                      }`}
                   >
                     {currentStep > step.number ? <Check className="h-4 w-4" /> : step.number}
                   </div>
                   <span
-                    className={`text-[10px] font-bold uppercase tracking-wider ${
-                      currentStep >= step.number ? 'text-foreground' : 'text-muted-foreground'
-                    }`}
+                    className={`text-[10px] font-bold uppercase tracking-wider ${currentStep >= step.number ? 'text-foreground' : 'text-muted-foreground'
+                      }`}
                   >
                     {step.title}
                   </span>
@@ -452,17 +449,6 @@ function SignUp() {
         </CardContent>
 
         <CardFooter className="bg-muted/40 border-t border-border flex flex-col p-6">
-          <div className="mb-4 text-xs text-center text-muted-foreground">
-            By continuing, you agree to our{" "}
-            <Link to="/terms" className="text-primary hover:underline">
-              Terms
-            </Link>{" "}
-            and{" "}
-            <Link to="/privacy" className="text-primary hover:underline">
-              Privacy Policy
-            </Link>
-            .
-          </div>
           <div className="text-sm text-center text-muted-foreground">
             Already have an account?{" "}
             <Link to="/signin" className="font-bold text-primary hover:underline">

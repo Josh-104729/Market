@@ -46,6 +46,15 @@ function Layout({ children }: LayoutProps) {
     navigate('/signin')
   }
 
+  // If the websocket reports auth expiry/invalid token, force logout so the app can recover cleanly.
+  useEffect(() => {
+    const onAuthExpired = () => {
+      handleSignOut()
+    }
+    window.addEventListener('auth-expired', onAuthExpired as any)
+    return () => window.removeEventListener('auth-expired', onAuthExpired as any)
+  }, [handleSignOut])
+
   const refreshBalance = useCallback(() => {
     if (isAuthenticated && user) {
       paymentApi.getBalance()

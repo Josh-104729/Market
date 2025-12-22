@@ -58,16 +58,33 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.handshake.headers.authorization?.replace('Bearer ', '');
       
       if (!token) {
-        console.log('No token provided, disconnecting client');
+        // No auth token: treat as unauthenticated and disconnect quietly.
+        client.emit('auth_error', { reason: 'missing_token' });
         client.disconnect();
         return;
       }
 
-      const payload = this.jwtService.verify(token);
+      let payload: any;
+      try {
+        payload = this.jwtService.verify(token);
+      } catch (err: any) {
+        const name = err?.name;
+        if (name === 'TokenExpiredError') {
+          client.emit('auth_error', { reason: 'jwt_expired' });
+        } else if (name === 'JsonWebTokenError' || name === 'NotBeforeError') {
+          client.emit('auth_error', { reason: 'invalid_token' });
+        } else {
+          client.emit('auth_error', { reason: 'auth_failed' });
+        }
+        // Avoid noisy stack traces for normal auth failures.
+        console.warn('WebSocket authentication failed:', name || err?.message || err);
+        client.disconnect();
+        return;
+      }
       const user = await this.userRepository.findOne({ where: { id: payload.sub } });
 
       if (!user) {
-        console.log('User not found, disconnecting client');
+        client.emit('auth_error', { reason: 'user_not_found' });
         client.disconnect();
         return;
       }
@@ -81,7 +98,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       console.log(`✅ User ${user.id} (${user.email}) connected to chat`);
     } catch (error) {
-      console.error('WebSocket authentication error:', error);
+      // Unexpected errors only.
+      console.error('WebSocket connection error:', error);
       client.disconnect();
     }
   }

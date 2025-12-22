@@ -71,7 +71,12 @@ export class ReferralService {
    * Generate unique referral code for user
    */
   async generateReferralCode(userId: string): Promise<string> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (typeof userId !== 'string' || !userId.trim()) {
+      throw new BadRequestException('Invalid user id for referral code generation');
+    }
+    const normalizedUserId = userId.trim();
+
+    const user = await this.userRepository.findOne({ where: { id: normalizedUserId } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -91,10 +96,12 @@ export class ReferralService {
       if (user.userName) {
         // Use username + random suffix
         const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-        code = (user.userName.substring(0, 6) + randomSuffix).toUpperCase().padEnd(this.CODE_LENGTH, '0').substring(0, this.CODE_LENGTH);
+        const base = user.userName.replace(/[^a-z0-9]/gi, '').toUpperCase().substring(0, 6).padEnd(6, '0');
+        code = (base + randomSuffix).toUpperCase().padEnd(this.CODE_LENGTH, '0').substring(0, this.CODE_LENGTH);
       } else {
         // Use userId hash + random
-        const userIdHash = userId.substring(0, 6).replace(/-/g, '').toUpperCase();
+        const compact = normalizedUserId.replace(/-/g, '').toUpperCase();
+        const userIdHash = compact.substring(0, 6).padEnd(6, '0');
         const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
         code = (userIdHash + randomSuffix).substring(0, this.CODE_LENGTH);
       }
@@ -478,8 +485,12 @@ export class ReferralService {
    * Get user's referral code
    */
   async getReferralCode(userId: string): Promise<string> {
+    if (typeof userId !== 'string' || !userId.trim()) {
+      throw new BadRequestException('Invalid user id');
+    }
+    const normalizedUserId = userId.trim();
     const user = await this.userRepository.findOne({
-      where: { id: userId },
+      where: { id: normalizedUserId },
       select: ['id', 'referralCode'],
     });
 
@@ -489,7 +500,7 @@ export class ReferralService {
 
     // Generate if doesn't exist
     if (!user.referralCode) {
-      return await this.generateReferralCode(userId);
+      return await this.generateReferralCode(normalizedUserId);
     }
 
     return user.referralCode;
@@ -500,15 +511,19 @@ export class ReferralService {
    */
   async getReferralStats(userId: string) {
     await this.assertReferralSchemaReady();
+    if (typeof userId !== 'string' || !userId.trim()) {
+      throw new BadRequestException('Invalid user id');
+    }
+    const normalizedUserId = userId.trim();
     const [totalReferrals, activeReferrals, completedReferrals, pendingReferrals] = await Promise.all([
-      this.referralRepository.count({ where: { referrerId: userId } }),
-      this.referralRepository.count({ where: { referrerId: userId, status: ReferralStatus.ACTIVE } }),
-      this.referralRepository.count({ where: { referrerId: userId, status: ReferralStatus.COMPLETED } }),
-      this.referralRepository.count({ where: { referrerId: userId, status: ReferralStatus.PENDING } }),
+      this.referralRepository.count({ where: { referrerId: normalizedUserId } }),
+      this.referralRepository.count({ where: { referrerId: normalizedUserId, status: ReferralStatus.ACTIVE } }),
+      this.referralRepository.count({ where: { referrerId: normalizedUserId, status: ReferralStatus.COMPLETED } }),
+      this.referralRepository.count({ where: { referrerId: normalizedUserId, status: ReferralStatus.PENDING } }),
     ]);
 
     const user = await this.userRepository.findOne({
-      where: { id: userId },
+      where: { id: normalizedUserId },
       select: ['totalReferralEarnings', 'referralCode'],
     });
 
@@ -516,7 +531,7 @@ export class ReferralService {
     const pendingRewards = await this.rewardRepository
       .createQueryBuilder('reward')
       .select('SUM(reward.amount)', 'total')
-      .where('reward.referrerId = :userId', { userId })
+      .where('reward.referrerId = :userId', { userId: normalizedUserId })
       .andWhere('reward.status = :status', { status: RewardStatus.PENDING })
       .getRawOne();
 
@@ -529,7 +544,7 @@ export class ReferralService {
       pendingReferrals,
       totalEarnings: parseFloat(user?.totalReferralEarnings?.toString() || '0'),
       pendingEarnings,
-      referralCode: user?.referralCode || await this.getReferralCode(userId),
+      referralCode: user?.referralCode || await this.getReferralCode(normalizedUserId),
     };
   }
 

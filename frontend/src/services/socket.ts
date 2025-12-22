@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 
 let socket: Socket | null = null;
+let lastToken: string | null = null;
 
 // Get socket URL from environment variable
 const SOCKET_BASE_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
@@ -12,6 +13,12 @@ export const getSocket = (): Socket | null => {
     console.warn('No access token found, cannot connect to chat server');
     return null;
   }
+
+  // If token changed (re-login), recreate socket so auth uses the latest token.
+  if (lastToken && lastToken !== token) {
+    disconnectSocket();
+  }
+  lastToken = token;
 
   if (!socket || !socket.connected) {
     // Use environment variable for socket URL with /chat namespace
@@ -39,16 +46,32 @@ export const getSocket = (): Socket | null => {
       console.log('✅ Connected to chat server');
     });
 
+    socket.on('auth_error', (payload: any) => {
+      const reason = payload?.reason;
+      console.warn('Socket auth_error:', reason);
+      if (reason === 'jwt_expired' || reason === 'invalid_token') {
+        // Tell the app shell to logout and redirect.
+        window.dispatchEvent(new CustomEvent('auth-expired', { detail: { reason } }));
+        disconnectSocket();
+      }
+    });
+
     socket.on('disconnect', (reason) => {
       console.log('❌ Disconnected from chat server:', reason);
       if (reason === 'io server disconnect') {
         // Server disconnected the socket, need to reconnect manually
-        socket?.connect();
+        // Avoid endless reconnect loop on auth failures.
+        const tokenNow = localStorage.getItem('accessToken');
+        if (tokenNow) socket?.connect();
       }
     });
 
     socket.on('connect_error', (error) => {
       console.error('❌ Socket connection error:', error.message);
+      if (String(error?.message || '').toLowerCase().includes('jwt expired')) {
+        window.dispatchEvent(new CustomEvent('auth-expired', { detail: { reason: 'jwt_expired' } }));
+        disconnectSocket();
+      }
     });
 
     socket.on('error', (error) => {
@@ -64,6 +87,7 @@ export const disconnectSocket = () => {
     socket.disconnect();
     socket = null;
   }
+  lastToken = null;
 };
 
 export const reconnectSocket = () => {
