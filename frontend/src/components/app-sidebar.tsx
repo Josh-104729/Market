@@ -10,7 +10,6 @@ import {
   SettingsIcon,
   UserCircleIcon,
   UsersIcon,
-  WalletIcon,
 } from "lucide-react"
 import { Link } from "react-router-dom"
 

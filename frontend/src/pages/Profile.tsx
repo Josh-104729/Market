@@ -42,7 +42,6 @@ import {
   Mail,
   MessageCircle,
   Newspaper,
-  Phone,
   Shield,
   User,
   User2,

@@ -1,10 +1,8 @@
 import { Link } from "react-router-dom"
 import { useAppSelector } from "../store/hooks"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { showToast } from "../utils/toast"
-import { Github, Instagram, Linkedin, Send, Twitter } from "lucide-react"
+import { Github, Instagram, Linkedin, Twitter } from "lucide-react"
 
 function Footer() {
   const currentYear = new Date().getFullYear()
