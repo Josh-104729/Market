@@ -8,9 +8,15 @@ export interface User {
   lastName?: string;
   middleName?: string;
   bio?: string;
+  avatar?: string;
   address?: string;
   phoneNumber?: string;
   role: string;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  twoFactorEnabled?: boolean;
+  twoFactorMethod?: string | null;
+  status?: string;
 }
 
 interface AuthState {

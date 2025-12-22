@@ -227,6 +227,17 @@ export const authApi = {
     return response.data;
   },
 
+  updateAvatar: async (avatarFile: File) => {
+    const formData = new FormData();
+    formData.append('avatar', avatarFile);
+    const response = await api.patch('/auth/profile/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
   twoFactor: {
     // SMS phone verification disabled - removed 'sms' from method options
     enable: async (method: 'totp' | /* 'sms' | */ 'email') => {

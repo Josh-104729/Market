@@ -1,45 +1,54 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  faUser,
-  faEnvelope,
-  faIdCard,
-  faSpinner,
-  faBriefcase,
-  faComments,
-  faTasks,
-  faNewspaper,
-  faChartBar,
-  faDollarSign,
-  faCalendar,
-  faCheckCircle,
-  faClock,
-  faTimesCircle,
-  faEdit,
-  faSave,
-  faTimes,
-  faPhone,
-  faMapMarkerAlt,
-  faFileAlt,
-  faShieldAlt,
-} from '@fortawesome/free-solid-svg-icons'
-import { useAppSelector, useAppDispatch } from '../store/hooks'
-import { updateUser, User as UserType } from '../store/slices/authSlice'
-import { showToast } from '../utils/toast'
+import { useEffect, useRef, useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import { useAppDispatch, useAppSelector } from "../store/hooks"
+import { updateUser, User as UserType } from "../store/slices/authSlice"
+import { showToast } from "../utils/toast"
 import {
   authApi,
-  serviceApi,
+  blogApi,
   conversationApi,
   milestoneApi,
-  blogApi,
-  Service,
+  serviceApi,
   Conversation,
   Milestone,
   Post,
-} from '../services/api'
+  Service,
+} from "../services/api"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  BarChart3,
+  Briefcase,
+  Camera,
+  CheckCircle2,
+  Coins,
+  Loader2,
+  Mail,
+  MessageCircle,
+  Newspaper,
+  Phone,
+  Shield,
+  User,
+  User2,
+} from "lucide-react"
 
-type TabType = 'information' | 'services' | 'conversations' | 'milestones' | 'posts' | 'statistics'
+type TabType = "overview" | "information" | "services" | "conversations" | "milestones" | "posts" | "statistics"
 
 function Profile() {
   const navigate = useNavigate()
@@ -47,19 +56,26 @@ function Profile() {
   const { user: storeUser, isAuthenticated } = useAppSelector((state) => state.auth)
   const [user, setUser] = useState<UserType | null>(storeUser)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<TabType>('information')
+  const [activeTab, setActiveTab] = useState<TabType>("overview")
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState({
-    userName: '',
-    firstName: '',
-    lastName: '',
-    middleName: '',
-    bio: '',
-    address: '',
-    phoneNumber: '',
+    userName: "",
+    firstName: "",
+    lastName: "",
+    middleName: "",
+    bio: "",
+    address: "",
+    phoneNumber: "",
   })
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState("")
+
+  // Avatar upload
+  const [avatarDialogOpen, setAvatarDialogOpen] = useState(false)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   // Data states
   const [services, setServices] = useState<Service[]>([])
@@ -70,7 +86,7 @@ function Profile() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/signin')
+      navigate("/signin")
       return
     }
 
@@ -80,13 +96,13 @@ function Profile() {
         const profileData = await authApi.getProfile()
         setUser(profileData)
         setEditForm({
-          userName: profileData.userName || '',
-          firstName: profileData.firstName || '',
-          lastName: profileData.lastName || '',
-          middleName: profileData.middleName || '',
-          bio: profileData.bio || '',
-          address: profileData.address || '',
-          phoneNumber: profileData.phoneNumber || '',
+          userName: profileData.userName || "",
+          firstName: profileData.firstName || "",
+          lastName: profileData.lastName || "",
+          middleName: profileData.middleName || "",
+          bio: profileData.bio || "",
+          address: profileData.address || "",
+          phoneNumber: profileData.phoneNumber || "",
         })
       } catch (error) {
         console.error('Failed to fetch profile:', error)
@@ -106,18 +122,18 @@ function Profile() {
       setLoadingData(true)
       try {
         switch (activeTab) {
-          case 'services':
+          case "services":
             const servicesData = await serviceApi.getMyServices({ limit: 50 })
             setServices(servicesData.data)
             break
-          case 'conversations':
+          case "conversations":
             const conversationsData = await conversationApi.getAll()
             const userConversations = conversationsData.filter(
               (conv) => conv.clientId === user.id || conv.providerId === user.id
             )
             setConversations(userConversations)
             break
-          case 'milestones':
+          case "milestones":
             const allConversations = await conversationApi.getAll()
             const userConvs = allConversations.filter(
               (conv) => conv.clientId === user.id || conv.providerId === user.id
@@ -130,7 +146,7 @@ function Profile() {
             )
             setMilestones(userMilestones)
             break
-          case 'posts':
+          case "posts":
             const postsData = await blogApi.getAll({ limit: 50 })
             const userPosts = postsData.data.filter((post) => post.userId === user.id)
             setPosts(userPosts)
@@ -148,14 +164,14 @@ function Profile() {
   }, [activeTab, user?.id])
 
   const handleSave = async () => {
-    setError('')
+    setError("")
     setSaving(true)
     try {
       const updatedProfile = await authApi.updateProfile(editForm)
       setUser(updatedProfile)
       dispatch(updateUser(updatedProfile))
       setIsEditing(false)
-      showToast.success('Profile updated successfully!')
+      showToast.success("Profile updated successfully!")
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Failed to update profile'
       setError(errorMessage)
@@ -167,35 +183,18 @@ function Profile() {
 
   const handleCancel = () => {
     setIsEditing(false)
-    setError('')
+    setError("")
     if (user) {
       setEditForm({
-        userName: user.userName || '',
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        middleName: user.middleName || '',
-        bio: user.bio || '',
-        address: user.address || '',
-        phoneNumber: user.phoneNumber || '',
+        userName: user.userName || "",
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        middleName: user.middleName || "",
+        bio: user.bio || "",
+        address: user.address || "",
+        phoneNumber: user.phoneNumber || "",
       })
     }
-  }
-
-  const getStatusBadge = (status: string) => {
-    const badges: Record<string, { bg: string; text: string; icon: any }> = {
-      draft: { bg: 'bg-neutral-700', text: 'text-neutral-200', icon: faClock },
-      active: { bg: 'bg-green-900', text: 'text-green-200', icon: faCheckCircle },
-      blocked: { bg: 'bg-red-900', text: 'text-red-200', icon: faTimesCircle },
-      processing: { bg: 'bg-blue-900', text: 'text-blue-200', icon: faClock },
-      completed: { bg: 'bg-green-900', text: 'text-green-200', icon: faCheckCircle },
-      canceled: { bg: 'bg-red-900', text: 'text-red-200', icon: faTimesCircle },
-      withdraw: { bg: 'bg-yellow-900', text: 'text-yellow-200', icon: faClock },
-      released: { bg: 'bg-green-900', text: 'text-green-200', icon: faCheckCircle },
-      dispute: { bg: 'bg-orange-900', text: 'text-orange-200', icon: faTimesCircle },
-      published: { bg: 'bg-green-900', text: 'text-green-200', icon: faCheckCircle },
-      archived: { bg: 'bg-neutral-700', text: 'text-neutral-200', icon: faClock },
-    }
-    return badges[status] || badges.draft
   }
 
   const formatDate = (dateString: string) => {
@@ -216,658 +215,723 @@ function Profile() {
   // Calculate statistics
   const stats = {
     totalServices: services.length,
-    activeServices: services.filter((s) => s.status === 'active').length,
+    activeServices: services.filter((s) => s.status === "active").length,
     totalConversations: conversations.length,
     totalMilestones: milestones.length,
-    completedMilestones: milestones.filter((m) => m.status === 'completed' || m.status === 'released').length,
+    completedMilestones: milestones.filter((m) => m.status === "completed" || m.status === "released").length,
     totalPosts: posts.length,
     totalEarnings: milestones
-      .filter((m) => (m.status === 'completed' || m.status === 'released') && m.providerId === user?.id)
+      .filter((m) => (m.status === "completed" || m.status === "released") && m.providerId === user?.id)
       .reduce((sum, m) => sum + m.balance, 0),
     totalSpent: milestones
-      .filter((m) => (m.status === 'completed' || m.status === 'released') && m.clientId === user?.id)
+      .filter((m) => (m.status === "completed" || m.status === "released") && m.clientId === user?.id)
       .reduce((sum, m) => sum + m.balance, 0),
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
-        <div className="text-center">
-          <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-400 mb-4" />
-          <p className="text-neutral-400">Loading profile...</p>
+      <div className="mx-auto w-full max-w-6xl space-y-6 py-4">
+        <Skeleton className="h-56 w-full" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
         </div>
+        <Skeleton className="h-96 w-full" />
       </div>
     )
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-neutral-400 text-lg">No user data available</p>
-        </div>
+      <div className="mx-auto w-full max-w-3xl py-10">
+        <Card>
+          <CardContent className="py-10 text-center">
+            <div className="text-sm text-muted-foreground">No user data available.</div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
-  const tabs = [
-    { id: 'information' as TabType, label: 'Information', icon: faUser },
-    { id: 'services' as TabType, label: 'Services', icon: faBriefcase },
-    { id: 'conversations' as TabType, label: 'Conversations', icon: faComments },
-    { id: 'milestones' as TabType, label: 'Milestones', icon: faTasks },
-    { id: 'posts' as TabType, label: 'Posts', icon: faNewspaper },
-    { id: 'statistics' as TabType, label: 'Statistics', icon: faChartBar },
-  ]
+  const displayName =
+    (user.firstName || user.lastName)
+      ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+      : user.userName || user.email
+  const avatarFallback = (displayName?.[0] || "U").toUpperCase()
+
+  const validateAvatarFile = (file: File) => {
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+    if (!validTypes.includes(file.type)) return "Only JPG, PNG, GIF, or WEBP image files are allowed."
+    if (file.size > 5 * 1024 * 1024) return "Image size must be less than 5MB."
+    return null
+  }
+
+  const onPickAvatar = (file?: File | null) => {
+    if (!file) return
+    const validation = validateAvatarFile(file)
+    if (validation) {
+      showToast.error(validation)
+      return
+    }
+    setAvatarFile(file)
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+    setAvatarPreview(URL.createObjectURL(file))
+  }
+
+  const uploadAvatar = async () => {
+    if (!avatarFile) return
+    setAvatarUploading(true)
+    try {
+      const updated = await authApi.updateAvatar(avatarFile)
+      setUser(updated)
+      dispatch(updateUser(updated))
+      showToast.success("Avatar updated!")
+      setAvatarDialogOpen(false)
+      setAvatarFile(null)
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+      setAvatarPreview(null)
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Failed to update avatar"
+      showToast.error(msg)
+    } finally {
+      setAvatarUploading(false)
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-neutral-900">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left Sidebar */}
-          <div className="w-full lg:w-64 flex-shrink-0">
-            <div className="bg-neutral-800 rounded-xl shadow-lg border border-neutral-700 p-4 sticky top-4">
-              <nav className="space-y-2">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`w-full px-4 py-3 rounded-lg font-medium transition-all flex items-center space-x-3 text-left ${
-                      activeTab === tab.id
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'text-neutral-300 hover:bg-neutral-700 hover:text-blue-400'
-                    }`}
-                  >
-                    <FontAwesomeIcon icon={tab.icon} className="text-sm w-5" />
-                    <span>{tab.label}</span>
-                  </button>
-                ))}
-              </nav>
+    <div className="mx-auto w-full max-w-6xl space-y-6 py-4">
+      {/* Profile header */}
+      <Card className="overflow-hidden">
+        <div className="h-28 bg-gradient-to-r from-primary/20 via-primary/10 to-background" />
+        <CardContent className="-mt-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex items-end gap-4">
+            <div className="relative">
+              <Avatar className="h-20 w-20 border-4 border-background shadow-sm">
+                <AvatarImage src={user.avatar || ""} alt={displayName} />
+                <AvatarFallback>{avatarFallback}</AvatarFallback>
+              </Avatar>
+              <Button
+                type="button"
+                size="icon"
+                variant="secondary"
+                className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full shadow"
+                onClick={() => setAvatarDialogOpen(true)}
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="min-w-0">
+              <div className="truncate text-xl font-bold">{displayName}</div>
+              <div className="truncate text-sm text-muted-foreground">
+                {user.userName ? `@${user.userName}` : user.email}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-2">
+                <Badge variant={user.emailVerified ? "secondary" : "outline"} className="gap-1">
+                  <Mail className="h-3 w-3" />
+                  {user.emailVerified ? "Email verified" : "Email not verified"}
+                </Badge>
+                <Badge variant={user.twoFactorEnabled ? "secondary" : "outline"} className="gap-1">
+                  <Shield className="h-3 w-3" />
+                  {user.twoFactorEnabled ? "2FA enabled" : "2FA off"}
+                </Badge>
+                {user.status ? <Badge variant="outline">{user.status}</Badge> : null}
+              </div>
             </div>
           </div>
 
-          {/* Main Content */}
-          <div className="flex-1 min-w-0">
-            <div className="bg-neutral-800 rounded-xl shadow-lg border border-neutral-700 p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Button asChild variant="outline" className="gap-2">
+              <Link to="/settings/security">
+                <Shield className="h-4 w-4" />
+                Security
+              </Link>
+            </Button>
+            <Button
+              type="button"
+              className="gap-2"
+              onClick={() => {
+                setActiveTab("information")
+                setIsEditing(true)
+              }}
+            >
+              <User className="h-4 w-4" />
+              Edit profile
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Services</CardTitle>
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats.totalServices}</div>
+            <div className="text-sm text-muted-foreground">{stats.activeServices} active</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Conversations</CardTitle>
+              <MessageCircle className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats.totalConversations}</div>
+            <div className="text-sm text-muted-foreground">Total</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Milestones</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats.totalMilestones}</div>
+            <div className="text-sm text-muted-foreground">{stats.completedMilestones} completed</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Posts</CardTitle>
+              <Newspaper className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats.totalPosts}</div>
+            <div className="text-sm text-muted-foreground">Published / Draft</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)}>
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-2">
+          <TabsTrigger value="overview" className="gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="information" className="gap-2">
+            <User className="h-4 w-4" />
+            Info
+          </TabsTrigger>
+          <TabsTrigger value="services" className="gap-2">
+            <Briefcase className="h-4 w-4" />
+            Services
+          </TabsTrigger>
+          <TabsTrigger value="conversations" className="gap-2">
+            <MessageCircle className="h-4 w-4" />
+            Chats
+          </TabsTrigger>
+          <TabsTrigger value="milestones" className="gap-2">
+            <CheckCircle2 className="h-4 w-4" />
+            Milestones
+          </TabsTrigger>
+          <TabsTrigger value="posts" className="gap-2">
+            <Newspaper className="h-4 w-4" />
+            Posts
+          </TabsTrigger>
+          <TabsTrigger value="statistics" className="gap-2">
+            <Coins className="h-4 w-4" />
+            Stats
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Earnings</CardTitle>
+                <CardDescription>Based on completed milestones.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">Total earned</div>
+                  <div className="font-semibold">{formatCurrency(stats.totalEarnings)}</div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">Total spent</div>
+                  <div className="font-semibold">{formatCurrency(stats.totalSpent)}</div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Profile</CardTitle>
+                <CardDescription>Quick account details.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm text-muted-foreground">Email</div>
+                  <div className="truncate text-sm font-medium">{user.email}</div>
+                </div>
+                {/* {user.phoneNumber ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm text-muted-foreground">Phone</div>
+                    <div className="truncate text-sm font-medium">{user.phoneNumber}</div>
+                  </div>
+                ) : null} */}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm text-muted-foreground">Role</div>
+                  <div className="truncate text-sm font-medium capitalize">{user.role}</div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="information">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Profile information</CardTitle>
+                  <CardDescription>Update your public profile details.</CardDescription>
+                </div>
+                {!isEditing ? (
+                  <Button type="button" variant="outline" onClick={() => setIsEditing(true)} className="gap-2">
+                    <User className="h-4 w-4" />
+                    Edit
+                  </Button>
+                ) : null}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {error ? (
+                <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                  {error}
+                </div>
+              ) : null}
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Email
+                  </Label>
+                  <Input value={user.email} readOnly />
+                  <div className="text-xs text-muted-foreground">Email cannot be changed.</div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <User2 className="h-4 w-4" />
+                    Username
+                  </Label>
+                  <Input
+                    value={isEditing ? editForm.userName : (user.userName || "")}
+                    readOnly={!isEditing}
+                    onChange={(e) => setEditForm({ ...editForm, userName: e.target.value })}
+                    placeholder="Enter username"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>First name</Label>
+                  <Input
+                    value={isEditing ? editForm.firstName : (user.firstName || "")}
+                    readOnly={!isEditing}
+                    onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                    placeholder="First name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Last name</Label>
+                  <Input
+                    value={isEditing ? editForm.lastName : (user.lastName || "")}
+                    readOnly={!isEditing}
+                    onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                    placeholder="Last name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Middle name</Label>
+                  <Input
+                    value={isEditing ? editForm.middleName : (user.middleName || "")}
+                    readOnly={!isEditing}
+                    onChange={(e) => setEditForm({ ...editForm, middleName: e.target.value })}
+                    placeholder="(Optional)"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    Phone number
+                  </Label>
+                  <Input
+                    value={isEditing ? editForm.phoneNumber : (user.phoneNumber || "")}
+                    readOnly={!isEditing}
+                    onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
+                    placeholder="Enter phone number"
+                  />
+                </div> */}
+                <div className="space-y-2">
+                  <Label>Country</Label>
+                  <Input
+                    value={isEditing ? editForm.address : (user.address || "")}
+                    readOnly={!isEditing}
+                    onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                    placeholder="Enter address"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Bio</Label>
+                <Textarea
+                  value={isEditing ? editForm.bio : (user.bio || "")}
+                  readOnly={!isEditing}
+                  onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                  rows={4}
+                  placeholder="Tell us about yourself..."
+                />
+              </div>
+
+              {isEditing ? (
+                <>
+                  <Separator />
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button type="button" variant="outline" onClick={handleCancel} disabled={saving}>
+                      Cancel
+                    </Button>
+                    <Button type="button" onClick={handleSave} disabled={saving} className="gap-2">
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                      {saving ? "Saving..." : "Save changes"}
+                    </Button>
+                  </div>
+                </>
+              ) : null}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="services">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <CardTitle>My services</CardTitle>
+                  <CardDescription>{services.length} total</CardDescription>
+                </div>
+                <Button asChild className="gap-2">
+                  <Link to="/services/new">
+                    <Briefcase className="h-4 w-4" />
+                    Create service
+                  </Link>
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
               {loadingData ? (
-                <div className="text-center py-20">
-                  <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-400 mb-4" />
-                  <p className="text-neutral-400">Loading...</p>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <Skeleton className="h-40 w-full" />
+                  <Skeleton className="h-40 w-full" />
+                  <Skeleton className="h-40 w-full" />
+                </div>
+              ) : services.length === 0 ? (
+                <div className="rounded-lg border bg-muted/30 p-8 text-center">
+                  <div className="text-sm text-muted-foreground">No services yet.</div>
+                  <div className="pt-4">
+                    <Button asChild>
+                      <Link to="/services/new">Create your first service</Link>
+                    </Button>
+                  </div>
                 </div>
               ) : (
-                <>
-                  {/* Information Tab */}
-                  {activeTab === 'information' && (
-                    <div>
-                      <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold text-neutral-100 flex items-center space-x-2">
-                          <FontAwesomeIcon icon={faUser} className="text-blue-400" />
-                          <span>Profile Information</span>
-                        </h2>
-                        <div className="flex items-center space-x-3">
-                          {!isEditing && (
-                            <>
-                              <Link
-                                to="/settings/security"
-                                className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center space-x-2"
-                              >
-                                <FontAwesomeIcon icon={faShieldAlt} className="text-sm" />
-                                <span>Security Settings</span>
-                              </Link>
-                              <button
-                                onClick={() => setIsEditing(true)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                              >
-                                <FontAwesomeIcon icon={faEdit} className="text-sm" />
-                                <span>Edit</span>
-                              </button>
-                            </>
-                          )}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {services.map((s) => (
+                    <Card key={s.id} className="hover:shadow-sm">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <CardTitle className="line-clamp-2 text-base">{s.title}</CardTitle>
+                          <Badge variant={s.status === "active" ? "secondary" : "outline"} className="shrink-0">
+                            {s.status}
+                          </Badge>
                         </div>
-                      </div>
-
-                      {error && (
-                        <div className="mb-4 p-4 bg-red-900/50 border border-red-700 rounded-lg text-red-200">
-                          {error}
-                        </div>
-                      )}
-
-                      {isEditing ? (
-                        <div className="space-y-4">
-                          <div className="bg-neutral-700/50 rounded-lg p-4">
-                            <label className="block text-sm font-medium text-neutral-400 mb-2">
-                              <FontAwesomeIcon icon={faEnvelope} className="mr-2 text-blue-400" />
-                              Email
-                            </label>
-                            <p className="text-neutral-300">{user.email}</p>
-                            <p className="text-xs text-neutral-500 mt-1">Email cannot be changed</p>
-                          </div>
-
-                          <div className="bg-neutral-700/50 rounded-lg p-4">
-                            <label className="block text-sm font-medium text-neutral-400 mb-2">
-                              <FontAwesomeIcon icon={faIdCard} className="mr-2 text-blue-400" />
-                              Username
-                            </label>
-                            <input
-                              type="text"
-                              value={editForm.userName}
-                              onChange={(e) => setEditForm({ ...editForm, userName: e.target.value })}
-                              className="w-full px-4 py-2 bg-neutral-600 border border-neutral-500 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Enter username"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-neutral-700/50 rounded-lg p-4">
-                              <label className="block text-sm font-medium text-neutral-400 mb-2">
-                                <FontAwesomeIcon icon={faUser} className="mr-2 text-blue-400" />
-                                First Name
-                              </label>
-                              <input
-                                type="text"
-                                value={editForm.firstName}
-                                onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                                className="w-full px-4 py-2 bg-neutral-600 border border-neutral-500 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Enter first name"
-                              />
-                            </div>
-
-                            <div className="bg-neutral-700/50 rounded-lg p-4">
-                              <label className="block text-sm font-medium text-neutral-400 mb-2">
-                                <FontAwesomeIcon icon={faUser} className="mr-2 text-blue-400" />
-                                Last Name
-                              </label>
-                              <input
-                                type="text"
-                                value={editForm.lastName}
-                                onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                                className="w-full px-4 py-2 bg-neutral-600 border border-neutral-500 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Enter last name"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="bg-neutral-700/50 rounded-lg p-4">
-                            <label className="block text-sm font-medium text-neutral-400 mb-2">
-                              <FontAwesomeIcon icon={faUser} className="mr-2 text-blue-400" />
-                              Middle Name
-                            </label>
-                            <input
-                              type="text"
-                              value={editForm.middleName}
-                              onChange={(e) => setEditForm({ ...editForm, middleName: e.target.value })}
-                              className="w-full px-4 py-2 bg-neutral-600 border border-neutral-500 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Enter middle name (optional)"
-                            />
-                          </div>
-
-                          <div className="bg-neutral-700/50 rounded-lg p-4">
-                            <label className="block text-sm font-medium text-neutral-400 mb-2">
-                              <FontAwesomeIcon icon={faFileAlt} className="mr-2 text-blue-400" />
-                              Bio
-                            </label>
-                            <textarea
-                              value={editForm.bio}
-                              onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                              rows={4}
-                              className="w-full px-4 py-2 bg-neutral-600 border border-neutral-500 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Tell us about yourself..."
-                            />
-                          </div>
-
-                          <div className="bg-neutral-700/50 rounded-lg p-4">
-                            <label className="block text-sm font-medium text-neutral-400 mb-2">
-                              <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-2 text-blue-400" />
-                              Address
-                            </label>
-                            <input
-                              type="text"
-                              value={editForm.address}
-                              onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                              className="w-full px-4 py-2 bg-neutral-600 border border-neutral-500 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Enter address"
-                            />
-                          </div>
-
-                          <div className="bg-neutral-700/50 rounded-lg p-4">
-                            <label className="block text-sm font-medium text-neutral-400 mb-2">
-                              <FontAwesomeIcon icon={faPhone} className="mr-2 text-blue-400" />
-                              Phone Number
-                            </label>
-                            <input
-                              type="text"
-                              value={editForm.phoneNumber}
-                              onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
-                              className="w-full px-4 py-2 bg-neutral-600 border border-neutral-500 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Enter phone number"
-                            />
-                          </div>
-
-                          <div className="flex items-center space-x-3 pt-4">
-                            <button
-                              onClick={handleSave}
-                              disabled={saving}
-                              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
-                            >
-                              {saving ? (
-                                <>
-                                  <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
-                                  <span>Saving...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <FontAwesomeIcon icon={faSave} className="text-sm" />
-                                  <span>Save Changes</span>
-                                </>
-                              )}
-                            </button>
-                            <button
-                              onClick={handleCancel}
-                              disabled={saving}
-                              className="px-6 py-2 bg-neutral-600 text-neutral-200 rounded-lg font-semibold hover:bg-neutral-500 transition-colors flex items-center space-x-2 disabled:opacity-50"
-                            >
-                              <FontAwesomeIcon icon={faTimes} className="text-sm" />
-                              <span>Cancel</span>
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div className="bg-neutral-700/50 rounded-lg p-4">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <FontAwesomeIcon icon={faEnvelope} className="text-blue-400" />
-                              <label className="text-sm font-medium text-neutral-400">Email</label>
-                            </div>
-                            <p className="text-neutral-100 text-lg">{user.email}</p>
-                          </div>
-
-                          {user.userName && (
-                            <div className="bg-neutral-700/50 rounded-lg p-4">
-                              <div className="flex items-center space-x-3 mb-2">
-                                <FontAwesomeIcon icon={faIdCard} className="text-blue-400" />
-                                <label className="text-sm font-medium text-neutral-400">Username</label>
-                              </div>
-                              <p className="text-neutral-100 text-lg">{user.userName}</p>
-                            </div>
-                          )}
-
-                          {user.firstName && (
-                            <div className="bg-neutral-700/50 rounded-lg p-4">
-                              <div className="flex items-center space-x-3 mb-2">
-                                <FontAwesomeIcon icon={faUser} className="text-blue-400" />
-                                <label className="text-sm font-medium text-neutral-400">First Name</label>
-                              </div>
-                              <p className="text-neutral-100 text-lg">{user.firstName}</p>
-                            </div>
-                          )}
-
-                          {user.lastName && (
-                            <div className="bg-neutral-700/50 rounded-lg p-4">
-                              <div className="flex items-center space-x-3 mb-2">
-                                <FontAwesomeIcon icon={faUser} className="text-blue-400" />
-                                <label className="text-sm font-medium text-neutral-400">Last Name</label>
-                              </div>
-                              <p className="text-neutral-100 text-lg">{user.lastName}</p>
-                            </div>
-                          )}
-
-                          {user.middleName && (
-                            <div className="bg-neutral-700/50 rounded-lg p-4">
-                              <div className="flex items-center space-x-3 mb-2">
-                                <FontAwesomeIcon icon={faUser} className="text-blue-400" />
-                                <label className="text-sm font-medium text-neutral-400">Middle Name</label>
-                              </div>
-                              <p className="text-neutral-100 text-lg">{user.middleName}</p>
-                            </div>
-                          )}
-
-                          {user.bio && (
-                            <div className="bg-neutral-700/50 rounded-lg p-4">
-                              <div className="flex items-center space-x-3 mb-2">
-                                <FontAwesomeIcon icon={faFileAlt} className="text-blue-400" />
-                                <label className="text-sm font-medium text-neutral-400">Bio</label>
-                              </div>
-                              <p className="text-neutral-100 text-lg whitespace-pre-wrap">{user.bio}</p>
-                            </div>
-                          )}
-
-                          {user.address && (
-                            <div className="bg-neutral-700/50 rounded-lg p-4">
-                              <div className="flex items-center space-x-3 mb-2">
-                                <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-400" />
-                                <label className="text-sm font-medium text-neutral-400">Address</label>
-                              </div>
-                              <p className="text-neutral-100 text-lg">{user.address}</p>
-                            </div>
-                          )}
-
-                          {user.phoneNumber && (
-                            <div className="bg-neutral-700/50 rounded-lg p-4">
-                              <div className="flex items-center space-x-3 mb-2">
-                                <FontAwesomeIcon icon={faPhone} className="text-blue-400" />
-                                <label className="text-sm font-medium text-neutral-400">Phone Number</label>
-                              </div>
-                              <p className="text-neutral-100 text-lg">{user.phoneNumber}</p>
-                            </div>
-                          )}
-
-                          {user.role && (
-                            <div className="bg-neutral-700/50 rounded-lg p-4">
-                              <div className="flex items-center space-x-3 mb-2">
-                                <FontAwesomeIcon icon={faIdCard} className="text-blue-400" />
-                                <label className="text-sm font-medium text-neutral-400">Role</label>
-                              </div>
-                              <p className="text-neutral-100 text-lg capitalize">{user.role}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Services Tab */}
-                  {activeTab === 'services' && (
-                    <div>
-                      <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold text-neutral-100 flex items-center space-x-2">
-                          <FontAwesomeIcon icon={faBriefcase} className="text-blue-400" />
-                          <span>My Services ({services.length})</span>
-                        </h2>
-                        <Link
-                          to="/services/new"
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                        >
-                          Create Service
-                        </Link>
-                      </div>
-                      {services.length === 0 ? (
-                        <div className="text-center py-12">
-                          <p className="text-neutral-400 mb-4">No services found</p>
-                          <Link
-                            to="/services/new"
-                            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-block"
-                          >
-                            Create Your First Service
-                          </Link>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {services.map((service) => {
-                            const statusBadge = getStatusBadge(service.status)
-                            return (
-                              <Link
-                                key={service.id}
-                                to={`/services/${service.id}`}
-                                className="bg-neutral-700 rounded-lg p-4 hover:bg-neutral-600 transition-colors border border-neutral-600"
-                              >
-                                <div className="flex items-start justify-between mb-2">
-                                  <h3 className="text-lg font-semibold text-neutral-100 line-clamp-2 flex-1">
-                                    {service.title}
-                                  </h3>
-                                  <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${statusBadge.bg} ${statusBadge.text}`}>
-                                    {service.status}
-                                  </span>
-                                </div>
-                                <p className="text-neutral-400 text-sm mb-3 line-clamp-2">{service.adText}</p>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xl font-bold text-blue-400">
-                                    {formatCurrency(service.balance)}
-                                  </span>
-                                  {service.category && (
-                                    <span className="text-xs text-neutral-400">{service.category.title}</span>
-                                  )}
-                                </div>
-                              </Link>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Conversations Tab */}
-                  {activeTab === 'conversations' && (
-                    <div>
-                      <h2 className="text-2xl font-bold text-neutral-100 mb-6 flex items-center space-x-2">
-                        <FontAwesomeIcon icon={faComments} className="text-blue-400" />
-                        <span>Conversations ({conversations.length})</span>
-                      </h2>
-                      {conversations.length === 0 ? (
-                        <div className="text-center py-12">
-                          <p className="text-neutral-400">No conversations found</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {conversations.map((conv) => {
-                            const otherUser = conv.clientId === user.id ? conv.provider : conv.client
-                            const otherUserName = otherUser
-                              ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.userName || 'Unknown'
-                              : 'Unknown'
-                            return (
-                              <Link
-                                key={conv.id}
-                                to={`/chat/${conv.id}`}
-                                className="block bg-neutral-700 rounded-lg p-4 hover:bg-neutral-600 transition-colors border border-neutral-600"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-3">
-                                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                                      {otherUserName[0].toUpperCase()}
-                                    </div>
-                                    <div>
-                                      <h3 className="text-neutral-100 font-semibold">{otherUserName}</h3>
-                                      {conv.service && (
-                                        <p className="text-neutral-400 text-sm">{conv.service.title}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-neutral-400 text-xs">{formatDate(conv.updatedAt)}</p>
-                                    {conv.messages && conv.messages.length > 0 && (
-                                      <p className="text-neutral-500 text-xs mt-1 line-clamp-1">
-                                        {conv.messages[conv.messages.length - 1].message}
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              </Link>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Milestones Tab */}
-                  {activeTab === 'milestones' && (
-                    <div>
-                      <h2 className="text-2xl font-bold text-neutral-100 mb-6 flex items-center space-x-2">
-                        <FontAwesomeIcon icon={faTasks} className="text-blue-400" />
-                        <span>Milestones ({milestones.length})</span>
-                      </h2>
-                      {milestones.length === 0 ? (
-                        <div className="text-center py-12">
-                          <p className="text-neutral-400">No milestones found</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {milestones.map((milestone) => {
-                            const statusBadge = getStatusBadge(milestone.status)
-                            const isProvider = milestone.providerId === user.id
-                            const otherUser = isProvider ? milestone.client : milestone.provider
-                            const otherUserName = otherUser
-                              ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.userName || 'Unknown'
-                              : 'Unknown'
-                            return (
-                              <div
-                                key={milestone.id}
-                                className="bg-neutral-700 rounded-lg p-4 border border-neutral-600"
-                              >
-                                <div className="flex items-start justify-between mb-3">
-                                  <div className="flex-1">
-                                    <h3 className="text-lg font-semibold text-neutral-100 mb-1">{milestone.title}</h3>
-                                    <p className="text-neutral-400 text-sm mb-2">{milestone.description}</p>
-                                    {milestone.service && (
-                                      <p className="text-neutral-500 text-xs mb-2">Service: {milestone.service.title}</p>
-                                    )}
-                                    <div className="flex items-center space-x-4 text-sm text-neutral-400">
-                                      <span>
-                                        {isProvider ? 'Client' : 'Provider'}: {otherUserName}
-                                      </span>
-                                      <span className="flex items-center space-x-1">
-                                        <FontAwesomeIcon icon={faCalendar} className="text-xs" />
-                                        <span>{formatDate(milestone.createdAt)}</span>
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div className="text-right ml-4">
-                                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${statusBadge.bg} ${statusBadge.text} flex items-center space-x-1 mb-2`}>
-                                      <FontAwesomeIcon icon={statusBadge.icon} className="text-xs" />
-                                      <span>{milestone.status}</span>
-                                    </span>
-                                    <p className="text-xl font-bold text-blue-400">
-                                      {formatCurrency(milestone.balance)}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Posts Tab */}
-                  {activeTab === 'posts' && (
-                    <div>
-                      <h2 className="text-2xl font-bold text-neutral-100 mb-6 flex items-center space-x-2">
-                        <FontAwesomeIcon icon={faNewspaper} className="text-blue-400" />
-                        <span>My Posts ({posts.length})</span>
-                      </h2>
-                      {posts.length === 0 ? (
-                        <div className="text-center py-12">
-                          <p className="text-neutral-400 mb-4">No posts found</p>
-                          <Link
-                            to="/feed"
-                            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-block"
-                          >
-                            Create Your First Post
-                          </Link>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {posts.map((post) => {
-                            const statusBadge = getStatusBadge(post.status)
-                            return (
-                              <div
-                                key={post.id}
-                                className="bg-neutral-700 rounded-lg p-4 border border-neutral-600"
-                              >
-                                <div className="flex items-start justify-between mb-3">
-                                  <div className="flex-1">
-                                    <p className="text-neutral-200 whitespace-pre-wrap break-words mb-2">{post.content}</p>
-                                    {post.images && post.images.length > 0 && (
-                                      <div className="grid grid-cols-2 gap-2 mt-2">
-                                        {post.images.slice(0, 4).map((image, idx) => (
-                                          <img
-                                            key={idx}
-                                            src={`http://localhost:3000${image}`}
-                                            alt={`Post image ${idx + 1}`}
-                                            className="w-full h-32 object-cover rounded-lg"
-                                          />
-                                        ))}
-                                      </div>
-                                    )}
-                                    <div className="flex items-center space-x-4 mt-3 text-sm text-neutral-400">
-                                      <span className="flex items-center space-x-1">
-                                        <FontAwesomeIcon icon={faCalendar} className="text-xs" />
-                                        <span>{formatDate(post.createdAt)}</span>
-                                      </span>
-                                      {post.likeCount !== undefined && (
-                                        <span>{post.likeCount} likes</span>
-                                      )}
-                                      {post.commentCount !== undefined && (
-                                        <span>{post.commentCount} comments</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <span className={`ml-4 px-3 py-1 text-xs font-semibold rounded-full ${statusBadge.bg} ${statusBadge.text}`}>
-                                    {post.status}
-                                  </span>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Statistics Tab */}
-                  {activeTab === 'statistics' && (
-                    <div>
-                      <h2 className="text-2xl font-bold text-neutral-100 mb-6 flex items-center space-x-2">
-                        <FontAwesomeIcon icon={faChartBar} className="text-blue-400" />
-                        <span>Statistics & Overview</span>
-                      </h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <div className="bg-neutral-700 rounded-lg p-6 border border-neutral-600">
-                          <div className="flex items-center justify-between mb-2">
-                            <FontAwesomeIcon icon={faBriefcase} className="text-blue-400 text-2xl" />
-                            <span className="text-3xl font-bold text-neutral-100">{stats.totalServices}</span>
-                          </div>
-                          <p className="text-neutral-400 text-sm">Total Services</p>
-                          <p className="text-green-400 text-xs mt-1">{stats.activeServices} active</p>
-                        </div>
-                        <div className="bg-neutral-700 rounded-lg p-6 border border-neutral-600">
-                          <div className="flex items-center justify-between mb-2">
-                            <FontAwesomeIcon icon={faComments} className="text-purple-400 text-2xl" />
-                            <span className="text-3xl font-bold text-neutral-100">{stats.totalConversations}</span>
-                          </div>
-                          <p className="text-neutral-400 text-sm">Conversations</p>
-                        </div>
-                        <div className="bg-neutral-700 rounded-lg p-6 border border-neutral-600">
-                          <div className="flex items-center justify-between mb-2">
-                            <FontAwesomeIcon icon={faTasks} className="text-green-400 text-2xl" />
-                            <span className="text-3xl font-bold text-neutral-100">{stats.totalMilestones}</span>
-                          </div>
-                          <p className="text-neutral-400 text-sm">Total Milestones</p>
-                          <p className="text-green-400 text-xs mt-1">{stats.completedMilestones} completed</p>
-                        </div>
-                        <div className="bg-neutral-700 rounded-lg p-6 border border-neutral-600">
-                          <div className="flex items-center justify-between mb-2">
-                            <FontAwesomeIcon icon={faNewspaper} className="text-pink-400 text-2xl" />
-                            <span className="text-3xl font-bold text-neutral-100">{stats.totalPosts}</span>
-                          </div>
-                          <p className="text-neutral-400 text-sm">Posts</p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-neutral-700 rounded-lg p-6 border border-neutral-600">
-                          <div className="flex items-center justify-between mb-2">
-                            <FontAwesomeIcon icon={faDollarSign} className="text-green-400 text-2xl" />
-                            <span className="text-2xl font-bold text-green-400">{formatCurrency(stats.totalEarnings)}</span>
-                          </div>
-                          <p className="text-neutral-400 text-sm">Total Earnings</p>
-                          <p className="text-neutral-500 text-xs mt-1">From completed milestones as provider</p>
-                        </div>
-                        <div className="bg-neutral-700 rounded-lg p-6 border border-neutral-600">
-                          <div className="flex items-center justify-between mb-2">
-                            <FontAwesomeIcon icon={faDollarSign} className="text-red-400 text-2xl" />
-                            <span className="text-2xl font-bold text-red-400">{formatCurrency(stats.totalSpent)}</span>
-                          </div>
-                          <p className="text-neutral-400 text-sm">Total Spent</p>
-                          <p className="text-neutral-500 text-xs mt-1">On completed milestones as client</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
+                        <CardDescription className="line-clamp-2">{s.adText}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex items-center justify-between">
+                        <div className="text-sm font-semibold">{formatCurrency(s.balance)}</div>
+                        <Button asChild variant="outline" size="sm">
+                          <Link to={`/services/${s.id}`}>Open</Link>
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               )}
-            </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="conversations">
+          <Card>
+            <CardHeader>
+              <CardTitle>Conversations</CardTitle>
+              <CardDescription>{conversations.length} total</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {loadingData ? (
+                <>
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </>
+              ) : conversations.length === 0 ? (
+                <div className="rounded-lg border bg-muted/30 p-8 text-center text-sm text-muted-foreground">
+                  No conversations found.
+                </div>
+              ) : (
+                conversations.map((conv) => {
+                  const otherUser = conv.clientId === user.id ? conv.provider : conv.client
+                  const otherUserName = otherUser
+                    ? `${otherUser.firstName || ""} ${otherUser.lastName || ""}`.trim() || otherUser.userName || "Unknown"
+                    : "Unknown"
+                  const fallback = (otherUserName?.[0] || "U").toUpperCase()
+                  return (
+                    <Link key={conv.id} to={`/chat/${conv.id}`} className="block">
+                      <div className="flex items-center justify-between gap-4 rounded-lg border p-4 hover:bg-muted/30">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback>{fallback}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold">{otherUserName}</div>
+                            {conv.service ? (
+                              <div className="truncate text-xs text-muted-foreground">{conv.service.title}</div>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-muted-foreground">{formatDate(conv.updatedAt)}</div>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="milestones">
+          <Card>
+            <CardHeader>
+              <CardTitle>Milestones</CardTitle>
+              <CardDescription>{milestones.length} total</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {loadingData ? (
+                <>
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </>
+              ) : milestones.length === 0 ? (
+                <div className="rounded-lg border bg-muted/30 p-8 text-center text-sm text-muted-foreground">
+                  No milestones found.
+                </div>
+              ) : (
+                milestones.map((m) => (
+                  <div key={m.id} className="rounded-lg border p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold">{m.title}</div>
+                        <div className="text-xs text-muted-foreground">{m.description}</div>
+                        <div className="pt-2 text-xs text-muted-foreground">{formatDate(m.createdAt)}</div>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant={m.status === "completed" || m.status === "released" ? "secondary" : "outline"}>
+                          {m.status}
+                        </Badge>
+                        <div className="pt-2 text-sm font-semibold">{formatCurrency(m.balance)}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="posts">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <CardTitle>My posts</CardTitle>
+                  <CardDescription>{posts.length} total</CardDescription>
+                </div>
+                <Button asChild variant="outline">
+                  <Link to="/feed">Open feed</Link>
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {loadingData ? (
+                <>
+                  <Skeleton className="h-28 w-full" />
+                  <Skeleton className="h-28 w-full" />
+                </>
+              ) : posts.length === 0 ? (
+                <div className="rounded-lg border bg-muted/30 p-8 text-center">
+                  <div className="text-sm text-muted-foreground">No posts yet.</div>
+                  <div className="pt-4">
+                    <Button asChild>
+                      <Link to="/feed">Create your first post</Link>
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                posts.map((p) => (
+                  <Card key={p.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-xs text-muted-foreground">{formatDate(p.createdAt)}</div>
+                        <Badge variant={p.status === "published" ? "secondary" : "outline"}>{p.status}</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="whitespace-pre-wrap break-words text-sm">{p.content}</div>
+                      {p.images && p.images.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          {p.images.slice(0, 4).map((img, idx) => (
+                            <img
+                              key={idx}
+                              src={img.startsWith("http") ? img : img}
+                              alt={`Post image ${idx + 1}`}
+                              className="h-32 w-full rounded-md object-cover"
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                      <div className="flex gap-4 text-xs text-muted-foreground">
+                        {p.likeCount !== undefined ? <span>{p.likeCount} likes</span> : null}
+                        {p.commentCount !== undefined ? <span>{p.commentCount} comments</span> : null}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="statistics">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Earnings</CardTitle>
+                <CardDescription>Totals based on completed milestones.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">Total earnings</div>
+                  <div className="font-semibold">{formatCurrency(stats.totalEarnings)}</div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">Total spent</div>
+                  <div className="font-semibold">{formatCurrency(stats.totalSpent)}</div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Activity</CardTitle>
+                <CardDescription>Counts across your account.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">Services</div>
+                  <div className="font-semibold">{stats.totalServices}</div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">Conversations</div>
+                  <div className="font-semibold">{stats.totalConversations}</div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">Milestones</div>
+                  <div className="font-semibold">{stats.totalMilestones}</div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">Posts</div>
+                  <div className="font-semibold">{stats.totalPosts}</div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Avatar change dialog */}
+      <Dialog
+        open={avatarDialogOpen}
+        onOpenChange={(open) => {
+          setAvatarDialogOpen(open)
+          if (!open) {
+            setAvatarFile(null)
+            if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+            setAvatarPreview(null)
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change avatar</DialogTitle>
+            <DialogDescription>Upload a JPG/PNG/GIF/WEBP image (max 5MB).</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={avatarPreview || user.avatar || ""} alt={displayName} />
+                <AvatarFallback>{avatarFallback}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col gap-2">
+                <Button type="button" variant="secondary" className="gap-2" onClick={() => avatarInputRef.current?.click()}>
+                  <Camera className="h-4 w-4" />
+                  Choose image
+                </Button>
+                <div className="text-xs text-muted-foreground">Square images look best.</div>
+              </div>
+            </div>
+
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+              className="hidden"
+              onChange={(e) => onPickAvatar(e.target.files?.[0] || null)}
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setAvatarDialogOpen(false)} disabled={avatarUploading}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={() => void uploadAvatar()} disabled={!avatarFile || avatarUploading} className="gap-2">
+              {avatarUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {avatarUploading ? "Uploading..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
