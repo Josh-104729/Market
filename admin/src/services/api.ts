@@ -235,7 +235,7 @@ export interface Service {
   categoryId: string;
   title: string;
   adText: string;
-  adImage: string;
+  adImage?: string | null;
   balance: number;
   rating: number;
   status: 'draft' | 'active' | 'blocked';

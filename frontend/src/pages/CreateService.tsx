@@ -128,7 +128,6 @@ function CreateService() {
     if (!formData.balance || isNaN(balanceValue) || balanceValue <= 0) {
       newErrors.balance = 'Balance must be greater than 0'
     }
-    if (!imageFile) newErrors.image = 'Image is required'
     if (formData.tags.length === 0) newErrors.tags = 'At least one tag is required'
 
     if (Object.keys(newErrors).length > 0) {
@@ -147,7 +146,7 @@ function CreateService() {
           balance: Math.round(balanceValue * 100) / 100, // Round to 2 decimal places to avoid floating point issues
           tags: formData.tags,
         },
-        imageFile!,
+        imageFile,
       )
       showToast.success('Service created successfully!')
       navigate('/services')
@@ -282,7 +281,7 @@ function CreateService() {
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
                 <Label>
-                  Service image <span className="text-destructive">*</span>
+                  Service image <span className="text-muted-foreground">(optional)</span>
                 </Label>
                 {imagePreview ? (
                   <Button

@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { serviceApi, Service, conversationApi, Conversation } from '../services/api'
 import { useAppSelector } from '../store/hooks'
 import ImageWithLoader from '../components/ImageWithLoader'
+import { useDefaultServiceImageSrc } from '../hooks/use-default-service-image'
 import { showToast } from '../utils/toast'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -46,6 +47,7 @@ const StarRating = ({ rating }: { rating: number }) => {
 function ServiceDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const defaultServiceImageSrc = useDefaultServiceImageSrc()
   const { user, isAuthenticated } = useAppSelector((state) => state.auth)
   const [service, setService] = useState<Service | null>(null)
   const [loading, setLoading] = useState(true)
@@ -258,20 +260,13 @@ function ServiceDetail() {
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             <div className="relative min-h-[360px] bg-muted/20 flex items-center justify-center">
-              {service.adImage ? (
-                <ImageWithLoader
-                  src={service.adImage}
-                  alt={service.title}
-                  className="w-full h-full object-cover"
-                  containerClassName="w-full h-full"
-                  showBlurBackground={true}
-                />
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                  <Package className="h-10 w-10" />
-                  <span className="text-sm">No image</span>
-                </div>
-              )}
+              <ImageWithLoader
+                src={service.adImage?.trim() ? service.adImage : defaultServiceImageSrc}
+                alt={service.title}
+                className="w-full h-full object-cover"
+                containerClassName="w-full h-full"
+                showBlurBackground={true}
+              />
               <div className="absolute top-4 right-4">
                 <Badge className="text-base font-bold px-3 py-1">
                   ${priceValue.toFixed(2)}

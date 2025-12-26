@@ -123,7 +123,7 @@ export interface Service {
   categoryId: string;
   title: string;
   adText: string;
-  adImage: string;
+  adImage?: string | null;
   balance: number;
   rating: number;
   status: 'draft' | 'active' | 'blocked';
@@ -285,9 +285,11 @@ export const categoryApi = {
 };
 
 export const serviceApi = {
-  create: async (data: CreateServiceData, imageFile: File): Promise<Service> => {
+  create: async (data: CreateServiceData, imageFile?: File | null): Promise<Service> => {
     const formData = new FormData();
-    formData.append('adImage', imageFile);
+    if (imageFile) {
+      formData.append('adImage', imageFile);
+    }
     formData.append('categoryId', data.categoryId);
     formData.append('title', data.title);
     formData.append('adText', data.adText);

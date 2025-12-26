@@ -4,6 +4,7 @@ import { useAppSelector } from '../store/hooks'
 import { categoryApi, serviceApi, Service, Category } from '../services/api'
 import { renderIcon } from '../utils/iconHelper'
 import ImageWithLoader from '../components/ImageWithLoader'
+import { useDefaultServiceImageSrc } from '../hooks/use-default-service-image'
 import { showToast } from "../utils/toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -118,6 +119,7 @@ const StarRating = ({ rating }: { rating: number }) => {
 
 function Services() {
   const navigate = useNavigate()
+  const defaultServiceImageSrc = useDefaultServiceImageSrc()
   const { isAuthenticated } = useAppSelector((state) => state.auth)
   const [scope, setScope] = useState<ServicesScope>("all")
   const [services, setServices] = useState<Service[]>([])
@@ -363,18 +365,12 @@ function Services() {
                   <Card key={service.id} className="overflow-hidden group hover:border-primary/50 transition-all hover:shadow-md">
                     <Link to={`/services/${service.id}`}>
                       <div className="h-48 relative bg-muted/20 overflow-hidden">
-                        {service.adImage ? (
-                          <ImageWithLoader
-                            src={service.adImage}
-                            alt={service.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            containerClassName="w-full h-full"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground/40">
-                            <Package className="w-12 h-12" />
-                          </div>
-                        )}
+                        <ImageWithLoader
+                          src={service.adImage?.trim() ? service.adImage : defaultServiceImageSrc}
+                          alt={service.title}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          containerClassName="w-full h-full"
+                        />
                         <div className="absolute top-3 right-3">
                           <Badge variant="secondary" className="backdrop-blur-sm shadow-sm font-bold">
                             ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}
@@ -425,17 +421,11 @@ function Services() {
                       <TableRow key={service.id} className="group cursor-pointer" onClick={() => navigate(`/services/${service.id}`)}>
                         <TableCell>
                           <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden relative border border-border">
-                            {service.adImage ? (
-                              <ImageWithLoader
-                                src={service.adImage}
-                                alt={service.title}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-muted-foreground/40">
-                                <Package className="w-5 h-5" />
-                              </div>
-                            )}
+                            <ImageWithLoader
+                              src={service.adImage?.trim() ? service.adImage : defaultServiceImageSrc}
+                              alt={service.title}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                         </TableCell>
                         <TableCell>

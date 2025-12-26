@@ -32,8 +32,8 @@ export class Service extends BaseEntity {
   @Column({ name: 'ad_text', type: 'text' })
   adText: string;
 
-  @Column({ name: 'ad_image' })
-  adImage: string;
+  @Column({ name: 'ad_image', nullable: true })
+  adImage?: string | null;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   balance: number;

@@ -7,6 +7,7 @@ import { useAppSelector } from '../store/hooks'
 import { categoryApi, serviceApi, Service, Category } from '../services/api'
 import { renderIcon } from '../utils/iconHelper'
 import ImageWithLoader from '../components/ImageWithLoader'
+import { useDefaultServiceImageSrc } from '../hooks/use-default-service-image'
 
 const StarRating = ({ rating }: { rating: number }) => {
   const fullStars = Math.floor(rating)
@@ -28,6 +29,7 @@ const StarRating = ({ rating }: { rating: number }) => {
 
 function MyServices() {
   const navigate = useNavigate()
+  const defaultServiceImageSrc = useDefaultServiceImageSrc()
   const { isAuthenticated } = useAppSelector((state) => state.auth)
   const [services, setServices] = useState<Service[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -259,19 +261,13 @@ function MyServices() {
                   className="glass-card rounded-2xl overflow-hidden hover:border-primary/20 transition-all hover:scale-[1.02] group"
                 >
                   <div className="h-48 relative overflow-hidden">
-                    {service.adImage ? (
-                      <ImageWithLoader
-                        src={service.adImage}
-                        alt={service.title}
-                        className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
-                        containerClassName="w-full h-full"
-                        showBlurBackground={true}
-                      />
-                    ) : (
-                      <div className="h-full flex items-center justify-center bg-gradient-to-br from-blue-900 to-purple-900">
-                        <div className="text-6xl text-blue-400">📦</div>
-                      </div>
-                    )}
+                    <ImageWithLoader
+                      src={service.adImage?.trim() ? service.adImage : defaultServiceImageSrc}
+                      alt={service.title}
+                      className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                      containerClassName="w-full h-full"
+                      showBlurBackground={true}
+                    />
                   </div>
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-2">

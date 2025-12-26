@@ -22,13 +22,17 @@ export class ServiceService {
     private notificationService: NotificationService,
   ) {}
 
-  async create(userId: string, createServiceDto: CreateServiceDto, adImagePath: string): Promise<Service> {
+  async create(
+    userId: string,
+    createServiceDto: CreateServiceDto,
+    adImagePath?: string | null,
+  ): Promise<Service> {
     const service = this.serviceRepository.create({
       userId,
       categoryId: createServiceDto.categoryId,
       title: createServiceDto.title,
       adText: createServiceDto.adText,
-      adImage: adImagePath,
+      adImage: adImagePath ?? null,
       balance: createServiceDto.balance,
       status: ServiceStatus.DRAFT,
     });
