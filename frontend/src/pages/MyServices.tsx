@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus, faSpinner, faEdit, faChevronLeft, faChevronRight, faStar } from '@fortawesome/free-solid-svg-icons'
@@ -7,6 +7,8 @@ import { useAppSelector } from '../store/hooks'
 import { categoryApi, serviceApi, Service, Category } from '../services/api'
 import { renderIcon } from '../utils/iconHelper'
 import ImageWithLoader from '../components/ImageWithLoader'
+import { useDefaultServiceImageSrc } from '../hooks/use-default-service-image'
+import { formatPaymentDurationSuffix } from '../utils/paymentDuration'
 
 const StarRating = ({ rating }: { rating: number }) => {
   const fullStars = Math.floor(rating)
@@ -28,6 +30,7 @@ const StarRating = ({ rating }: { rating: number }) => {
 
 function MyServices() {
   const navigate = useNavigate()
+  const defaultServiceImageSrc = useDefaultServiceImageSrc()
   const { isAuthenticated } = useAppSelector((state) => state.auth)
   const [services, setServices] = useState<Service[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -38,6 +41,14 @@ function MyServices() {
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
   const itemsPerPage = 12
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkLoading, setBulkLoading] = useState(false)
+
+  const selectedCount = selectedIds.size
+  const selectedSingleId = useMemo(() => {
+    if (selectedIds.size !== 1) return null
+    return Array.from(selectedIds)[0]
+  }, [selectedIds])
 
   // Calculate total service count (sum of all category service counts)
   const totalServiceCount = categories.reduce((sum, category) => {
@@ -62,6 +73,19 @@ function MyServices() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, statusFilter, selectedCategory, isAuthenticated])
+
+  // Keep selection in sync with current page results
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev
+      const allowed = new Set(services.map((s) => s.id))
+      const next = new Set<string>()
+      prev.forEach((id) => {
+        if (allowed.has(id)) next.add(id)
+      })
+      return next
+    })
+  }, [services])
 
   const fetchCategories = async () => {
     try {
@@ -103,6 +127,39 @@ function MyServices() {
       blocked: 'bg-red-900 text-red-200',
     }
     return badges[status as keyof typeof badges] || badges.draft
+  }
+
+  const toggleSelected = (serviceId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(serviceId)) next.delete(serviceId)
+      else next.add(serviceId)
+      return next
+    })
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const selectAllOnPage = () => {
+    setSelectedIds(new Set(services.map((s) => s.id)))
+  }
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return
+    const ok = window.confirm(`Delete ${selectedIds.size} selected service(s)? This cannot be undone.`)
+    if (!ok) return
+
+    try {
+      setBulkLoading(true)
+      const ids = Array.from(selectedIds)
+      await Promise.all(ids.map((id) => serviceApi.delete(id)))
+      clearSelection()
+      await fetchServices()
+    } catch (error) {
+      console.error('Failed to delete selected services:', error)
+    } finally {
+      setBulkLoading(false)
+    }
   }
 
   if (!isAuthenticated) {
@@ -234,6 +291,59 @@ function MyServices() {
               </Link>
             </div>
 
+            {/* Selection Bar */}
+            {selectedCount > 0 && (
+              <div className="glass-card rounded-2xl p-4 mb-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                <div className="text-neutral-200 font-semibold">
+                  {selectedCount} selected
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={selectAllOnPage}
+                    className="px-4 py-2 glass-card rounded-full font-medium text-neutral-200 hover:bg-white/15 transition-all disabled:opacity-50"
+                    disabled={bulkLoading}
+                  >
+                    Select page
+                  </button>
+                  <button
+                    onClick={clearSelection}
+                    className="px-4 py-2 glass-card rounded-full font-medium text-neutral-200 hover:bg-white/15 transition-all disabled:opacity-50"
+                    disabled={bulkLoading}
+                  >
+                    Clear
+                  </button>
+
+                  {selectedSingleId ? (
+                    <>
+                      <button
+                        onClick={() => navigate(`/services/${selectedSingleId}`)}
+                        className="px-4 py-2 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 transition-all disabled:opacity-50"
+                        disabled={bulkLoading}
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={() => navigate(`/services/${selectedSingleId}?edit=1`)}
+                        className="px-4 py-2 glass-card border-2 border-primary/50 text-primary rounded-full font-semibold hover:bg-primary/10 transition-colors disabled:opacity-50"
+                        disabled={bulkLoading}
+                        title="Edit"
+                      >
+                        Edit
+                      </button>
+                    </>
+                  ) : null}
+
+                  <button
+                    onClick={handleDeleteSelected}
+                    className="px-4 py-2 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition-all disabled:opacity-50"
+                    disabled={bulkLoading}
+                  >
+                    {bulkLoading ? 'Deleting...' : 'Delete selected'}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Services Grid */}
             {loading ? (
               <div className="text-center py-20 glass-card rounded-2xl">
@@ -256,22 +366,37 @@ function MyServices() {
               {services.map((service) => (
                 <div
                   key={service.id}
-                  className="glass-card rounded-2xl overflow-hidden hover:border-primary/20 transition-all hover:scale-[1.02] group"
+                  className={[
+                    "glass-card rounded-2xl overflow-hidden hover:border-primary/20 transition-all hover:scale-[1.02] group",
+                    selectedIds.has(service.id) ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "",
+                  ].join(" ")}
                 >
                   <div className="h-48 relative overflow-hidden">
-                    {service.adImage ? (
-                      <ImageWithLoader
-                        src={service.adImage}
-                        alt={service.title}
-                        className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
-                        containerClassName="w-full h-full"
-                        showBlurBackground={true}
+                    <button
+                      type="button"
+                      className="absolute top-3 left-3 z-10"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        toggleSelected(service.id)
+                      }}
+                      aria-label={selectedIds.has(service.id) ? "Deselect service" : "Select service"}
+                      title={selectedIds.has(service.id) ? "Selected" : "Select"}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(service.id)}
+                        readOnly
+                        className="h-5 w-5 rounded border-white/30 bg-black/30 accent-blue-500 cursor-pointer"
                       />
-                    ) : (
-                      <div className="h-full flex items-center justify-center bg-gradient-to-br from-blue-900 to-purple-900">
-                        <div className="text-6xl text-blue-400">📦</div>
-                      </div>
-                    )}
+                    </button>
+                    <ImageWithLoader
+                      src={service.adImage?.trim() ? service.adImage : defaultServiceImageSrc}
+                      alt={service.title}
+                      className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                      containerClassName="w-full h-full"
+                      showBlurBackground={true}
+                    />
                   </div>
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-2">
@@ -302,7 +427,7 @@ function MyServices() {
                       <span className="text-2xl font-bold text-primary">
                         ${typeof service.balance === 'number'
                           ? (Math.round(service.balance * 100) / 100).toFixed(2)
-                          : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
+                          : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
                       </span>
                     </div>
                     <div className="flex gap-2">
@@ -313,7 +438,7 @@ function MyServices() {
                         View
                       </Link>
                       <button
-                        onClick={() => navigate(`/services/${service.id}/edit`)}
+                        onClick={() => navigate(`/services/${service.id}?edit=1`)}
                         className="px-4 py-2 glass-card border-2 border-primary/50 text-primary rounded-full font-semibold hover:bg-primary/10 transition-colors"
                         title="Edit"
                       >

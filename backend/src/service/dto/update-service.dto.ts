@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsNumber, IsArray, IsEnum, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ServiceStatus } from '../../entities/service.entity';
+import { ServicePaymentDuration, ServiceStatus } from '../../entities/service.entity';
 
 export class UpdateServiceDto {
   @IsString()
@@ -20,6 +20,10 @@ export class UpdateServiceDto {
   @Min(0)
   @IsOptional()
   balance?: number;
+
+  @IsEnum(ServicePaymentDuration)
+  @IsOptional()
+  paymentDuration?: ServicePaymentDuration;
 
   @IsArray()
   @IsString({ each: true })

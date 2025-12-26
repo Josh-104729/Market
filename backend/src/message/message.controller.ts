@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, UseInterceptors, UploadedFiles, BadRequestException, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, UseInterceptors, UploadedFiles, BadRequestException, Query, Delete } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { MessageService } from './message.service';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { DeleteMessagesDto } from './dto/delete-messages.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { StorageService } from '../storage/storage.service';
 
@@ -41,6 +42,20 @@ export class MessageController {
   @UseGuards(JwtAuthGuard)
   async findOne(@Param('id') id: string) {
     return this.messageService.findOne(id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  async remove(@Param('id') id: string, @Request() req) {
+    const isAdmin = req.user.role === 'admin';
+    return this.messageService.remove(id, req.user.id, isAdmin);
+  }
+
+  @Post('delete-bulk')
+  @UseGuards(JwtAuthGuard)
+  async removeBulk(@Body() dto: DeleteMessagesDto, @Request() req) {
+    const isAdmin = req.user.role === 'admin';
+    return this.messageService.removeBulk(dto.messageIds, req.user.id, isAdmin);
   }
 
   @Post('upload')

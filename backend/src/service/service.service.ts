@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, In } from 'typeorm';
-import { Service, ServiceStatus } from '../entities/service.entity';
+import { Service, ServicePaymentDuration, ServiceStatus } from '../entities/service.entity';
 import { Tag } from '../entities/tag.entity';
 import { Milestone, MilestoneStatus } from '../entities/milestone.entity';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -22,14 +22,19 @@ export class ServiceService {
     private notificationService: NotificationService,
   ) {}
 
-  async create(userId: string, createServiceDto: CreateServiceDto, adImagePath: string): Promise<Service> {
+  async create(
+    userId: string,
+    createServiceDto: CreateServiceDto,
+    adImagePath?: string | null,
+  ): Promise<Service> {
     const service = this.serviceRepository.create({
       userId,
       categoryId: createServiceDto.categoryId,
       title: createServiceDto.title,
       adText: createServiceDto.adText,
-      adImage: adImagePath,
+      adImage: adImagePath ?? null,
       balance: createServiceDto.balance,
+      paymentDuration: createServiceDto.paymentDuration ?? ServicePaymentDuration.EACH_TIME,
       status: ServiceStatus.DRAFT,
     });
 
@@ -45,6 +50,15 @@ export class ServiceService {
       );
       await this.tagRepository.save(tags);
     }
+
+    // Notify user that the service is pending approval
+    await this.notificationService.createNotification(
+      userId,
+      NotificationType.SERVICE_PENDING_APPROVAL,
+      'Service submitted',
+      'Please wait until your service is approved.',
+      { serviceId: savedService.id, serviceTitle: savedService.title },
+    );
 
     return this.findOne(savedService.id);
   }
@@ -281,6 +295,9 @@ export class ServiceService {
     }
     if (updateServiceDto.balance !== undefined) {
       service.balance = updateServiceDto.balance;
+    }
+    if (updateServiceDto.paymentDuration !== undefined) {
+      service.paymentDuration = updateServiceDto.paymentDuration;
     }
     if (adImagePath) {
       service.adImage = adImagePath;

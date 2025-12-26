@@ -23,12 +23,15 @@ function CreateService() {
   const { isAuthenticated } = useAppSelector((state) => state.auth)
   const [categories, setCategories] = useState<Category[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const [isDraggingImage, setIsDraggingImage] = useState(false)
+  const dragCounterRef = useRef(0)
 
   const [formData, setFormData] = useState({
     categoryId: '',
     title: '',
     adText: '',
     balance: '',
+    paymentDuration: 'each_time' as 'hourly' | 'daily' | 'weekly' | 'monthly' | 'each_time',
     tags: [] as string[],
   })
   const [tagInput, setTagInput] = useState('')
@@ -55,54 +58,82 @@ function CreateService() {
     }
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-
+  const setImageFromFile = (file?: File) => {
     // Reset previous state
     setImageFile(null)
     setImagePreview(null)
     setErrors((prev) => ({ ...prev, image: '' }))
 
-    if (!file) {
-      return
-    }
+    if (!file) return
 
     // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
     if (!validTypes.includes(file.type)) {
       setErrors((prev) => ({ ...prev, image: 'Only JPG, PNG, GIF, or WEBP image files are allowed' }))
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
+      if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
-    
+
     // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       setErrors((prev) => ({ ...prev, image: 'Image size must be less than 5MB' }))
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
+      if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
-    
+
     // File is valid, set it
     setImageFile(file)
     setErrors((prev) => ({ ...prev, image: '' }))
-    
+
     // Create preview
     const reader = new FileReader()
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string)
-    }
+    reader.onloadend = () => setImagePreview(reader.result as string)
     reader.onerror = () => {
       setErrors((prev) => ({ ...prev, image: 'Failed to load image preview' }))
       setImageFile(null)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
     reader.readAsDataURL(file)
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImageFromFile(e.target.files?.[0])
+  }
+
+  const handleImageDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current += 1
+    setIsDraggingImage(true)
+  }
+
+  const handleImageDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current -= 1
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0
+      setIsDraggingImage(false)
+    }
+  }
+
+  const handleImageDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Explicitly show copy cursor
+    e.dataTransfer.dropEffect = 'copy'
+    setIsDraggingImage(true)
+  }
+
+  const handleImageDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current = 0
+    setIsDraggingImage(false)
+
+    const file = e.dataTransfer.files?.[0]
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    setImageFromFile(file)
   }
 
   const handleAddTag = () => {
@@ -128,7 +159,6 @@ function CreateService() {
     if (!formData.balance || isNaN(balanceValue) || balanceValue <= 0) {
       newErrors.balance = 'Balance must be greater than 0'
     }
-    if (!imageFile) newErrors.image = 'Image is required'
     if (formData.tags.length === 0) newErrors.tags = 'At least one tag is required'
 
     if (Object.keys(newErrors).length > 0) {
@@ -145,9 +175,10 @@ function CreateService() {
           title: formData.title.trim(),
           adText: formData.adText.trim(),
           balance: Math.round(balanceValue * 100) / 100, // Round to 2 decimal places to avoid floating point issues
+          paymentDuration: formData.paymentDuration,
           tags: formData.tags,
         },
-        imageFile!,
+        imageFile,
       )
       showToast.success('Service created successfully!')
       navigate('/services')
@@ -278,11 +309,41 @@ function CreateService() {
               {errors.balance ? <p className="text-sm text-destructive">{errors.balance}</p> : null}
             </div>
 
+            {/* Payment Duration */}
+            <div className="space-y-2">
+              <Label>
+                Payment duration <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={formData.paymentDuration}
+                onValueChange={(value) => {
+                  setFormData({
+                    ...formData,
+                    paymentDuration: value as any,
+                  })
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment duration" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hourly">Hourly</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="each_time">Each time</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                This controls how the price is interpreted (e.g. hourly rate vs monthly subscription vs per service).
+              </p>
+            </div>
+
             {/* Image */}
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
                 <Label>
-                  Service image <span className="text-destructive">*</span>
+                  Service image <span className="text-muted-foreground">(optional)</span>
                 </Label>
                 {imagePreview ? (
                   <Button
@@ -304,24 +365,46 @@ function CreateService() {
               </div>
 
               {imagePreview ? (
-                <div className="rounded-lg border p-3">
+                <div
+                  className={[
+                    "rounded-lg border p-3 relative",
+                    isDraggingImage ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "",
+                  ].join(" ")}
+                  onDragEnter={handleImageDragEnter}
+                  onDragLeave={handleImageDragLeave}
+                  onDragOver={handleImageDragOver}
+                  onDrop={handleImageDrop}
+                >
                   <img
                     src={imagePreview}
                     alt="Preview"
                     className="max-h-64 w-full rounded-md object-contain"
                   />
+                  {isDraggingImage ? (
+                    <div className="absolute inset-0 rounded-lg bg-primary/10 backdrop-blur-[1px] flex items-center justify-center">
+                      <div className="rounded-md border bg-background/80 px-3 py-2 text-sm font-medium text-foreground shadow-sm">
+                        Drop image to replace
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <div
                   className={[
                     "rounded-lg border border-dashed p-6",
                     "flex items-center justify-between gap-4",
+                    "relative transition-colors",
                     errors.image ? "border-destructive" : "border-border",
+                    isDraggingImage ? "bg-primary/5 border-primary ring-2 ring-primary ring-offset-2 ring-offset-background" : "",
                   ].join(" ")}
+                  onDragEnter={handleImageDragEnter}
+                  onDragLeave={handleImageDragLeave}
+                  onDragOver={handleImageDragOver}
+                  onDrop={handleImageDrop}
                 >
                   <div className="space-y-1">
                     <div className="text-sm font-medium">Upload a file</div>
-                    <div className="text-xs text-muted-foreground">PNG, JPG, GIF, WEBP up to 5MB</div>
+                    <div className="text-xs text-muted-foreground">Drag & drop or choose a file — PNG, JPG, GIF, WEBP up to 5MB</div>
                   </div>
                   <Button type="button" variant="secondary" className="gap-2" onClick={() => fileInputRef.current?.click()}>
                     <UploadCloud className="h-4 w-4" />

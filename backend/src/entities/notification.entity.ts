@@ -8,6 +8,7 @@ export enum NotificationType {
   PAYMENT_WITHDRAW = 'payment_withdraw',
   PAYMENT_TRANSFER = 'payment_transfer',
   MESSAGE = 'message',
+  SERVICE_PENDING_APPROVAL = 'service_pending_approval',
   SERVICE_APPROVED = 'service_approved',
   SERVICE_BLOCKED = 'service_blocked',
   SERVICE_UNBLOCKED = 'service_unblocked',

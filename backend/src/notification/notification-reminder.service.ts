@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, MoreThan } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { Notification } from '../entities/notification.entity';
 import { EmailService } from '../auth/email.service';
@@ -31,18 +31,14 @@ export class NotificationReminderService {
 
       // Find users who:
       // 1. Haven't checked notifications in the last 5 minutes (or never checked)
-      // 2. Haven't been sent an email in the last hour (to avoid spam)
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      // Note: We do per-user dedupe in the loop (based on last check time + last email time)
+      // so we don't send repetitive emails for the same unseen unread notifications.
 
       const usersToCheck = await this.userRepository
         .createQueryBuilder('user')
         .where(
           '(user.lastNotificationCheckAt IS NULL OR user.lastNotificationCheckAt < :fiveMinutesAgo)',
           { fiveMinutesAgo },
-        )
-        .andWhere(
-          '(user.lastNotificationEmailSentAt IS NULL OR user.lastNotificationEmailSentAt < :oneHourAgo)',
-          { oneHourAgo },
         )
         .andWhere('user.emailVerified = :emailVerified', { emailVerified: true })
         .getMany();
@@ -55,23 +51,43 @@ export class NotificationReminderService {
 
       for (const user of usersToCheck) {
         try {
-          // Get unread notifications count
+          // Count ALL unread notifications
           const unreadCount = await this.notificationRepository.count({
             where: { userId: user.id, readAt: IsNull() },
           });
 
-          // Only send email if there are unread notifications
-          if (unreadCount === 0) {
-            continue;
+          if (unreadCount === 0) continue;
+
+          // Count unread notifications created AFTER the user's last check.
+          // If they already opened notifications after these arrived, we don't email again.
+          const unseenUnreadWhere: any = {
+            userId: user.id,
+            readAt: IsNull(),
+          };
+          if (user.lastNotificationCheckAt) {
+            unseenUnreadWhere.createdAt = MoreThan(user.lastNotificationCheckAt);
           }
 
-          // Get the last notification (most recent unread or read)
-          const lastNotification = await this.notificationRepository.findOne({
-            where: { userId: user.id },
+          const unseenUnreadCount = await this.notificationRepository.count({
+            where: unseenUnreadWhere,
+          });
+
+          // Only email if there are unread notifications the user hasn't even seen yet
+          if (unseenUnreadCount === 0) continue;
+
+          // Use the most recent unseen-unread notification for the email snippet
+          const latestUnseenUnread = await this.notificationRepository.findOne({
+            where: unseenUnreadWhere,
             order: { createdAt: 'DESC' },
           });
 
-          if (!lastNotification) {
+          if (!latestUnseenUnread) continue;
+
+          // Dedupe: if we've already sent an email AFTER this notification existed, don't resend
+          if (
+            user.lastNotificationEmailSentAt &&
+            latestUnseenUnread.createdAt <= user.lastNotificationEmailSentAt
+          ) {
             continue;
           }
 
@@ -79,8 +95,8 @@ export class NotificationReminderService {
           await this.emailService.sendNotificationReminderEmail(
             user.email,
             {
-              title: lastNotification.title,
-              message: lastNotification.message,
+              title: latestUnseenUnread.title,
+              message: latestUnseenUnread.message,
             },
             unreadCount,
           );

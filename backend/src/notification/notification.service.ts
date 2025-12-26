@@ -102,6 +102,14 @@ export class NotificationService {
       { lastNotificationCheckAt: new Date() },
     );
 
+    // If everything is read, reset the "unread email sent" marker so future unread sessions can email again
+    if (unreadCount === 0) {
+      await this.userRepository.update(
+        { id: userId },
+        { lastNotificationEmailSentAt: null },
+      );
+    }
+
     return {
       data: notifications,
       total,
@@ -125,6 +133,23 @@ export class NotificationService {
       notification.readAt = new Date();
       await this.notificationRepository.save(notification);
 
+      // Count marking as read as "checking notifications" (used by reminder-email dedupe)
+      await this.userRepository.update(
+        { id: userId },
+        { lastNotificationCheckAt: new Date() },
+      );
+
+      // If this was the last unread notification, reset the "unread email sent" marker
+      const remainingUnread = await this.notificationRepository.count({
+        where: { userId, readAt: IsNull() },
+      });
+      if (remainingUnread === 0) {
+        await this.userRepository.update(
+          { id: userId },
+          { lastNotificationEmailSentAt: null },
+        );
+      }
+
       // Emit update to user
       this.chatGateway.server.to(`user:${userId}`).emit('notification_read', {
         notificationId: notification.id,
@@ -138,6 +163,18 @@ export class NotificationService {
     await this.notificationRepository.update(
       { userId, readAt: IsNull() },
       { readAt: new Date() },
+    );
+
+    // Count marking all as read as "checking notifications" (used by reminder-email dedupe)
+    await this.userRepository.update(
+      { id: userId },
+      { lastNotificationCheckAt: new Date() },
+    );
+
+    // Reset the "unread email sent" marker now that everything is read
+    await this.userRepository.update(
+      { id: userId },
+      { lastNotificationEmailSentAt: null },
     );
 
     // Emit update to user

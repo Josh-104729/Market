@@ -15,6 +15,8 @@ import { faStar as faStarRegular, faStarHalfStroke } from '@fortawesome/free-reg
 import { serviceApi, categoryApi, Service, Category } from '../services/api'
 import { renderIcon } from '../utils/iconHelper'
 import ImageWithLoader from '../components/ImageWithLoader'
+import { useDefaultServiceImageSrc } from '../hooks/use-default-service-image'
+import { formatPaymentDurationSuffix } from '../utils/paymentDuration'
 
 const StarRating = ({ rating }: { rating: number }) => {
   const fullStars = Math.floor(rating)
@@ -43,6 +45,7 @@ interface ConfirmDialog {
 
 function Services() {
   const navigate = useNavigate()
+  const defaultServiceImageSrc = useDefaultServiceImageSrc()
   const [services, setServices] = useState<Service[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -335,17 +338,13 @@ function Services() {
                     <tr key={service.id} className="hover:bg-neutral-700 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="w-16 h-16 rounded-lg overflow-hidden relative">
-                          {service.adImage ? (
-                            <ImageWithLoader
-                              src={service.adImage}
-                              alt={service.title}
-                              className="max-w-full max-h-full object-contain"
-                              containerClassName="w-full h-full"
-                              showBlurBackground={true}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-neutral-700 text-2xl">📦</div>
-                          )}
+                          <ImageWithLoader
+                            src={service.adImage?.trim() ? service.adImage : defaultServiceImageSrc}
+                            alt={service.title}
+                            className="max-w-full max-h-full object-contain"
+                            containerClassName="w-full h-full"
+                            showBlurBackground={true}
+                          />
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -386,7 +385,7 @@ function Services() {
                         <div className="text-sm font-semibold text-neutral-100">
                           ${typeof service.balance === 'number' 
                             ? (Math.round(service.balance * 100) / 100).toFixed(2)
-                            : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
+                            : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

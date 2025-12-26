@@ -4,6 +4,8 @@ import { useAppSelector } from '../store/hooks'
 import { categoryApi, serviceApi, Service, Category } from '../services/api'
 import { renderIcon } from '../utils/iconHelper'
 import ImageWithLoader from '../components/ImageWithLoader'
+import { useDefaultServiceImageSrc } from '../hooks/use-default-service-image'
+import { formatPaymentDurationSuffix } from '../utils/paymentDuration'
 import { showToast } from "../utils/toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -118,6 +120,7 @@ const StarRating = ({ rating }: { rating: number }) => {
 
 function Services() {
   const navigate = useNavigate()
+  const defaultServiceImageSrc = useDefaultServiceImageSrc()
   const { isAuthenticated } = useAppSelector((state) => state.auth)
   const [scope, setScope] = useState<ServicesScope>("all")
   const [services, setServices] = useState<Service[]>([])
@@ -363,35 +366,32 @@ function Services() {
                   <Card key={service.id} className="overflow-hidden group hover:border-primary/50 transition-all hover:shadow-md">
                     <Link to={`/services/${service.id}`}>
                       <div className="h-48 relative bg-muted/20 overflow-hidden">
-                        {service.adImage ? (
-                          <ImageWithLoader
-                            src={service.adImage}
-                            alt={service.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            containerClassName="w-full h-full"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground/40">
-                            <Package className="w-12 h-12" />
-                          </div>
-                        )}
-                        <div className="absolute top-3 right-3">
-                          <Badge variant="secondary" className="backdrop-blur-sm shadow-sm font-bold">
-                            ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}
-                          </Badge>
-                        </div>
+                        <ImageWithLoader
+                          src={service.adImage?.trim() ? service.adImage : defaultServiceImageSrc}
+                          alt={service.title}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          containerClassName="w-full h-full"
+                        />
                       </div>
                     </Link>
                     <CardHeader className="p-5 pb-2">
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between mb-2">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
                           {service.category?.title || 'Uncategorized'}
                         </span>
-                        <StarRating rating={service.averageRating || service.rating || 0} />
+                        <Badge variant="secondary" className="font-bold">
+                          ${typeof service.balance === 'number'
+                            ? service.balance.toFixed(2)
+                            : parseFloat(service.balance as any).toFixed(2)}
+                          {formatPaymentDurationSuffix(service.paymentDuration)}
+                        </Badge>
                       </div>
                       <CardTitle className="text-lg line-clamp-1 group-hover:text-primary transition-colors">
                         <Link to={`/services/${service.id}`}>{service.title}</Link>
                       </CardTitle>
+                      <div className="pt-1">
+                        <StarRating rating={service.averageRating || service.rating || 0} />
+                      </div>
                     </CardHeader>
                     <CardContent className="p-5 pt-0">
                       <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed">
@@ -425,17 +425,11 @@ function Services() {
                       <TableRow key={service.id} className="group cursor-pointer" onClick={() => navigate(`/services/${service.id}`)}>
                         <TableCell>
                           <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden relative border border-border">
-                            {service.adImage ? (
-                              <ImageWithLoader
-                                src={service.adImage}
-                                alt={service.title}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-muted-foreground/40">
-                                <Package className="w-5 h-5" />
-                              </div>
-                            )}
+                            <ImageWithLoader
+                              src={service.adImage?.trim() ? service.adImage : defaultServiceImageSrc}
+                              alt={service.title}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                         </TableCell>
                         <TableCell>
@@ -449,7 +443,7 @@ function Services() {
                           <StarRating rating={service.averageRating || service.rating || 0} />
                         </TableCell>
                         <TableCell className="text-right font-bold text-primary">
-                          ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}
+                          ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
                         </TableCell>
                       </TableRow>
                     ))}

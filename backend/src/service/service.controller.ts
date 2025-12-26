@@ -56,12 +56,16 @@ export class ServiceController {
         validators: [
           new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
         ],
+        fileIsRequired: false,
       }),
     )
-    file: Express.Multer.File,
+    file?: Express.Multer.File,
   ) {
-    // Upload to Backblaze B2
-    const adImageUrl = await this.storageService.uploadFile(file, 'services');
+    let adImageUrl: string | null = null;
+    if (file) {
+      // Upload to Backblaze B2
+      adImageUrl = await this.storageService.uploadFile(file, 'services');
+    }
     return this.serviceService.create(req.user.id, createServiceDto, adImageUrl);
   }
 

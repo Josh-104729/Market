@@ -18,6 +18,8 @@ import {
 import { faStar as faStarRegular, faStarHalfStroke } from '@fortawesome/free-regular-svg-icons'
 import { serviceApi, Service } from '../services/api'
 import ImageWithLoader from '../components/ImageWithLoader'
+import { useDefaultServiceImageSrc } from '../hooks/use-default-service-image'
+import { formatPaymentDuration, formatPaymentDurationSuffix } from '../utils/paymentDuration'
 
 const StarRating = ({ rating }: { rating: number }) => {
   const fullStars = Math.floor(rating)
@@ -45,6 +47,7 @@ interface ConfirmDialog {
 function ServiceDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const defaultServiceImageSrc = useDefaultServiceImageSrc()
   const [service, setService] = useState<Service | null>(null)
   const [loading, setLoading] = useState(true)
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
@@ -227,21 +230,15 @@ function ServiceDetail() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
             {/* Left Side - Image */}
             <div className="relative rounded-lg overflow-hidden min-h-[400px]">
-              {service.adImage ? (
-                <div className="relative h-full min-h-[400px] flex items-center justify-center p-8">
-                  <ImageWithLoader
-                    src={service.adImage}
-                    alt={service.title}
-                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-                    containerClassName="w-full h-full"
-                    showBlurBackground={true}
-                  />
-                </div>
-              ) : (
-                <div className="h-full min-h-[400px] flex items-center justify-center bg-neutral-700">
-                  <div className="text-9xl text-neutral-500">📦</div>
-                </div>
-              )}
+              <div className="relative h-full min-h-[400px] flex items-center justify-center p-8">
+                <ImageWithLoader
+                  src={service.adImage?.trim() ? service.adImage : defaultServiceImageSrc}
+                  alt={service.title}
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                  containerClassName="w-full h-full"
+                  showBlurBackground={true}
+                />
+              </div>
             </div>
 
             {/* Right Side - Details */}
@@ -262,7 +259,7 @@ function ServiceDetail() {
                   <div className="text-4xl font-bold text-blue-400">
                     ${typeof service.balance === 'number' 
                       ? (Math.round(service.balance * 100) / 100).toFixed(2)
-                      : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
+                      : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
                   </div>
                   <div className="text-sm text-neutral-400">Price</div>
                 </div>
@@ -283,6 +280,24 @@ function ServiceDetail() {
                       ({service.averageRating.toFixed(2)})
                     </span>
                   )}
+                </div>
+              </div>
+
+              {/* Payment */}
+              <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-neutral-700 p-4 rounded-lg">
+                  <div className="text-sm text-neutral-400">Payment</div>
+                  <div className="mt-1 text-2xl font-bold text-blue-300">
+                    ${typeof service.balance === 'number'
+                      ? (Math.round(service.balance * 100) / 100).toFixed(2)
+                      : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
+                  </div>
+                </div>
+                <div className="bg-neutral-700 p-4 rounded-lg">
+                  <div className="text-sm text-neutral-400">Payment duration</div>
+                  <div className="mt-1 text-2xl font-bold text-neutral-100">
+                    {formatPaymentDuration(service.paymentDuration)}
+                  </div>
                 </div>
               </div>
 

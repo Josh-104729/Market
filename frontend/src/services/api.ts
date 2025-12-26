@@ -123,8 +123,9 @@ export interface Service {
   categoryId: string;
   title: string;
   adText: string;
-  adImage: string;
+  adImage?: string | null;
   balance: number;
+  paymentDuration?: 'hourly' | 'daily' | 'weekly' | 'monthly' | 'each_time';
   rating: number;
   status: 'draft' | 'active' | 'blocked';
   category?: Category;
@@ -159,6 +160,7 @@ export interface CreateServiceData {
   title: string;
   adText: string;
   balance: number;
+  paymentDuration: 'hourly' | 'daily' | 'weekly' | 'monthly' | 'each_time';
   tags: string[];
 }
 
@@ -167,6 +169,7 @@ export interface UpdateServiceData {
   title?: string;
   adText?: string;
   balance?: number;
+  paymentDuration?: 'hourly' | 'daily' | 'weekly' | 'monthly' | 'each_time';
   tags?: string[];
   status?: 'draft' | 'active' | 'blocked';
 }
@@ -285,13 +288,16 @@ export const categoryApi = {
 };
 
 export const serviceApi = {
-  create: async (data: CreateServiceData, imageFile: File): Promise<Service> => {
+  create: async (data: CreateServiceData, imageFile?: File | null): Promise<Service> => {
     const formData = new FormData();
-    formData.append('adImage', imageFile);
+    if (imageFile) {
+      formData.append('adImage', imageFile);
+    }
     formData.append('categoryId', data.categoryId);
     formData.append('title', data.title);
     formData.append('adText', data.adText);
     formData.append('balance', data.balance.toString());
+    formData.append('paymentDuration', data.paymentDuration);
     data.tags.forEach((tag) => formData.append('tags[]', tag));
 
     const response = await api.post('/services', formData, {
@@ -381,6 +387,7 @@ export const serviceApi = {
     if (data.title) formData.append('title', data.title);
     if (data.adText) formData.append('adText', data.adText);
     if (data.balance !== undefined) formData.append('balance', data.balance.toString());
+    if (data.paymentDuration) formData.append('paymentDuration', data.paymentDuration);
     if (data.status) formData.append('status', data.status);
     if (data.tags) {
       data.tags.forEach((tag) => formData.append('tags[]', tag));
@@ -725,6 +732,16 @@ export const messageApi = {
     });
     return response.data;
   },
+
+  delete: async (id: string): Promise<{ messageId: string; conversationId: string }> => {
+    const response = await api.delete(`/messages/${id}`);
+    return response.data;
+  },
+
+  deleteBulk: async (messageIds: string[]): Promise<{ deletedIds: string[] }> => {
+    const response = await api.post(`/messages/delete-bulk`, { messageIds });
+    return response.data;
+  },
 };
 
 export const milestoneApi = {
@@ -923,7 +940,7 @@ export const paymentApi = {
 export interface Notification {
   id: string;
   userId?: string;
-  type: 'broadcast' | 'payment_charge' | 'payment_withdraw' | 'payment_transfer' | 'message' | 'service_approved' | 'service_blocked' | 'service_unblocked' | 'milestone_created' | 'milestone_updated' | 'milestone_payment_pending';
+  type: 'broadcast' | 'payment_charge' | 'payment_withdraw' | 'payment_transfer' | 'message' | 'service_pending_approval' | 'service_approved' | 'service_blocked' | 'service_unblocked' | 'milestone_created' | 'milestone_updated' | 'milestone_payment_pending';
   title: string;
   message: string;
   readAt?: string;

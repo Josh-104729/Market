@@ -241,5 +241,98 @@ export class MessageService {
 
     return message;
   }
+
+  async remove(id: string, userId: string, isAdmin: boolean = false): Promise<{ messageId: string; conversationId: string }> {
+    const message = await this.messageRepository.findOne({
+      where: { id, deletedAt: null },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    if (!isAdmin && message.senderId !== userId) {
+      throw new ForbiddenException('You can only delete your own messages');
+    }
+
+    await this.messageRepository.softDelete({ id });
+
+    // Emit to conversation room so both sides update immediately
+    this.chatGateway.server.to(`conversation:${message.conversationId}`).emit('message_deleted', {
+      conversationId: message.conversationId,
+      messageId: id,
+    });
+
+    // Also emit to both participants' user rooms (for clients not currently in the conversation room)
+    try {
+      const conversation = await this.conversationRepository.findOne({
+        where: { id: message.conversationId, deletedAt: null },
+      });
+      if (conversation) {
+        const participants = [conversation.clientId, conversation.providerId].filter(Boolean) as string[];
+        participants.forEach((pid) => {
+          this.chatGateway.server.to(`user:${pid}`).emit('message_deleted', {
+            conversationId: message.conversationId,
+            messageId: id,
+          });
+        });
+      }
+    } catch (err) {
+      // Non-fatal
+      console.warn('Failed to emit message_deleted to participants:', err);
+    }
+
+    return { messageId: id, conversationId: message.conversationId };
+  }
+
+  async removeBulk(
+    messageIds: string[],
+    userId: string,
+    isAdmin: boolean = false,
+  ): Promise<{ deletedIds: string[] }> {
+    const uniqueIds = Array.from(new Set((messageIds || []).filter(Boolean)));
+    if (uniqueIds.length === 0) {
+      return { deletedIds: [] };
+    }
+
+    const messages = await this.messageRepository.find({
+      where: uniqueIds.map((id) => ({ id, deletedAt: null })) as any,
+    });
+
+    // Ensure all requested ids exist
+    const foundIds = new Set(messages.map((m) => m.id));
+    const missing = uniqueIds.filter((id) => !foundIds.has(id));
+    if (missing.length > 0) {
+      throw new NotFoundException('One or more messages were not found');
+    }
+
+    if (!isAdmin) {
+      const notOwned = messages.filter((m) => m.senderId !== userId);
+      if (notOwned.length > 0) {
+        throw new ForbiddenException('You can only delete your own messages');
+      }
+    }
+
+    // Delete and emit
+    await this.messageRepository.softDelete(uniqueIds);
+
+    const byConversation = new Map<string, string[]>();
+    messages.forEach((m) => {
+      const list = byConversation.get(m.conversationId) || [];
+      list.push(m.id);
+      byConversation.set(m.conversationId, list);
+    });
+
+    byConversation.forEach((ids, conversationId) => {
+      ids.forEach((mid) => {
+        this.chatGateway.server.to(`conversation:${conversationId}`).emit('message_deleted', {
+          conversationId,
+          messageId: mid,
+        });
+      });
+    });
+
+    return { deletedIds: uniqueIds };
+  }
 }
 

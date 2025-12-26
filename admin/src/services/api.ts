@@ -235,8 +235,9 @@ export interface Service {
   categoryId: string;
   title: string;
   adText: string;
-  adImage: string;
+  adImage?: string | null;
   balance: number;
+  paymentDuration?: 'hourly' | 'daily' | 'weekly' | 'monthly' | 'each_time';
   rating: number;
   status: 'draft' | 'active' | 'blocked';
   category?: Category;
@@ -359,7 +360,7 @@ export const blogApi = {
 export interface Notification {
   id: string;
   userId?: string;
-  type: 'broadcast' | 'payment_charge' | 'payment_withdraw' | 'payment_transfer' | 'message' | 'service_approved' | 'service_blocked' | 'service_unblocked' | 'milestone_created' | 'milestone_updated' | 'milestone_payment_pending';
+  type: 'broadcast' | 'payment_charge' | 'payment_withdraw' | 'payment_transfer' | 'message' | 'service_pending_approval' | 'service_approved' | 'service_blocked' | 'service_unblocked' | 'milestone_created' | 'milestone_updated' | 'milestone_payment_pending';
   title: string;
   message: string;
   readAt?: string;
