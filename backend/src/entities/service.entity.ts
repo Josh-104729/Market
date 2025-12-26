@@ -10,6 +10,14 @@ export enum ServiceStatus {
   BLOCKED = 'blocked',
 }
 
+export enum ServicePaymentDuration {
+  HOURLY = 'hourly',
+  DAILY = 'daily',
+  WEEKLY = 'weekly',
+  MONTHLY = 'monthly',
+  EACH_TIME = 'each_time',
+}
+
 @Entity('services')
 export class Service extends BaseEntity {
   @Column({ name: 'user_id' })
@@ -37,6 +45,14 @@ export class Service extends BaseEntity {
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   balance: number;
+
+  @Column({
+    name: 'payment_duration',
+    type: 'enum',
+    enum: ServicePaymentDuration,
+    default: ServicePaymentDuration.EACH_TIME,
+  })
+  paymentDuration: ServicePaymentDuration;
 
   @Column({ type: 'decimal', precision: 3, scale: 2, nullable: true, default: 0 })
   rating: number;

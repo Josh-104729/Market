@@ -4,6 +4,7 @@ import { serviceApi, Service, conversationApi, Conversation } from '../services/
 import { useAppSelector } from '../store/hooks'
 import ImageWithLoader from '../components/ImageWithLoader'
 import { useDefaultServiceImageSrc } from '../hooks/use-default-service-image'
+import { formatPaymentDuration, formatPaymentDurationSuffix } from '../utils/paymentDuration'
 import { showToast } from '../utils/toast'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -269,7 +270,7 @@ function ServiceDetail() {
               />
               <div className="absolute top-4 right-4">
                 <Badge className="text-base font-bold px-3 py-1">
-                  ${priceValue.toFixed(2)}
+                  ${priceValue.toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
                 </Badge>
               </div>
             </div>
@@ -320,6 +321,19 @@ function ServiceDetail() {
                   <div className="mt-1 text-xl font-bold">{service.feedbackCount ?? 0}</div>
                 </div>
               </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-border bg-muted/20 p-3">
+                    <div className="text-xs text-muted-foreground">Payment</div>
+                    <div className="mt-1 text-xl font-bold text-primary">
+                      ${priceValue.toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/20 p-3">
+                    <div className="text-xs text-muted-foreground">Payment duration</div>
+                    <div className="mt-1 text-xl font-bold">{formatPaymentDuration(service.paymentDuration)}</div>
+                  </div>
+                </div>
 
               <Separator />
 

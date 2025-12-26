@@ -125,6 +125,7 @@ export interface Service {
   adText: string;
   adImage?: string | null;
   balance: number;
+  paymentDuration?: 'hourly' | 'daily' | 'weekly' | 'monthly' | 'each_time';
   rating: number;
   status: 'draft' | 'active' | 'blocked';
   category?: Category;
@@ -159,6 +160,7 @@ export interface CreateServiceData {
   title: string;
   adText: string;
   balance: number;
+  paymentDuration: 'hourly' | 'daily' | 'weekly' | 'monthly' | 'each_time';
   tags: string[];
 }
 
@@ -167,6 +169,7 @@ export interface UpdateServiceData {
   title?: string;
   adText?: string;
   balance?: number;
+  paymentDuration?: 'hourly' | 'daily' | 'weekly' | 'monthly' | 'each_time';
   tags?: string[];
   status?: 'draft' | 'active' | 'blocked';
 }
@@ -294,6 +297,7 @@ export const serviceApi = {
     formData.append('title', data.title);
     formData.append('adText', data.adText);
     formData.append('balance', data.balance.toString());
+    formData.append('paymentDuration', data.paymentDuration);
     data.tags.forEach((tag) => formData.append('tags[]', tag));
 
     const response = await api.post('/services', formData, {

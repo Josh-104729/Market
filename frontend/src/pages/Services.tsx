@@ -5,6 +5,7 @@ import { categoryApi, serviceApi, Service, Category } from '../services/api'
 import { renderIcon } from '../utils/iconHelper'
 import ImageWithLoader from '../components/ImageWithLoader'
 import { useDefaultServiceImageSrc } from '../hooks/use-default-service-image'
+import { formatPaymentDurationSuffix } from '../utils/paymentDuration'
 import { showToast } from "../utils/toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -373,7 +374,7 @@ function Services() {
                         />
                         <div className="absolute top-3 right-3">
                           <Badge variant="secondary" className="backdrop-blur-sm shadow-sm font-bold">
-                            ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}
+                            ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
                           </Badge>
                         </div>
                       </div>
@@ -439,7 +440,7 @@ function Services() {
                           <StarRating rating={service.averageRating || service.rating || 0} />
                         </TableCell>
                         <TableCell className="text-right font-bold text-primary">
-                          ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}
+                          ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
                         </TableCell>
                       </TableRow>
                     ))}

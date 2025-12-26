@@ -19,6 +19,7 @@ import { faStar as faStarRegular, faStarHalfStroke } from '@fortawesome/free-reg
 import { serviceApi, Service } from '../services/api'
 import ImageWithLoader from '../components/ImageWithLoader'
 import { useDefaultServiceImageSrc } from '../hooks/use-default-service-image'
+import { formatPaymentDuration, formatPaymentDurationSuffix } from '../utils/paymentDuration'
 
 const StarRating = ({ rating }: { rating: number }) => {
   const fullStars = Math.floor(rating)
@@ -258,7 +259,7 @@ function ServiceDetail() {
                   <div className="text-4xl font-bold text-blue-400">
                     ${typeof service.balance === 'number' 
                       ? (Math.round(service.balance * 100) / 100).toFixed(2)
-                      : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
+                      : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
                   </div>
                   <div className="text-sm text-neutral-400">Price</div>
                 </div>
@@ -279,6 +280,24 @@ function ServiceDetail() {
                       ({service.averageRating.toFixed(2)})
                     </span>
                   )}
+                </div>
+              </div>
+
+              {/* Payment */}
+              <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-neutral-700 p-4 rounded-lg">
+                  <div className="text-sm text-neutral-400">Payment</div>
+                  <div className="mt-1 text-2xl font-bold text-blue-300">
+                    ${typeof service.balance === 'number'
+                      ? (Math.round(service.balance * 100) / 100).toFixed(2)
+                      : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
+                  </div>
+                </div>
+                <div className="bg-neutral-700 p-4 rounded-lg">
+                  <div className="text-sm text-neutral-400">Payment duration</div>
+                  <div className="mt-1 text-2xl font-bold text-neutral-100">
+                    {formatPaymentDuration(service.paymentDuration)}
+                  </div>
                 </div>
               </div>
 

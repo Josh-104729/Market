@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, In } from 'typeorm';
-import { Service, ServiceStatus } from '../entities/service.entity';
+import { Service, ServicePaymentDuration, ServiceStatus } from '../entities/service.entity';
 import { Tag } from '../entities/tag.entity';
 import { Milestone, MilestoneStatus } from '../entities/milestone.entity';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -34,6 +34,7 @@ export class ServiceService {
       adText: createServiceDto.adText,
       adImage: adImagePath ?? null,
       balance: createServiceDto.balance,
+      paymentDuration: createServiceDto.paymentDuration ?? ServicePaymentDuration.EACH_TIME,
       status: ServiceStatus.DRAFT,
     });
 
@@ -285,6 +286,9 @@ export class ServiceService {
     }
     if (updateServiceDto.balance !== undefined) {
       service.balance = updateServiceDto.balance;
+    }
+    if (updateServiceDto.paymentDuration !== undefined) {
+      service.paymentDuration = updateServiceDto.paymentDuration;
     }
     if (adImagePath) {
       service.adImage = adImagePath;

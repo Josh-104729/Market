@@ -237,6 +237,7 @@ export interface Service {
   adText: string;
   adImage?: string | null;
   balance: number;
+  paymentDuration?: 'hourly' | 'daily' | 'weekly' | 'monthly' | 'each_time';
   rating: number;
   status: 'draft' | 'active' | 'blocked';
   category?: Category;

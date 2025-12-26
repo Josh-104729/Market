@@ -16,6 +16,7 @@ import { serviceApi, categoryApi, Service, Category } from '../services/api'
 import { renderIcon } from '../utils/iconHelper'
 import ImageWithLoader from '../components/ImageWithLoader'
 import { useDefaultServiceImageSrc } from '../hooks/use-default-service-image'
+import { formatPaymentDurationSuffix } from '../utils/paymentDuration'
 
 const StarRating = ({ rating }: { rating: number }) => {
   const fullStars = Math.floor(rating)
@@ -384,7 +385,7 @@ function Services() {
                         <div className="text-sm font-semibold text-neutral-100">
                           ${typeof service.balance === 'number' 
                             ? (Math.round(service.balance * 100) / 100).toFixed(2)
-                            : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}
+                            : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

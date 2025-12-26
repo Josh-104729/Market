@@ -31,6 +31,7 @@ function CreateService() {
     title: '',
     adText: '',
     balance: '',
+    paymentDuration: 'each_time' as 'hourly' | 'daily' | 'weekly' | 'monthly' | 'each_time',
     tags: [] as string[],
   })
   const [tagInput, setTagInput] = useState('')
@@ -174,6 +175,7 @@ function CreateService() {
           title: formData.title.trim(),
           adText: formData.adText.trim(),
           balance: Math.round(balanceValue * 100) / 100, // Round to 2 decimal places to avoid floating point issues
+          paymentDuration: formData.paymentDuration,
           tags: formData.tags,
         },
         imageFile,
@@ -305,6 +307,36 @@ function CreateService() {
                 placeholder="0.00"
               />
               {errors.balance ? <p className="text-sm text-destructive">{errors.balance}</p> : null}
+            </div>
+
+            {/* Payment Duration */}
+            <div className="space-y-2">
+              <Label>
+                Payment duration <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={formData.paymentDuration}
+                onValueChange={(value) => {
+                  setFormData({
+                    ...formData,
+                    paymentDuration: value as any,
+                  })
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment duration" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hourly">Hourly</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="each_time">Each time</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                This controls how the price is interpreted (e.g. hourly rate vs monthly subscription vs per service).
+              </p>
             </div>
 
             {/* Image */}
