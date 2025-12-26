@@ -372,23 +372,26 @@ function Services() {
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                           containerClassName="w-full h-full"
                         />
-                        <div className="absolute top-3 right-3">
-                          <Badge variant="secondary" className="backdrop-blur-sm shadow-sm font-bold">
-                            ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
-                          </Badge>
-                        </div>
                       </div>
                     </Link>
                     <CardHeader className="p-5 pb-2">
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between mb-2">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
                           {service.category?.title || 'Uncategorized'}
                         </span>
-                        <StarRating rating={service.averageRating || service.rating || 0} />
+                        <Badge variant="secondary" className="font-bold">
+                          ${typeof service.balance === 'number'
+                            ? service.balance.toFixed(2)
+                            : parseFloat(service.balance as any).toFixed(2)}
+                          {formatPaymentDurationSuffix(service.paymentDuration)}
+                        </Badge>
                       </div>
                       <CardTitle className="text-lg line-clamp-1 group-hover:text-primary transition-colors">
                         <Link to={`/services/${service.id}`}>{service.title}</Link>
                       </CardTitle>
+                      <div className="pt-1">
+                        <StarRating rating={service.averageRating || service.rating || 0} />
+                      </div>
                     </CardHeader>
                     <CardContent className="p-5 pt-0">
                       <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed">
