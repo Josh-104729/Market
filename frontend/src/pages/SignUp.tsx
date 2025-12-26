@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CountryAutocomplete } from "../components/CountryAutocomplete";
 import {
   Loader2,
   Check,
@@ -373,17 +374,14 @@ function SignUp() {
           <form onSubmit={handleStep5} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="country">Country</Label>
-              <div className="relative">
-                <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="country"
-                  required
-                  placeholder="Enter your country"
-                  className="pl-10"
-                  value={step5Data.country}
-                  onChange={(e) => setStep5Data({ ...step5Data, country: e.target.value })}
-                />
-              </div>
+              <CountryAutocomplete
+                id="country"
+                value={step5Data.country}
+                onValueChange={(value) => setStep5Data({ ...step5Data, country: value })}
+                placeholder="Type to search country..."
+                inputClassName="h-11"
+                leftIcon={<Globe className="h-4 w-4" />}
+              />
             </div>
             <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={loading}>
               {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Complete Registration'}
