@@ -732,6 +732,16 @@ export const messageApi = {
     });
     return response.data;
   },
+
+  delete: async (id: string): Promise<{ messageId: string; conversationId: string }> => {
+    const response = await api.delete(`/messages/${id}`);
+    return response.data;
+  },
+
+  deleteBulk: async (messageIds: string[]): Promise<{ deletedIds: string[] }> => {
+    const response = await api.post(`/messages/delete-bulk`, { messageIds });
+    return response.data;
+  },
 };
 
 export const milestoneApi = {

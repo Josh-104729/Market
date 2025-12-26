@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -8,6 +8,7 @@ import {
   faPlus,
   faCheck,
   faCheckDouble,
+  faTrash,
   faTimes,
   faCheckCircle,
   faMoneyBillWave,
@@ -38,6 +39,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { showToast } from '../utils/toast'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Loader2 } from "lucide-react"
 
 function Chat() {
   const { id } = useParams<{ id: string }>()
@@ -82,11 +84,194 @@ function Chat() {
   const [hasMoreMessages, setHasMoreMessages] = useState(true)
   const [requestingReactivation, setRequestingReactivation] = useState(false)
   const [reactivationRequested, setReactivationRequested] = useState(false)
+  const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set())
+  const [isMouseSelectingMessages, setIsMouseSelectingMessages] = useState(false)
+  const selectionAnchorRef = useRef<{
+    index: number
+    mode: 'select' | 'deselect'
+    baseline: Set<string>
+  } | null>(null)
+  const clickSuppressRef = useRef(false)
+  const lastRangeAnchorRef = useRef<number | null>(null)
+  const [showDeleteSelectedDialog, setShowDeleteSelectedDialog] = useState(false)
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false)
 
   const isBlocked = Boolean(conversation?.isBlocked)
   const reactivationPending = Boolean(conversation?.reactivationRequestPending) || reactivationRequested
   const [loadingMoreMessages, setLoadingMoreMessages] = useState(false)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const selectionMode = selectedMessageIds.size > 0 || isMouseSelectingMessages
+
+  const messageIndexById = useMemo(() => {
+    const map = new Map<string, number>()
+    messages.forEach((m, idx) => map.set(m.id, idx))
+    return map
+  }, [messages])
+
+  const selectedDeletableIds = useMemo(() => {
+    if (!user?.id) return []
+    const msgById = new Map(messages.map((m) => [m.id, m] as const))
+    return Array.from(selectedMessageIds).filter((id) => msgById.get(id)?.senderId === user.id)
+  }, [selectedMessageIds, messages, user?.id])
+
+  useEffect(() => {
+    // Reset selection when switching conversations
+    setSelectedMessageIds(new Set())
+    setIsMouseSelectingMessages(false)
+    selectionAnchorRef.current = null
+    clickSuppressRef.current = false
+    lastRangeAnchorRef.current = null
+  }, [id])
+
+  useEffect(() => {
+    if (!isMouseSelectingMessages) return
+    const handleMouseUp = () => {
+      setIsMouseSelectingMessages(false)
+      selectionAnchorRef.current = null
+      // allow click after mouseup
+      setTimeout(() => {
+        clickSuppressRef.current = false
+      }, 0)
+    }
+    window.addEventListener('mouseup', handleMouseUp)
+    return () => window.removeEventListener('mouseup', handleMouseUp)
+  }, [isMouseSelectingMessages])
+
+  useEffect(() => {
+    if (selectedMessageIds.size === 0) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedMessageIds(new Set())
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [selectedMessageIds])
+
+  const applySelectionRange = (fromIndex: number, toIndex: number, mode: 'select' | 'deselect') => {
+    // Additive range selection (used for shift+click).
+    const start = Math.min(fromIndex, toIndex)
+    const end = Math.max(fromIndex, toIndex)
+    setSelectedMessageIds((prev) => {
+      const next = new Set(prev)
+      for (let i = start; i <= end; i++) {
+        const mid = messages[i]?.id
+        if (!mid) continue
+        if (mode === 'select') next.add(mid)
+        else next.delete(mid)
+      }
+      return next
+    })
+  }
+
+  const applyDragSelection = (fromIndex: number, toIndex: number) => {
+    // Telegram-like drag selection: selection is derived from baseline +/- current range,
+    // so dragging back will unselect previously swept messages.
+    const anchor = selectionAnchorRef.current
+    if (!anchor) return
+
+    const start = Math.min(fromIndex, toIndex)
+    const end = Math.max(fromIndex, toIndex)
+
+    const rangeIds: string[] = []
+    for (let i = start; i <= end; i++) {
+      const mid = messages[i]?.id
+      if (mid) rangeIds.push(mid)
+    }
+
+    const next = new Set(anchor.baseline)
+    if (anchor.mode === 'select') {
+      rangeIds.forEach((id) => next.add(id))
+    } else {
+      rangeIds.forEach((id) => next.delete(id))
+    }
+    setSelectedMessageIds(next)
+  }
+
+  const isClickOnChatClickable = (e: React.MouseEvent) => {
+    const el = e.target as HTMLElement | null
+    return Boolean(
+      el &&
+        (el.closest?.('[data-chat-clickable="true"]') ||
+          el.closest?.('button,a,input,textarea,select')),
+    )
+  }
+
+  const handleMessageMouseDown = (e: React.MouseEvent, messageId: string, messageIndex: number) => {
+    if (e.button !== 0) return
+    if (messageIndex < 0) return
+    // Prevent text selection and enable drag-to-select like Telegram
+    e.preventDefault()
+    const mode: 'select' | 'deselect' = selectedMessageIds.has(messageId) ? 'deselect' : 'select'
+    selectionAnchorRef.current = { index: messageIndex, mode, baseline: new Set(selectedMessageIds) }
+    clickSuppressRef.current = true
+    setIsMouseSelectingMessages(true)
+    applyDragSelection(messageIndex, messageIndex)
+    lastRangeAnchorRef.current = messageIndex
+  }
+
+  const handleMessageMouseEnter = (_e: React.MouseEvent, messageIndex: number) => {
+    if (!isMouseSelectingMessages) return
+    const anchor = selectionAnchorRef.current
+    if (!anchor) return
+    if (messageIndex < 0) return
+    applyDragSelection(anchor.index, messageIndex)
+  }
+
+  const handleMessageClick = (e: React.MouseEvent, messageId: string, messageIndex: number) => {
+    if (messageIndex < 0) return
+    if (clickSuppressRef.current) {
+      // Selection already handled by mouse down / drag logic
+      clickSuppressRef.current = false
+      return
+    }
+
+    if (e.shiftKey && lastRangeAnchorRef.current !== null) {
+      applySelectionRange(lastRangeAnchorRef.current, messageIndex, 'select')
+      return
+    }
+
+    setSelectedMessageIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(messageId)) next.delete(messageId)
+      else next.add(messageId)
+      return next
+    })
+    lastRangeAnchorRef.current = messageIndex
+  }
+
+  const handleConfirmDeleteSelectedMessages = async () => {
+    if (selectedMessageIds.size === 0) return
+    if (!user?.id) return
+
+    const ids = Array.from(selectedMessageIds)
+    const deletable = selectedDeletableIds
+
+    if (deletable.length === 0) {
+      showToast.error("You can only delete your own messages")
+      return
+    }
+
+    try {
+      setDeleteSubmitting(true)
+      const res = await messageApi.deleteBulk(deletable)
+      const deletedIds = new Set(res.deletedIds || deletable)
+      setMessages((prev) => prev.filter((m) => !deletedIds.has(m.id)))
+      setSelectedMessageIds((prev) => {
+        const next = new Set(prev)
+        deletedIds.forEach((id) => next.delete(id))
+        return next
+      })
+      showToast.success("Messages deleted")
+      setShowDeleteSelectedDialog(false)
+    } catch (error: any) {
+      console.error('Failed to delete messages:', error)
+      const msg = error.response?.data?.message || 'Failed to delete messages'
+      showToast.error(msg)
+    } finally {
+      setDeleteSubmitting(false)
+    }
+  }
 
   useEffect(() => {
     if (id) {
@@ -273,6 +458,17 @@ function Chat() {
       }
     }
 
+    const handleMessageDeleted = (data: { conversationId: string; messageId: string }) => {
+      if (data.conversationId !== id) return
+      setMessages((prev) => prev.filter((m) => m.id !== data.messageId))
+      setSelectedMessageIds((prev) => {
+        if (!prev.has(data.messageId)) return prev
+        const next = new Set(prev)
+        next.delete(data.messageId)
+        return next
+      })
+    }
+
     socket.on('new_message', handleNewMessage)
     socket.on('message_fraud', handleMessageFraud)
     socket.on('conversation_blocked', handleConversationBlocked)
@@ -282,6 +478,7 @@ function Chat() {
     socket.on('user_typing', handleTyping)
     socket.on('user_stopped_typing', handleStopTyping)
     socket.on('messages_read', handleMessagesRead)
+    socket.on('message_deleted', handleMessageDeleted)
     socket.on('joined_conversation', () => {
       console.log('Joined conversation room:', id)
       // Mark messages as read when joining
@@ -308,6 +505,7 @@ function Chat() {
         socket.off('user_typing', handleTyping)
         socket.off('user_stopped_typing', handleStopTyping)
         socket.off('messages_read', handleMessagesRead)
+        socket.off('message_deleted', handleMessageDeleted)
         socket.off('joined_conversation')
         socket.off('error')
         socket.off('connect_error')
@@ -1027,51 +1225,125 @@ function Chat() {
       <div className="flex-1 flex min-h-0 overflow-hidden">
           {/* Main Chat Area */}
           <div className="flex-1 flex flex-col min-w-0 min-h-0">
+            <Dialog open={showDeleteSelectedDialog} onOpenChange={setShowDeleteSelectedDialog}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete selected messages?</DialogTitle>
+                  <DialogDescription>
+                    {selectedDeletableIds.length === selectedMessageIds.size ? (
+                      <span>
+                        This will permanently delete <strong>{selectedDeletableIds.length}</strong> message(s).
+                      </span>
+                    ) : (
+                      <span>
+                        You can only delete your own messages. This will delete{" "}
+                        <strong>{selectedDeletableIds.length}</strong> out of{" "}
+                        <strong>{selectedMessageIds.size}</strong> selected.
+                      </span>
+                    )}
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowDeleteSelectedDialog(false)}
+                    disabled={deleteSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleConfirmDeleteSelectedMessages}
+                    disabled={deleteSubmitting || selectedDeletableIds.length === 0}
+                    className="gap-2"
+                  >
+                    {deleteSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Delete
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             {/* Header */}
             <div className="glass-card border-b border-border px-4 py-3 flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center space-x-3 flex-1 min-w-0">
-                {/* <button
-                  onClick={() => navigate('/services')}
-                  className="text-neutral-400 hover:text-primary transition-colors p-2 -ml-2"
-                >
-                  <FontAwesomeIcon icon={faArrowLeft} />
-                </button> */}
-                <Avatar className="h-10 w-10 flex-shrink-0">
-                  <AvatarImage src={(otherUser as any)?.avatar || undefined} alt={otherUserName} />
-                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                    {otherUser?.firstName?.[0] || otherUser?.userName?.[0] || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-base font-semibold text-foreground truncate">
-                    {otherUserName}
-                  </h2>
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs text-muted-foreground truncate">{conversation.service?.title}</p>
-                    {typingUsers.size > 0 && (
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <div className="flex gap-0.5">
-                          <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                          <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                          <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                        </div>
-                        <span className="text-xs text-primary italic">
-                          {Array.from(typingUsers).length === 1 ? 'typing...' : 'typing...'}
-                        </span>
-                      </div>
-                    )}
+              {selectedMessageIds.size > 0 ? (
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground transition-colors p-2 -ml-2"
+                      onClick={() => setSelectedMessageIds(new Set())}
+                      title="Cancel selection (Esc)"
+                    >
+                      <FontAwesomeIcon icon={faTimes} />
+                    </button>
+                    <div className="font-semibold text-foreground truncate">
+                      {selectedMessageIds.size} selected
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-destructive transition-colors p-2 disabled:opacity-50"
+                    disabled={selectedDeletableIds.length === 0}
+                    onClick={() => setShowDeleteSelectedDialog(true)}
+                    title={
+                      selectedDeletableIds.length === 0
+                        ? "You can only delete your own messages"
+                        : "Delete selected"
+                    }
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
                 </div>
-              </div>
-              <button className="text-muted-foreground hover:text-foreground transition-colors p-2">
-                <FontAwesomeIcon icon={faEllipsisV} />
-              </button>
+              ) : (
+                <>
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    {/* <button
+                      onClick={() => navigate('/services')}
+                      className="text-neutral-400 hover:text-primary transition-colors p-2 -ml-2"
+                    >
+                      <FontAwesomeIcon icon={faArrowLeft} />
+                    </button> */}
+                    <Avatar className="h-10 w-10 flex-shrink-0">
+                      <AvatarImage src={(otherUser as any)?.avatar || undefined} alt={otherUserName} />
+                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                        {otherUser?.firstName?.[0] || otherUser?.userName?.[0] || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-base font-semibold text-foreground truncate">
+                        {otherUserName}
+                      </h2>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground truncate">{conversation.service?.title}</p>
+                        {typingUsers.size > 0 && (
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <div className="flex gap-0.5">
+                              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            </div>
+                            <span className="text-xs text-primary italic">
+                              {Array.from(typingUsers).length === 1 ? 'typing...' : 'typing...'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <button className="text-muted-foreground hover:text-foreground transition-colors p-2">
+                    <FontAwesomeIcon icon={faEllipsisV} />
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Messages Area */}
             <div
               ref={messagesAreaRef}
-              className="flex-1 overflow-y-auto relative min-h-0"
+              className="flex-1 overflow-y-auto overflow-x-hidden relative min-h-0"
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
@@ -1095,7 +1367,7 @@ function Chat() {
                   </div>
                 </div>
               )}
-              <div className="relative p-4 space-y-1" ref={messagesContainerRef}>
+              <div className="relative p-4 space-y-1 overflow-x-hidden" ref={messagesContainerRef}>
                 {/* Loading indicator for older messages */}
                 {loadingMoreMessages && (
                   <div className="flex justify-center py-4">
@@ -1140,6 +1412,8 @@ function Chat() {
                       const message = item.data as Message
                       const isOwn = message.senderId === user?.id
                       const sender = message.sender
+                      const messageIndex = messageIndexById.get(message.id) ?? -1
+                      const isSelected = selectedMessageIds.has(message.id)
 
                       return (
                         <div key={`msg-${message.id}`}>
@@ -1150,7 +1424,63 @@ function Chat() {
                               </div>
                             </div>
                           )}
-                          <div className={`flex items-end gap-2 mb-1 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                          <div
+                            className={[
+                              `flex items-end gap-2 mb-1 w-full rounded-lg px-1 py-0.5 transition-colors duration-150 ease-out`,
+                              isOwn ? 'flex-row-reverse' : 'flex-row',
+                              isSelected ? 'bg-primary/5' : 'bg-transparent',
+                              selectionMode ? 'select-none' : '',
+                            ].join(' ')}
+                            onMouseDown={(e) => {
+                              // Start selection from anywhere on the message row (full width).
+                              // Allow normal media clicks unless selection is active or shift is held.
+                              if (selectedMessageIds.size === 0 && !isMouseSelectingMessages && !e.shiftKey && isClickOnChatClickable(e)) {
+                                return
+                              }
+                              handleMessageMouseDown(e, message.id, messageIndex)
+                            }}
+                            onMouseEnter={(e) => handleMessageMouseEnter(e, messageIndex)}
+                            onClick={(e) => {
+                              if (selectedMessageIds.size === 0 && !isMouseSelectingMessages && !e.shiftKey && isClickOnChatClickable(e)) {
+                                return
+                              }
+                              handleMessageClick(e, message.id, messageIndex)
+                            }}
+                            onClickCapture={(e) => {
+                              if (selectedMessageIds.size > 0 || isMouseSelectingMessages) {
+                                // Prevent opening previews/menus while selecting
+                                e.stopPropagation()
+                              }
+                            }}
+                          >
+                            {/* Selection gutter (Telegram style) */}
+                            <div
+                              className={[
+                                "flex-shrink-0 flex items-center justify-center pb-1 overflow-hidden",
+                                "transition-[width,opacity] duration-150 ease-out",
+                                selectionMode ? "w-7 opacity-100" : "w-0 opacity-0",
+                              ].join(" ")}
+                              aria-hidden={!selectionMode}
+                            >
+                              <div
+                                className={[
+                                  "h-5 w-5 rounded-full border flex items-center justify-center",
+                                  "transition-[transform,background-color,border-color,color] duration-150 ease-out",
+                                  isSelected
+                                    ? "bg-primary border-primary text-primary-foreground scale-100"
+                                    : "bg-background/50 border-border text-transparent scale-95",
+                                ].join(" ")}
+                              >
+                                <FontAwesomeIcon
+                                  icon={faCheck}
+                                  className={[
+                                    "text-[10px] transition-opacity duration-150 ease-out",
+                                    isSelected ? "opacity-100" : "opacity-0",
+                                  ].join(" ")}
+                                />
+                              </div>
+                            </div>
+
                             {/* Avatar for incoming messages */}
                             {!isOwn && (
                               <Avatar className="h-8 w-8 flex-shrink-0 mb-1">
@@ -1182,10 +1512,14 @@ function Chat() {
 
                               {/* Message bubble */}
                               <div
-                                className={`relative px-3 py-2 rounded-2xl ${isOwn
-                                  ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                                  : 'glass-card text-foreground rounded-tl-sm'
-                                  } shadow-sm`}
+                                className={[
+                                  `relative px-3 py-2 rounded-2xl shadow-sm transition-[box-shadow,transform] duration-150 ease-out`,
+                                  isOwn
+                                    ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                                    : 'glass-card text-foreground rounded-tl-sm',
+                                  isSelected ? 'ring-2 ring-primary/60 ring-offset-2 ring-offset-background' : 'ring-0',
+                                  selectionMode ? 'cursor-pointer select-none' : '',
+                                ].join(' ')}
                               >
                                 {message.message && (
                                   <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mb-2">{message.message}</p>
@@ -1207,6 +1541,7 @@ function Chat() {
                                           {isImage && (
                                             <div
                                               className="cursor-pointer group relative overflow-hidden rounded-lg -mx-1"
+                                              data-chat-clickable="true"
                                               onClick={() => handlePreviewFile(fileUrl, fileName)}
                                             >
                                               <img
@@ -1238,6 +1573,7 @@ function Chat() {
                                             <div className="rounded-lg overflow-hidden border border-border">
                                               <div
                                                 className="relative cursor-pointer group"
+                                                data-chat-clickable="true"
                                                 onClick={() => handlePreviewFile(fileUrl, fileName)}
                                               >
                                                 <video
