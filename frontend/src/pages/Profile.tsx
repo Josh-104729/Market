@@ -82,6 +82,7 @@ function Profile() {
   const [milestones, setMilestones] = useState<Milestone[]>([])
   const [posts, setPosts] = useState<Post[]>([])
   const [loadingData, setLoadingData] = useState(false)
+  const [loadingStats, setLoadingStats] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -116,6 +117,49 @@ function Profile() {
 
   useEffect(() => {
     if (!user?.id) return
+
+    // Prefetch data needed for the top "Quick stats" cards on first load
+    // (otherwise they show 0 until the user opens each tab).
+    const prefetchOverviewStats = async () => {
+      setLoadingStats(true)
+      try {
+        // Services (use paginated endpoint; we only need the data array for current UI lists)
+        const servicesRes = await serviceApi.getMyServices({ limit: 200 })
+        setServices(Array.isArray(servicesRes.data) ? servicesRes.data : [])
+
+        // Conversations (API returns all; filter for this user)
+        const conversationsData = await conversationApi.getAll()
+        const userConversations = conversationsData.filter(
+          (conv) => conv.clientId === user.id || conv.providerId === user.id
+        )
+        setConversations(userConversations)
+
+        // Milestones (fetch per conversation; filter for this user)
+        if (userConversations.length > 0) {
+          const milestonePromises = userConversations.map((conv) => milestoneApi.getByConversation(conv.id))
+          const milestoneResults = await Promise.all(milestonePromises)
+          const allMilestones = milestoneResults.flat()
+          const userMilestones = allMilestones.filter(
+            (milestone) => milestone.clientId === user.id || milestone.providerId === user.id
+          )
+          setMilestones(userMilestones)
+        } else {
+          setMilestones([])
+        }
+
+        // Posts (backend endpoint lists published posts; filter by current user)
+        const postsRes = await blogApi.getAll({ limit: 200 })
+        const userPosts = (postsRes.data || []).filter((post) => post.userId === user.id)
+        setPosts(userPosts)
+      } catch (err) {
+        console.error("Failed to prefetch profile stats:", err)
+        // Don't toast here to avoid noisy UX on every profile load
+      } finally {
+        setLoadingStats(false)
+      }
+    }
+
+    prefetchOverviewStats()
 
     const fetchTabData = async () => {
       setLoadingData(true)
@@ -383,8 +427,17 @@ function Profile() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.totalServices}</div>
-            <div className="text-sm text-muted-foreground">{stats.activeServices} active</div>
+            {loadingStats ? (
+              <>
+                <Skeleton className="h-9 w-16" />
+                <Skeleton className="mt-2 h-4 w-24" />
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-bold">{stats.totalServices}</div>
+                <div className="text-sm text-muted-foreground">{stats.activeServices} active</div>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -395,8 +448,17 @@ function Profile() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.totalConversations}</div>
-            <div className="text-sm text-muted-foreground">Total</div>
+            {loadingStats ? (
+              <>
+                <Skeleton className="h-9 w-16" />
+                <Skeleton className="mt-2 h-4 w-16" />
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-bold">{stats.totalConversations}</div>
+                <div className="text-sm text-muted-foreground">Total</div>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -407,8 +469,17 @@ function Profile() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.totalMilestones}</div>
-            <div className="text-sm text-muted-foreground">{stats.completedMilestones} completed</div>
+            {loadingStats ? (
+              <>
+                <Skeleton className="h-9 w-16" />
+                <Skeleton className="mt-2 h-4 w-28" />
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-bold">{stats.totalMilestones}</div>
+                <div className="text-sm text-muted-foreground">{stats.completedMilestones} completed</div>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -419,8 +490,17 @@ function Profile() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.totalPosts}</div>
-            <div className="text-sm text-muted-foreground">Published / Draft</div>
+            {loadingStats ? (
+              <>
+                <Skeleton className="h-9 w-16" />
+                <Skeleton className="mt-2 h-4 w-28" />
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-bold">{stats.totalPosts}</div>
+                <div className="text-sm text-muted-foreground">Published / Draft</div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
