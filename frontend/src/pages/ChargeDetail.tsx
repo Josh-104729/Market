@@ -187,7 +187,11 @@ function ChargeDetail() {
             if (countdownRef.current) {
               window.clearInterval(countdownRef.current)
             }
-            showToast.error('Transaction was cancelled or failed')
+            const msg =
+              newStatus === 'failed'
+                ? status.description || 'Transaction failed'
+                : 'Transaction was cancelled'
+            showToast.error(msg)
           }
         } catch (error) {
           console.error('Failed to check transaction status:', error)

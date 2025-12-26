@@ -30,6 +30,15 @@ function Blog() {
   const [total, setTotal] = useState(0)
   const itemsPerPage = 10
 
+  const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
+  const resolveImageUrl = (imagePath: string) => {
+    try {
+      return new URL(imagePath, BACKEND_BASE_URL).toString()
+    } catch {
+      return `${BACKEND_BASE_URL}${imagePath}`
+    }
+  }
+
   useEffect(() => {
     setCurrentPage(1) // Reset to first page when filters change
   }, [statusFilter])
@@ -228,7 +237,7 @@ function Blog() {
                     <div className="flex-shrink-0">
                       <div className="w-24 h-24 rounded-lg overflow-hidden bg-neutral-700">
                         <img
-                          src={`http://localhost:3000${post.images[0]}`}
+                          src={resolveImageUrl(post.images[0])}
                           alt="Post"
                           className="w-full h-full object-cover"
                         />

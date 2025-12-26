@@ -20,7 +20,7 @@ import { ConversationService } from '../conversation/conversation.service';
 import { MilestoneService } from '../milestone/milestone.service';
 import { MilestoneStatus } from '../entities/milestone.entity';
 import { WalletService } from '../wallet/wallet.service';
-import { PolygonWalletService } from '../wallet/polygon-wallet.service';
+import { PolygonWalletService } from '../polygon-wallet/polygon-wallet.service';
 
 @Injectable()
 export class AdminService {
@@ -81,7 +81,6 @@ export class AdminService {
     private milestoneService: MilestoneService,
     @Inject(forwardRef(() => WalletService))
     private walletService: WalletService,
-    @Inject(forwardRef(() => PolygonWalletService))
     private polygonWalletService: PolygonWalletService,
   ) {}
 
@@ -204,7 +203,7 @@ export class AdminService {
 
     const walletsWithBalances = await this.mapWithConcurrency(wallets, CONCURRENCY, async (wallet) => {
       let usdtBalance = 0;
-      let usdcBalance = 0;
+      let usdcBalance = 0; // kept for backwards-compatible admin UI payloads
 
       if (wallet.network === WalletNetwork.TRON) {
         const key = `TRON:${wallet.address}:USDT`;
@@ -215,16 +214,16 @@ export class AdminService {
           usdtBalance = await this.walletService.getUSDTBalance(wallet.address);
           this.setCachedBalance(key, usdtBalance, TTL_MS);
         }
-      } else if (wallet.network === WalletNetwork.POLYGON) {
-        const keyUsdc = `POLYGON:${wallet.address}:USDC`;
+      }
 
-        const cachedUsdc = this.getCachedBalance(keyUsdc);
-
-        if (cachedUsdc !== null) {
-          usdcBalance = cachedUsdc;
+      if (wallet.network === WalletNetwork.POLYGON) {
+        const key = `POLYGON:${wallet.address}:USDC`;
+        const cached = this.getCachedBalance(key);
+        if (cached !== null) {
+          usdcBalance = cached;
         } else {
           usdcBalance = await this.polygonWalletService.getUSDCBalance(wallet.address);
-          this.setCachedBalance(keyUsdc, usdcBalance, TTL_MS);
+          this.setCachedBalance(key, usdcBalance, TTL_MS);
         }
       }
 
@@ -314,8 +313,7 @@ export class AdminService {
       // If temp wallet doesn't have enough TRX, master wallet will send 30 TRX first
       transferResult = await this.walletService.transferFromTempWalletToMaster(tempWallet);
     } else if (tempWallet.network === WalletNetwork.POLYGON) {
-      // Transfer USDC from temp wallet to master wallet
-      transferResult = await this.polygonWalletService.transferFromTempWalletToMaster(tempWallet);
+      transferResult = await this.polygonWalletService.transferUSDCFromTempWalletToMaster(tempWallet);
     } else {
       throw new BadRequestException('Unsupported wallet network');
     }

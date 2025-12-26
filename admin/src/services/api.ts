@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-// Use proxy path in development (Vite will proxy /api to backend)
-// In production, update this to your backend URL
-const API_BASE_URL = '/api';
+// Use environment variable for API URL
+// Set VITE_API_URL in admin/.env (e.g., http://localhost:3000/api or https://your-backend.railway.app/api)
+// Fallback keeps the existing dev-proxy setup (Vite can proxy /api to backend).
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

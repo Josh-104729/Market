@@ -8,17 +8,30 @@ import { ChatGateway } from '../chat/chat.gateway';
 import { Milestone, MilestoneStatus } from '../entities/milestone.entity';
 import { Conversation } from '../entities/conversation.entity';
 import { WalletService } from '../wallet/wallet.service';
-import { PolygonWalletService } from '../wallet/polygon-wallet.service';
-import { TempWallet, WalletNetwork } from '../entities/temp-wallet.entity';
+import { TempWallet, TempWalletStatus, WalletNetwork } from '../entities/temp-wallet.entity';
 import { NotificationService } from '../notification/notification.service';
 import { NotificationType } from '../entities/notification.entity';
 import { ReferralService } from '../referral/referral.service';
 import { PaymentNetwork } from '../entities/transaction.entity';
+import { PolygonWalletService } from '../polygon-wallet/polygon-wallet.service';
 
 @Injectable()
 export class PaymentService {
-  private readonly PLATFORM_FEE = 1; // $1 USD platform fee
-  private readonly MIN_WITHDRAW_AMOUNT = 5; // Minimum 5 USD for withdrawal
+  private readonly PLATFORM_FEE_USDT_TRC20 = 1; // $1 USD platform fee
+  private readonly PLATFORM_FEE_USDC_POLYGON = 2; // $2 USD platform fee (USDC Polygon)
+  private readonly MIN_WITHDRAW_AMOUNT = 5; // Must be > 5 (validated in code)
+
+  private getPlatformFee(paymentNetwork: PaymentNetwork): number {
+    return paymentNetwork === PaymentNetwork.USDC_POLYGON ? this.PLATFORM_FEE_USDC_POLYGON : this.PLATFORM_FEE_USDT_TRC20;
+  }
+
+  private getCurrency(paymentNetwork: PaymentNetwork): 'USDT' | 'USDC' {
+    return paymentNetwork === PaymentNetwork.USDC_POLYGON ? 'USDC' : 'USDT';
+  }
+
+  private getWalletNetwork(paymentNetwork: PaymentNetwork): WalletNetwork {
+    return paymentNetwork === PaymentNetwork.USDC_POLYGON ? WalletNetwork.POLYGON : WalletNetwork.TRON;
+  }
 
   constructor(
     @InjectRepository(Balance)
@@ -36,7 +49,6 @@ export class PaymentService {
     private chatGateway: ChatGateway,
     @Inject(forwardRef(() => WalletService))
     private walletService: WalletService,
-    @Inject(forwardRef(() => PolygonWalletService))
     private polygonWalletService: PolygonWalletService,
     @Inject(forwardRef(() => NotificationService))
     private notificationService: NotificationService,
@@ -842,24 +854,21 @@ export class PaymentService {
     await queryRunner.startTransaction();
 
     try {
-      // Get or create temp wallet based on network
-      let tempWallet: TempWallet;
-      if (paymentNetwork === PaymentNetwork.USDC_POLYGON) {
-        tempWallet = await this.polygonWalletService.getOrCreateTempWallet(userId);
-      } else {
-        tempWallet = await this.walletService.getOrCreateTempWallet(userId);
-      }
+      // Create a fresh temp wallet per charge (per requirements)
+      const tempWallet: TempWallet =
+        paymentNetwork === PaymentNetwork.USDC_POLYGON
+          ? await this.polygonWalletService.createTempWallet(userId)
+          : await this.walletService.createTempWallet(userId, WalletNetwork.TRON);
 
       // Calculate platform fee and total
-      const platformFee = this.PLATFORM_FEE;
+      const platformFee = this.getPlatformFee(paymentNetwork);
       const total = amount + platformFee;
 
       // Set expiration to 24 hours from now
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 24);
 
-      // Determine currency name
-      const currency = paymentNetwork === PaymentNetwork.USDC_POLYGON ? 'USDC' : 'USDT';
+      const currency = this.getCurrency(paymentNetwork);
 
       // Create pending transaction
       const transaction = queryRunner.manager.create(Transaction, {
@@ -904,6 +913,7 @@ export class PaymentService {
     status: string;
     transactionHash?: string;
     confirmedAt?: string;
+    description?: string;
   }> {
     const transaction = await this.transactionRepository.findOne({
       where: { id: transactionId, clientId: userId, type: TransactionType.CHARGE },
@@ -918,6 +928,7 @@ export class PaymentService {
       status: transaction.status,
       transactionHash: transaction.transactionHash,
       confirmedAt: transaction.status === TransactionStatus.SUCCESS ? transaction.updatedAt.toISOString() : undefined,
+      description: transaction.description,
     };
   }
 
@@ -1036,25 +1047,22 @@ export class PaymentService {
 
     // Check wallet balance based on network (only check token balance, not native balance)
     let tokenBalance = 0;
-    const currency = paymentNetwork === PaymentNetwork.USDC_POLYGON ? 'USDC' : 'USDT';
+    const currency = this.getCurrency(paymentNetwork);
+    tokenBalance =
+      paymentNetwork === PaymentNetwork.USDC_POLYGON
+        ? await this.polygonWalletService.getUSDCBalance(tempWallet.address)
+        : await this.walletService.getUSDTBalance(tempWallet.address);
 
-    if (paymentNetwork === PaymentNetwork.USDC_POLYGON) {
-      tokenBalance = await this.polygonWalletService.getUSDCBalance(tempWallet.address);
-    } else {
-      tokenBalance = await this.walletService.getUSDTBalance(tempWallet.address);
-    }
-
-    // If amount is less than expected, notify user (but don't process)
+    // If any payment is detected but is insufficient, fail once (per requirement: don't keep detecting forever)
     if (tokenBalance > 0 && tokenBalance < expectedAmount * 0.99) { // Allow 1% tolerance
+      transaction.status = TransactionStatus.FAILED;
+      transaction.description = `Insufficient amount. Received: ${tokenBalance.toFixed(2)} ${currency}, Expected: ${expectedAmount.toFixed(2)} ${currency}`;
+      await this.transactionRepository.save(transaction);
       // Update last checked time
-      if (paymentNetwork === PaymentNetwork.USDC_POLYGON) {
-        await this.polygonWalletService.updateWalletLastChecked(tempWallet.id);
-      } else {
-        await this.walletService.updateWalletLastChecked(tempWallet.id);
-      }
+      await this.walletService.updateWalletLastChecked(tempWallet.id);
       return {
         success: false,
-        message: `Insufficient amount. Received: ${tokenBalance.toFixed(2)} ${currency}, Expected: ${expectedAmount.toFixed(2)} ${currency}`,
+        message: transaction.description,
       };
     }
 
@@ -1064,11 +1072,7 @@ export class PaymentService {
     }
 
     // No payment detected yet
-    if (paymentNetwork === PaymentNetwork.USDC_POLYGON) {
-      await this.polygonWalletService.updateWalletLastChecked(tempWallet.id);
-    } else {
-      await this.walletService.updateWalletLastChecked(tempWallet.id);
-    }
+    await this.walletService.updateWalletLastChecked(tempWallet.id);
     return { success: false, message: 'Payment not detected yet' };
   }
 
@@ -1099,15 +1103,14 @@ export class PaymentService {
 
       const tempWallet = currentTransaction.tempWallet;
       const paymentNetwork = currentTransaction.paymentNetwork || PaymentNetwork.USDT_TRC20;
-      const currency = paymentNetwork === PaymentNetwork.USDC_POLYGON ? 'USDC' : 'USDT';
+      const currency = this.getCurrency(paymentNetwork);
 
       // Get actual balance received (for USDT TRC20, we only check USDT balance)
       let tokenBalance = 0;
-      if (paymentNetwork === PaymentNetwork.USDC_POLYGON) {
-        tokenBalance = await this.polygonWalletService.getUSDCBalance(tempWallet.address);
-      } else {
-        tokenBalance = await this.walletService.getUSDTBalance(tempWallet.address);
-      }
+      tokenBalance =
+        paymentNetwork === PaymentNetwork.USDC_POLYGON
+          ? await this.polygonWalletService.getUSDCBalance(tempWallet.address)
+          : await this.walletService.getUSDTBalance(tempWallet.address);
 
       // Verify payment was received
       const expectedAmount = Number(
@@ -1143,6 +1146,7 @@ export class PaymentService {
 
       // Update temp wallet total received
       tempWallet.totalReceived = Number(tempWallet.totalReceived) + Number(tokenBalance);
+      tempWallet.status = TempWalletStatus.COMPLETED;
       await queryRunner.manager.save(tempWallet);
 
       await queryRunner.commitTransaction();
@@ -1158,7 +1162,7 @@ export class PaymentService {
         NotificationType.PAYMENT_CHARGE,
         'Charge Completed',
         `Your balance has been charged with ${amountAdded.toFixed(2)} ${currency}`,
-        { transactionId: currentTransaction.id, amount: amountAdded },
+        { transactionId: currentTransaction.id, amount: amountAdded, paymentNetwork },
       );
 
       // Emit balance update event via WebSocket
@@ -1192,20 +1196,15 @@ export class PaymentService {
    */
   async withdraw(userId: string, amount: number, walletAddress: string, paymentNetwork: PaymentNetwork = PaymentNetwork.USDT_TRC20): Promise<Transaction> {
     // Validate amount
-    if (amount < this.MIN_WITHDRAW_AMOUNT) {
-      const currency = paymentNetwork === PaymentNetwork.USDC_POLYGON ? 'USDC' : 'USDT';
-      throw new BadRequestException(`Minimum withdrawal amount is ${this.MIN_WITHDRAW_AMOUNT} ${currency}`);
+    if (amount <= this.MIN_WITHDRAW_AMOUNT) {
+      const currency = this.getCurrency(paymentNetwork);
+      throw new BadRequestException(`Minimum withdrawal amount is greater than ${this.MIN_WITHDRAW_AMOUNT} ${currency}`);
     }
 
     // Validate wallet address format based on network
     if (paymentNetwork === PaymentNetwork.USDC_POLYGON) {
-      // Polygon addresses are Ethereum addresses (0x followed by 40 hex characters)
-      if (!walletAddress || !walletAddress.startsWith('0x') || walletAddress.length !== 42) {
+      if (!walletAddress || !/^0x[0-9a-fA-F]{40}$/.test(walletAddress)) {
         throw new BadRequestException('Invalid Polygon wallet address');
-      }
-      // Validate hex format
-      if (!/^0x[0-9a-fA-F]{40}$/.test(walletAddress)) {
-        throw new BadRequestException('Invalid Polygon wallet address format');
       }
     } else {
       // TRON address validation (starts with T and is 34 characters)
@@ -1228,7 +1227,7 @@ export class PaymentService {
         throw new BadRequestException('Insufficient balance');
       }
 
-      const currency = paymentNetwork === PaymentNetwork.USDC_POLYGON ? 'USDC' : 'USDT';
+      const currency = this.getCurrency(paymentNetwork);
 
       // Create pending withdraw transaction
       const transaction = queryRunner.manager.create(Transaction, {
@@ -1303,25 +1302,17 @@ export class PaymentService {
       }
 
       const paymentNetwork = transaction.paymentNetwork || PaymentNetwork.USDT_TRC20;
-      const currency = paymentNetwork === PaymentNetwork.USDC_POLYGON ? 'USDC' : 'USDT';
+      const currency = this.getCurrency(paymentNetwork);
 
       // Get master wallet and send tokens based on network
       let result: { success: boolean; transactionHash?: string; error?: string };
 
       if (paymentNetwork === PaymentNetwork.USDC_POLYGON) {
-        const masterWallet = this.polygonWalletService.getMasterWallet();
-        result = await this.polygonWalletService.sendUSDC(
-          masterWallet.privateKey,
-          transaction.walletAddress,
-          transaction.amount,
-        );
+        const masterWallet = this.polygonWalletService.getPolygonMasterWallet();
+        result = await this.polygonWalletService.sendUSDC(masterWallet.privateKey, transaction.walletAddress, transaction.amount);
       } else {
         const masterWallet = this.walletService.getMasterWallet();
-        result = await this.walletService.sendUSDT(
-          masterWallet.privateKey,
-          transaction.walletAddress,
-          transaction.amount,
-        );
+        result = await this.walletService.sendUSDT(masterWallet.privateKey, transaction.walletAddress, transaction.amount);
       }
 
       if (!result.success) {
@@ -1358,7 +1349,7 @@ export class PaymentService {
           NotificationType.PAYMENT_WITHDRAW,
           'Withdrawal Completed',
           `Your withdrawal of ${Number(transaction.amount).toFixed(2)} ${currency} has been processed successfully`,
-          { transactionId: transaction.id, amount: transaction.amount, transactionHash: result.transactionHash },
+          { transactionId: transaction.id, amount: transaction.amount, transactionHash: result.transactionHash, paymentNetwork },
         );
 
         // Emit WebSocket notification to user if they're online

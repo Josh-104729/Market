@@ -45,9 +45,9 @@ function Withdraw() {
       return
     }
 
-    // Validate minimum withdrawal amount (5)
-    if (Number(amount) < 5) {
-      showToast.error(`Minimum withdrawal amount is 5 ${currency}`)
+    // Validate minimum withdrawal amount (more than 5)
+    if (Number(amount) <= 5) {
+      showToast.error(`Minimum withdrawal amount is more than 5 ${currency}`)
       return
     }
 

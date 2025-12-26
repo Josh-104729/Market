@@ -60,6 +60,26 @@ FRONTEND_URL=http://localhost:5173
 
 # Server Configuration
 PORT=3000
+
+# Wallet Encryption (recommended in production)
+WALLET_ENCRYPTION_KEY=change-me
+# Optional: comma-separated previous keys for decrypting old wallets
+WALLET_ENCRYPTION_KEY_FALLBACKS=
+
+# TRON (USDT TRC20) - required for TRC20 charge/withdraw + temp-wallet sweep
+TRON_MASTER_WALLET_ADDRESS=
+TRON_MASTER_WALLET_PRIVATE_KEY=
+# Optional: TronGrid API key for higher rate limits
+TRON_PRO_API_KEY=
+
+# Polygon (USDC) - required for USDC Polygon charge/withdraw + temp-wallet sweep
+POLYGON_RPC_URL=
+POLYGON_MASTER_WALLET_ADDRESS=
+POLYGON_MASTER_WALLET_PRIVATE_KEY=
+# Optional override (defaults to mainnet USDC on Polygon)
+POLYGON_USDC_CONTRACT_ADDRESS=0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174
+# Optional: how much MATIC to top up temp wallets with for gas before sweeping USDC
+POLYGON_TEMP_WALLET_GAS_TOPUP_MATIC=0.05
 ```
 
 ### Email Configuration

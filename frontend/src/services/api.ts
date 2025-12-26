@@ -850,6 +850,7 @@ export const paymentApi = {
     status: string;
     transactionHash?: string;
     confirmedAt?: string;
+    description?: string;
   }> => {
     const response = await api.get(`/payment/charge/status/${transactionId}`);
     return response.data;

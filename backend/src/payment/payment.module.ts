@@ -13,12 +13,14 @@ import { ChatModule } from '../chat/chat.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { NotificationModule } from '../notification/notification.module';
 import { ReferralModule } from '../referral/referral.module';
+import { PolygonWalletModule } from '../polygon-wallet/polygon-wallet.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Balance, Transaction, User, Milestone, Conversation, TempWallet]),
     forwardRef(() => ChatModule),
     forwardRef(() => WalletModule),
+    PolygonWalletModule,
     forwardRef(() => NotificationModule),
     forwardRef(() => ReferralModule),
   ],

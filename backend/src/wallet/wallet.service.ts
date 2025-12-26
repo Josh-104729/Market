@@ -101,6 +101,35 @@ export class WalletService {
     return status === 429 || msg.includes(' 429') || msg.includes('status code 429') || msg.includes('Unable to get params');
   }
 
+  /**
+   * Create a brand-new temp wallet (TRON) for a user.
+   * The private key is encrypted at rest.
+   */
+  async createTempWallet(userId: string, network: WalletNetwork = WalletNetwork.TRON): Promise<TempWallet> {
+    if (network !== WalletNetwork.TRON) {
+      throw new BadRequestException(`Unsupported wallet network in WalletService: ${network}`);
+    }
+
+    const account = this.tronWeb.utils.accounts.generateAccount();
+    const address = account.address.base58;
+    const privateKey = account.privateKey; // 64 hex chars
+
+    const encryptedPrivateKey = encrypt(privateKey);
+    const encryptionKeyHash = getEncryptionKeyHash();
+
+    const tempWallet = this.tempWalletRepository.create({
+      userId,
+      address,
+      privateKey: encryptedPrivateKey,
+      encryptionKeyHash,
+      network: WalletNetwork.TRON,
+      status: TempWalletStatus.ACTIVE,
+      totalReceived: 0,
+    });
+
+    return await this.tempWalletRepository.save(tempWallet);
+  }
+
   async getOrCreateTempWallet(userId: string): Promise<TempWallet> {
     // Check if user has an active temp wallet for TRON
     const existingWallet = await this.tempWalletRepository.findOne({
@@ -135,9 +164,9 @@ export class WalletService {
   }
 
 
-  async getTempWallet(userId: string): Promise<TempWallet | null> {
+  async getTempWallet(userId: string, network: WalletNetwork = WalletNetwork.TRON): Promise<TempWallet | null> {
     return await this.tempWalletRepository.findOne({
-      where: { userId, status: TempWalletStatus.ACTIVE, network: WalletNetwork.TRON },
+      where: { userId, status: TempWalletStatus.ACTIVE, network },
     });
   }
 
