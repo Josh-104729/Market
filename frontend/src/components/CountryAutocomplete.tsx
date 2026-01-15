@@ -30,6 +30,7 @@ export function CountryAutocomplete({
   const [query, setQuery] = useState(value || "");
   const [activeIndex, setActiveIndex] = useState(0);
   const blurTimer = useRef<number | null>(null);
+  const anchorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     // Keep input in sync when parent value changes (e.g. back/forward).
@@ -113,7 +114,7 @@ export function CountryAutocomplete({
   return (
     <Popover open={showResults} onOpenChange={setOpen}>
       <PopoverAnchor asChild>
-        <div className={cn("relative", className)}>
+        <div ref={anchorRef} className={cn("relative", className)}>
           {leftIcon ? (
             <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
               {leftIcon}
@@ -138,9 +139,15 @@ export function CountryAutocomplete({
         sideOffset={6}
         align="start"
         className="w-[--radix-popover-trigger-width] p-0"
+        onInteractOutside={(e) => {
+          // Keep the list open when interacting with the input/anchor.
+          if (anchorRef.current && anchorRef.current.contains(e.target as Node)) {
+            e.preventDefault();
+          }
+        }}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <ScrollArea className="max-h-[320px]">
+        <ScrollArea className="max-h-[320px]" style={{ overflowY: 'auto', scrollbarWidth: 'thin' }}>
           <div className="p-1">
             {results.length === 0 ? (
               <div className="px-3 py-2 text-sm text-muted-foreground">No matches</div>
