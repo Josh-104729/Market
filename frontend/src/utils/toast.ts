@@ -1,34 +1,47 @@
 import { toast } from "@/hooks/use-toast"
 import { ReactNode } from 'react'
 
+type ToastOptions = {
+  duration?: number
+  title?: string
+}
+
+const defaultDuration = 5000
+
 export const showToast = {
-  success: (message: string | ReactNode, _options?: any) => {
+  success: (message: string | ReactNode, options?: ToastOptions) => {
     toast({
-      title: "Success",
+      title: options?.title || "Success",
       description: message as any,
-      variant: "default",
+      variant: "success",
+      duration: options?.duration ?? defaultDuration,
     })
   },
 
-  error: (message: string | ReactNode, _options?: any) => {
+  error: (message: string | ReactNode, options?: ToastOptions) => {
     toast({
-      title: "Error",
+      title: options?.title || "Error",
       description: message as any,
       variant: "destructive",
+      duration: options?.duration ?? defaultDuration,
     })
   },
 
-  info: (message: string | ReactNode, _options?: any) => {
+  info: (message: string | ReactNode, options?: ToastOptions) => {
     toast({
-      title: "Info",
+      title: options?.title || "Info",
       description: message as any,
+      variant: "info",
+      duration: options?.duration ?? defaultDuration,
     })
   },
 
-  warning: (message: string | ReactNode, _options?: any) => {
+  warning: (message: string | ReactNode, options?: ToastOptions) => {
     toast({
-      title: "Warning",
+      title: options?.title || "Warning",
       description: message as any,
+      variant: "warning",
+      duration: options?.duration ?? defaultDuration,
     })
   },
 }

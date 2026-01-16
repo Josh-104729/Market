@@ -58,21 +58,26 @@ export class MessageService {
     // Load message with sender info for WebSocket emission
     const messageWithSender = await this.findOne(savedMessage.id);
 
-    // Send message immediately to the SENDER only (receiver gets it only if it passes fraud check)
-    this.chatGateway.server.to(`user:${userId}`).emit('new_message', messageWithSender);
+    // Deliver the message immediately to ALL participants (sender + receiver) before fraud check
+    const participantIds = Array.from(
+      new Set([conversation.clientId, conversation.providerId, userId].filter(Boolean)),
+    ) as string[];
+    for (const pid of participantIds) {
+      this.chatGateway.server.to(`user:${pid}`).emit('new_message', messageWithSender);
+    }
 
-    // Evaluate fraud AFTER sender has received the message (requirement: check after message sent)
+    // Evaluate fraud AFTER message has been delivered (post-send check requirement)
     const fraudResult = await this.fraudService.evaluateMessage(conversationId, savedMessage);
 
     const recipients = [conversation.clientId, conversation.providerId].filter((id) => id && id !== userId);
     const allParticipants = Array.from(new Set([conversation.clientId, conversation.providerId].filter(Boolean))) as string[];
 
     if (fraudResult.isFraud) {
-      // Inform only the sender that their message was flagged
+      // Inform ALL participants that the message was flagged (receiver will hide content client-side)
       const fraudByMessageId = await this.fraudService.getFraudsByMessageIds([savedMessage.id]);
       const fd = fraudByMessageId.get(savedMessage.id);
 
-      this.chatGateway.server.to(`user:${userId}`).emit('message_fraud', {
+      const fraudPayload = {
         conversationId,
         messageId: savedMessage.id,
         fraud: fd
@@ -82,11 +87,10 @@ export class MessageService {
               confidence: fd.confidence || null,
             }
           : { category: null, reason: null, confidence: null },
-      });
-    } else {
-      // Not fraud => deliver to the OTHER participant(s)
-      for (const rid of recipients) {
-        this.chatGateway.server.to(`user:${rid}`).emit('new_message', messageWithSender);
+      };
+
+      for (const pid of participantIds) {
+        this.chatGateway.server.to(`user:${pid}`).emit('message_fraud', fraudPayload);
       }
     }
 
@@ -188,26 +192,33 @@ export class MessageService {
     const hasMore = messages.length > limit;
     const resultMessages = hasMore ? messages.slice(0, limit) : messages;
 
-    // Attach fraud info (if any) for UI rendering
+    // Attach fraud info (if any) for UI rendering and hide content from receivers when flagged
     const fraudByMessageId = await this.fraudService.getFraudsByMessageIds(resultMessages.map((m) => m.id));
-    for (const m of resultMessages) {
+    const visibleMessages = resultMessages.map((m) => {
       const fd = fraudByMessageId.get(m.id);
-      if (fd) {
-        (m as any).isFraud = true;
-        (m as any).fraud = {
-          category: fd.category || null,
-          reason: fd.reason || null,
-          confidence: fd.confidence || null,
-        };
-      } else {
-        (m as any).isFraud = false;
-      }
-    }
+      const isFraud = Boolean(fd);
+      const shouldHideContent = !isAdmin && isFraud && m.senderId !== userId;
 
-    // Hide fraud-flagged messages from NON-senders (receiver should never see flagged messages)
-    const visibleMessages = isAdmin
-      ? resultMessages
-      : resultMessages.filter((m: any) => !m.isFraud || m.senderId === userId);
+      const viewModel: any = {
+        ...m,
+        isFraud,
+        fraud: fd
+          ? {
+              category: fd.category || null,
+              reason: fd.reason || null,
+              confidence: fd.confidence || null,
+            }
+          : undefined,
+        contentHiddenForViewer: shouldHideContent,
+      };
+
+      if (shouldHideContent) {
+        viewModel.message = '';
+        viewModel.attachmentFiles = [];
+      }
+
+      return viewModel;
+    });
 
     // Reverse to get chronological order (oldest to newest)
     return {

@@ -24,6 +24,7 @@ import { Post } from './entities/post.entity';
 import { PostLike } from './entities/post-like.entity';
 import { PostComment } from './entities/post-comment.entity';
 import { PostCommentLike } from './entities/post-comment-like.entity';
+import { PostReport } from './entities/post-report.entity';
 import { Balance } from './entities/balance.entity';
 import { Transaction } from './entities/transaction.entity';
 import { TempWallet } from './entities/temp-wallet.entity';
@@ -68,6 +69,7 @@ import { ConversationReactivationRequest } from './entities/conversation-reactiv
           PostLike,
           PostComment,
           PostCommentLike,
+          PostReport,
           Balance,
           Transaction,
           TempWallet,

@@ -4,6 +4,7 @@ import { showToast } from '../utils/toast';
 // Use environment variable for API URL
 // Set VITE_API_URL in .env file (e.g., http://localhost:3000/api or https://your-backend.railway.app/api)
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+let isHandlingAuthExpiry = false;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -30,11 +31,26 @@ api.interceptors.response.use(
     if (error.response) {
       const status = error.response.status;
       const message = (error.response.data as any)?.message || error.message;
+      const requestUrl = error.config?.url || '';
+      const authHeader = (error.config?.headers as any)?.Authorization as string | undefined;
+      const hasToken = !!localStorage.getItem('accessToken');
+      const isAuthRoute = ['/auth/signin', '/auth/signup', '/auth/verify-email', '/auth/verify-2fa'].some((path) =>
+        requestUrl.includes(path)
+      );
 
       // Only show toast for certain error types
       if (status === 401) {
-        // Unauthorized - user will be redirected to sign in
-        // Don't show toast here to avoid duplicate messages
+        // Unauthorized - treat as session expired when a token was used.
+        if (authHeader && hasToken && !isAuthRoute && !isHandlingAuthExpiry) {
+          isHandlingAuthExpiry = true;
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('user');
+          window.dispatchEvent(new CustomEvent('auth-expired', { detail: { reason: 'http_401' } }));
+          setTimeout(() => {
+            isHandlingAuthExpiry = false;
+          }, 300);
+        }
+        // Don't show error toast for 401 to avoid duplicates
       } else if (status === 403) {
         showToast.error('You do not have permission to perform this action');
       } else if (status === 404) {
@@ -454,6 +470,7 @@ export interface Message {
   attachmentFiles?: string[];
   readAt?: string;
   isFraud?: boolean;
+  contentHiddenForViewer?: boolean;
   fraud?: {
     category?: string | null;
     reason?: string | null;
@@ -512,7 +529,7 @@ export interface Post {
   userId: string;
   content: string;
   images?: string[];
-  status: 'draft' | 'published' | 'archived';
+  status: 'pending' | 'published' | 'rejected' | 'archived';
   user?: {
     id: string;
     firstName?: string;
@@ -618,6 +635,10 @@ export const blogApi = {
   createComment: async (postId: string, data: CreateCommentData): Promise<PostComment> => {
     const response = await api.post(`/blog/${postId}/comments`, data);
     return response.data;
+  },
+
+  reportPost: async (postId: string, data: { reason: string; details?: string }): Promise<void> => {
+    await api.post(`/blog/${postId}/report`, data);
   },
 
   getComments: async (postId: string): Promise<PostComment[]> => {

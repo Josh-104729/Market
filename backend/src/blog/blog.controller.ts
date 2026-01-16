@@ -20,9 +20,12 @@ import { BlogService } from './blog.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { CreateReportDto } from './dto/create-report.dto';
+import { UpdateReportStatusDto } from './dto/update-report-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../admin/guards/admin.guard';
 import { PostStatus } from '../entities/post.entity';
+import { PostReportStatus } from '../entities/post-report.entity';
 import { StorageService } from '../storage/storage.service';
 
 @Controller('blog')
@@ -65,6 +68,12 @@ export class BlogController {
     });
   }
 
+  @Post(':id/report')
+  @UseGuards(JwtAuthGuard)
+  async reportPost(@Param('id') id: string, @Request() req, @Body() createReportDto: CreateReportDto) {
+    return this.blogService.reportPost(id, req.user.id, createReportDto);
+  }
+
   @Get()
   async findAll(
     @Query('page') page?: string,
@@ -75,6 +84,30 @@ export class BlogController {
     const limitNum = limit ? parseInt(limit, 10) : 10;
     const userId = req?.user?.id;
     return this.blogService.findAll(pageNum, limitNum, userId);
+  }
+
+  @Get('reports')
+  @UseGuards(AdminGuard)
+  async getReports(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: PostReportStatus,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.blogService.getReports(pageNum, limitNum, status);
+  }
+
+  @Get('admin')
+  @UseGuards(AdminGuard)
+  async findAllAdmin(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: PostStatus,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.blogService.findAllAdmin(pageNum, limitNum, status);
   }
 
   @Get(':id')
@@ -157,6 +190,12 @@ export class BlogController {
   @UseGuards(AdminGuard)
   async updateStatus(@Param('id') id: string, @Body('status') status: PostStatus) {
     return this.blogService.update(id, '', { status }, true);
+  }
+
+  @Patch('reports/:reportId/status')
+  @UseGuards(AdminGuard)
+  async updateReportStatus(@Param('reportId') reportId: string, @Body() body: UpdateReportStatusDto) {
+    return this.blogService.updateReportStatus(reportId, body);
   }
 
   @Delete(':id/admin')

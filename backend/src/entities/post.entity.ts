@@ -3,8 +3,9 @@ import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
 
 export enum PostStatus {
-  DRAFT = 'draft',
+  PENDING = 'pending',
   PUBLISHED = 'published',
+  REJECTED = 'rejected',
   ARCHIVED = 'archived',
 }
 
@@ -26,7 +27,7 @@ export class Post extends BaseEntity {
   @Column({
     type: 'enum',
     enum: PostStatus,
-    default: PostStatus.PUBLISHED,
+    default: PostStatus.PENDING,
   })
   status: PostStatus;
 

@@ -180,7 +180,7 @@ function CreateService() {
         },
         imageFile,
       )
-      showToast.success('Service created successfully!')
+      showToast.success('Service created successfully. Please wait until your service is approved.')
       navigate('/services')
     } catch (error: any) {
       console.error('Failed to create service:', error)

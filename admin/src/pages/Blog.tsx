@@ -10,13 +10,13 @@ import {
   faChevronRight,
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
-import { blogApi, Post } from '../services/api'
+import { blogApi, Post, PostReport } from '../services/api'
 
 interface ConfirmDialog {
   postId: string
   postContent: string
-  action: 'publish' | 'archive' | 'delete'
-  newStatus?: 'draft' | 'published' | 'archived'
+  action: 'approve' | 'reject' | 'archive' | 'delete'
+  newStatus?: Post['status']
 }
 
 function Blog() {
@@ -28,6 +28,9 @@ function Blog() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
+  const [reports, setReports] = useState<PostReport[]>([])
+  const [reportsLoading, setReportsLoading] = useState(true)
+  const [reportStatusFilter, setReportStatusFilter] = useState<'open' | 'resolved' | 'rejected' | ''>('open')
   const itemsPerPage = 10
 
   const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
@@ -55,20 +58,21 @@ function Blog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, statusFilter, searchTerm])
 
+  useEffect(() => {
+    fetchReports()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportStatusFilter])
+
   const fetchPosts = async () => {
     try {
       setLoading(true)
       const params: any = {
         page: currentPage,
         limit: itemsPerPage,
+        status: statusFilter || undefined,
       }
       const response = await blogApi.getAll(params)
       let filteredPosts = response.data
-
-      // Apply status filter
-      if (statusFilter) {
-        filteredPosts = filteredPosts.filter((post) => post.status === statusFilter)
-      }
 
       // Apply search filter
       if (searchTerm.trim()) {
@@ -94,11 +98,28 @@ function Blog() {
     }
   }
 
+  const fetchReports = async () => {
+    try {
+      setReportsLoading(true)
+      const response = await blogApi.getReports({
+        status: reportStatusFilter || undefined,
+        page: 1,
+        limit: 10,
+      })
+      setReports(response.data)
+    } catch (error) {
+      console.error('Failed to fetch reports:', error)
+      alert('Failed to load reports')
+    } finally {
+      setReportsLoading(false)
+    }
+  }
+
   const handleStatusChangeClick = (
     id: string,
     content: string,
-    action: 'publish' | 'archive' | 'delete',
-    newStatus?: 'draft' | 'published' | 'archived',
+    action: ConfirmDialog['action'],
+    newStatus?: Post['status'],
   ) => {
     setConfirmDialog({
       postId: id,
@@ -126,13 +147,33 @@ function Blog() {
     }
   }
 
+  const handleReportStatus = async (id: string, status: PostReport['status']) => {
+    try {
+      await blogApi.updateReportStatus(id, status)
+      fetchReports()
+    } catch (error) {
+      console.error('Failed to update report:', error)
+      alert('Failed to update report')
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     const badges = {
-      draft: 'bg-neutral-700 text-neutral-200',
+      pending: 'bg-blue-900 text-blue-200',
       published: 'bg-green-900 text-green-200',
+      rejected: 'bg-red-900 text-red-200',
       archived: 'bg-yellow-900 text-yellow-200',
     }
-    return badges[status as keyof typeof badges] || badges.draft
+    return badges[status as keyof typeof badges] || 'bg-neutral-700 text-neutral-200'
+  }
+
+  const getReportStatusBadge = (status: PostReport['status']) => {
+    const badges = {
+      open: 'bg-orange-900 text-orange-200',
+      resolved: 'bg-green-900 text-green-200',
+      rejected: 'bg-red-900 text-red-200',
+    }
+    return badges[status] || 'bg-neutral-700 text-neutral-200'
   }
 
   const getUserName = (post: Post) => {
@@ -141,6 +182,16 @@ function Blog() {
       return `${post.user.firstName || ''} ${post.user.lastName || ''}`.trim()
     }
     return post.user?.email || 'Anonymous'
+  }
+
+  const getReporterName = (report: PostReport) => {
+    const user = report.user
+    if (!user) return 'Unknown'
+    if (user.userName) return user.userName
+    if (user.firstName || user.lastName) {
+      return `${user.firstName || ''} ${user.lastName || ''}`.trim()
+    }
+    return user.email || 'Unknown'
   }
 
   return (
@@ -185,14 +236,14 @@ function Blog() {
               All Statuses
             </button>
             <button
-              onClick={() => setStatusFilter('draft')}
+              onClick={() => setStatusFilter('pending')}
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                statusFilter === 'draft'
-                  ? 'bg-neutral-600 text-white shadow-md'
+                statusFilter === 'pending'
+                  ? 'bg-blue-600 text-white shadow-md'
                   : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
               }`}
             >
-              Draft
+              Pending
             </button>
             <button
               onClick={() => setStatusFilter('published')}
@@ -205,6 +256,16 @@ function Blog() {
               Published
             </button>
             <button
+              onClick={() => setStatusFilter('rejected')}
+              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+                statusFilter === 'rejected'
+                  ? 'bg-red-600 text-white shadow-md'
+                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+              }`}
+            >
+              Rejected
+            </button>
+            <button
               onClick={() => setStatusFilter('archived')}
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                 statusFilter === 'archived'
@@ -215,6 +276,105 @@ function Blog() {
               Archived
             </button>
           </div>
+        </div>
+
+        {/* Reports */}
+        <div className="bg-neutral-800 rounded-xl shadow-md p-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Post reports</h3>
+              <p className="text-sm text-neutral-400">Review and take action on user reports.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {[
+                { label: 'Open', value: 'open' },
+                { label: 'Resolved', value: 'resolved' },
+                { label: 'Rejected', value: 'rejected' },
+                { label: 'All', value: '' },
+              ].map((item) => (
+                <button
+                  key={item.value || 'all'}
+                  onClick={() => setReportStatusFilter(item.value as any)}
+                  className={`px-3 py-2 rounded-lg font-medium text-sm transition-all ${
+                    reportStatusFilter === item.value
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {reportsLoading ? (
+            <p className="text-neutral-400">Loading reports...</p>
+          ) : reports.length === 0 ? (
+            <p className="text-neutral-400">No reports found for this filter.</p>
+          ) : (
+            <div className="space-y-4">
+              {reports.map((report) => (
+                <div
+                  key={report.id}
+                  className="rounded-lg border border-neutral-700 bg-neutral-900 p-4 flex flex-col gap-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-white">{report.reason}</span>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full font-semibold ${getReportStatusBadge(report.status)}`}
+                        >
+                          {report.status}
+                        </span>
+                      </div>
+                      {report.details && <p className="text-sm text-neutral-300">{report.details}</p>}
+                    </div>
+                    <div className="text-xs text-neutral-400 whitespace-nowrap">
+                      {new Date(report.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-neutral-300">
+                    <span className="text-neutral-400">Post:</span>{' '}
+                    <span className="font-medium text-white">
+                      {report.post?.content ? report.post.content.slice(0, 80) : 'Unknown post'}
+                      {report.post?.content && report.post.content.length > 80 ? '...' : ''}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 text-sm text-neutral-400">
+                    <div>Reported by: {getReporterName(report)}</div>
+                    <div className="flex items-center gap-2">
+                      {report.status === 'open' ? (
+                        <>
+                          <button
+                            onClick={() => handleReportStatus(report.id, 'resolved')}
+                            className="px-3 py-2 rounded-lg bg-green-700 text-white hover:bg-green-600 text-sm font-medium"
+                          >
+                            Resolve
+                          </button>
+                          <button
+                            onClick={() => handleReportStatus(report.id, 'rejected')}
+                            className="px-3 py-2 rounded-lg bg-red-700 text-white hover:bg-red-600 text-sm font-medium"
+                          >
+                            Reject
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleReportStatus(report.id, 'open')}
+                          className="px-3 py-2 rounded-lg bg-neutral-700 text-white hover:bg-neutral-600 text-sm font-medium"
+                        >
+                          Reopen
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Posts List */}
@@ -286,15 +446,25 @@ function Blog() {
 
                   {/* Actions */}
                   <div className="flex-shrink-0 flex flex-col space-y-2">
-                    {post.status === 'draft' && (
-                      <button
-                        onClick={() => handleStatusChangeClick(post.id, post.content, 'publish', 'published')}
-                        className="text-green-400 hover:text-green-300 font-medium px-3 py-1 rounded hover:bg-green-900/30 transition-all flex items-center space-x-1"
-                        title="Publish"
-                      >
-                        <FontAwesomeIcon icon={faCheck} />
-                        <span>Publish</span>
-                      </button>
+                    {post.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleStatusChangeClick(post.id, post.content, 'approve', 'published')}
+                          className="text-green-400 hover:text-green-300 font-medium px-3 py-1 rounded hover:bg-green-900/30 transition-all flex items-center space-x-1"
+                          title="Approve and publish"
+                        >
+                          <FontAwesomeIcon icon={faCheck} />
+                          <span>Approve</span>
+                        </button>
+                        <button
+                          onClick={() => handleStatusChangeClick(post.id, post.content, 'reject', 'rejected')}
+                          className="text-red-400 hover:text-red-300 font-medium px-3 py-1 rounded hover:bg-red-900/30 transition-all flex items-center space-x-1"
+                          title="Reject"
+                        >
+                          <FontAwesomeIcon icon={faExclamationTriangle} />
+                          <span>Reject</span>
+                        </button>
+                      </>
                     )}
                     {post.status === 'published' && (
                       <button
@@ -306,14 +476,14 @@ function Blog() {
                         <span>Archive</span>
                       </button>
                     )}
-                    {post.status === 'archived' && (
+                    {(post.status === 'archived' || post.status === 'rejected') && (
                       <button
-                        onClick={() => handleStatusChangeClick(post.id, post.content, 'publish', 'published')}
+                        onClick={() => handleStatusChangeClick(post.id, post.content, 'approve', 'published')}
                         className="text-green-400 hover:text-green-300 font-medium px-3 py-1 rounded hover:bg-green-900/30 transition-all flex items-center space-x-1"
-                        title="Unarchive"
+                        title="Publish"
                       >
                         <FontAwesomeIcon icon={faCheck} />
-                        <span>Unarchive</span>
+                        <span>Publish</span>
                       </button>
                     )}
                     <button
@@ -409,16 +579,26 @@ function Blog() {
                         ? 'bg-red-900'
                         : confirmDialog.action === 'archive'
                         ? 'bg-yellow-900'
+                        : confirmDialog.action === 'reject'
+                        ? 'bg-red-900'
                         : 'bg-green-900'
                     }`}
                   >
                     <FontAwesomeIcon
-                      icon={confirmDialog.action === 'delete' ? faTrash : faExclamationTriangle}
+                      icon={
+                        confirmDialog.action === 'delete'
+                          ? faTrash
+                          : confirmDialog.action === 'reject'
+                          ? faExclamationTriangle
+                          : faCheck
+                      }
                       className={`text-2xl ${
                         confirmDialog.action === 'delete'
                           ? 'text-red-300'
                           : confirmDialog.action === 'archive'
                           ? 'text-yellow-300'
+                          : confirmDialog.action === 'reject'
+                          ? 'text-red-300'
                           : 'text-green-300'
                       }`}
                     />
@@ -429,13 +609,17 @@ function Blog() {
                         ? 'Delete Post'
                         : confirmDialog.action === 'archive'
                         ? 'Archive Post'
-                        : 'Publish Post'}
+                        : confirmDialog.action === 'reject'
+                        ? 'Reject Post'
+                        : 'Approve Post'}
                     </h3>
                     <p className="text-sm text-neutral-400 mt-1">
                       {confirmDialog.action === 'delete'
                         ? 'This action cannot be undone'
                         : confirmDialog.action === 'archive'
                         ? 'This will hide the post from the feed'
+                        : confirmDialog.action === 'reject'
+                        ? 'This will mark the post as rejected and hide it from users'
                         : 'This will make the post visible to users'}
                     </p>
                   </div>
@@ -458,6 +642,8 @@ function Blog() {
                         ? 'bg-red-600 hover:bg-red-700'
                         : confirmDialog.action === 'archive'
                         ? 'bg-yellow-600 hover:bg-yellow-700'
+                        : confirmDialog.action === 'reject'
+                        ? 'bg-red-600 hover:bg-red-700'
                         : 'bg-green-600 hover:bg-green-700'
                     }`}
                   >
@@ -465,7 +651,9 @@ function Blog() {
                       ? 'Delete Post'
                       : confirmDialog.action === 'archive'
                       ? 'Archive Post'
-                      : 'Publish Post'}
+                      : confirmDialog.action === 'reject'
+                      ? 'Reject Post'
+                      : 'Approve Post'}
                   </button>
                 </div>
               </div>

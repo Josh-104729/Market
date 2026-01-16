@@ -6,7 +6,8 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+// Remove shortly after close so exit animation can finish.
+const TOAST_REMOVE_DELAY = 600
 
 type ToasterToast = ToastProps & {
   id: string

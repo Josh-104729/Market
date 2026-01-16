@@ -311,7 +311,7 @@ export interface Post {
   userId: string;
   content: string;
   images?: string[];
-  status: 'draft' | 'published' | 'archived';
+  status: 'pending' | 'published' | 'rejected' | 'archived';
   user?: {
     id: string;
     firstName?: string;
@@ -333,12 +333,41 @@ export interface PostListResponse {
   totalPages: number;
 }
 
+export interface PostReport {
+  id: string;
+  postId: string;
+  userId: string;
+  reason: string;
+  details?: string;
+  status: 'open' | 'resolved' | 'rejected';
+  resolutionNote?: string;
+  post?: Post;
+  user?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    userName?: string;
+    email?: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PostReportListResponse {
+  data: PostReport[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const blogApi = {
   getAll: async (params?: {
     page?: number;
     limit?: number;
+    status?: Post['status'];
   }): Promise<PostListResponse> => {
-    const response = await api.get('/blog', { params });
+    const response = await api.get('/blog/admin', { params });
     return response.data;
   },
 
@@ -347,13 +376,31 @@ export const blogApi = {
     return response.data;
   },
 
-  updateStatus: async (id: string, status: 'draft' | 'published' | 'archived'): Promise<Post> => {
+  updateStatus: async (id: string, status: Post['status']): Promise<Post> => {
     const response = await api.patch(`/blog/${id}/status`, { status });
     return response.data;
   },
 
   delete: async (id: string): Promise<void> => {
     await api.delete(`/blog/${id}/admin`);
+  },
+
+  getReports: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: PostReport['status'];
+  }): Promise<PostReportListResponse> => {
+    const response = await api.get('/blog/reports', { params });
+    return response.data;
+  },
+
+  updateReportStatus: async (
+    id: string,
+    status: PostReport['status'],
+    resolutionNote?: string,
+  ): Promise<PostReport> => {
+    const response = await api.patch(`/blog/reports/${id}/status`, { status, resolutionNote });
+    return response.data;
   },
 };
 
@@ -508,6 +555,13 @@ export interface Message {
   senderId: string
   message: string
   attachmentFiles?: string[]
+  isFraud?: boolean
+  contentHiddenForViewer?: boolean
+  fraud?: {
+    category?: string | null
+    reason?: string | null
+    confidence?: 'low' | 'medium' | 'high' | null
+  }
   sender?: {
     id: string
     firstName?: string

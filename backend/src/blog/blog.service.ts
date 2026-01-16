@@ -5,9 +5,12 @@ import { Post, PostStatus } from '../entities/post.entity';
 import { PostLike } from '../entities/post-like.entity';
 import { PostComment } from '../entities/post-comment.entity';
 import { PostCommentLike } from '../entities/post-comment-like.entity';
+import { PostReport, PostReportStatus } from '../entities/post-report.entity';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { CreateReportDto } from './dto/create-report.dto';
+import { UpdateReportStatusDto } from './dto/update-report-status.dto';
 
 @Injectable()
 export class BlogService {
@@ -20,6 +23,8 @@ export class BlogService {
     private postCommentRepository: Repository<PostComment>,
     @InjectRepository(PostCommentLike)
     private postCommentLikeRepository: Repository<PostCommentLike>,
+    @InjectRepository(PostReport)
+    private postReportRepository: Repository<PostReport>,
   ) {}
 
   async create(userId: string, createPostDto: CreatePostDto): Promise<Post> {
@@ -27,10 +32,27 @@ export class BlogService {
       userId,
       content: createPostDto.content,
       images: createPostDto.images || [],
-      status: PostStatus.PUBLISHED,
+      status: PostStatus.PENDING,
     });
 
     return this.postRepository.save(post);
+  }
+
+  async reportPost(postId: string, userId: string, createReportDto: CreateReportDto): Promise<PostReport> {
+    const post = await this.postRepository.findOne({ where: { id: postId } });
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const report = this.postReportRepository.create({
+      postId,
+      userId,
+      reason: createReportDto.reason,
+      details: createReportDto.details,
+      status: PostReportStatus.OPEN,
+    });
+
+    return this.postReportRepository.save(report);
   }
 
   async findAll(
@@ -77,6 +99,53 @@ export class BlogService {
           ...post,
           likeCount,
           isLiked,
+          commentCount,
+        };
+      }),
+    );
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: postsWithStats,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
+  }
+
+  async findAllAdmin(
+    page: number = 1,
+    limit: number = 10,
+    status?: PostStatus,
+  ): Promise<{ data: Post[]; total: number; page: number; limit: number; totalPages: number }> {
+    const queryBuilder = this.postRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.user', 'user')
+      .leftJoinAndSelect('post.likes', 'likes')
+      .leftJoinAndSelect('post.comments', 'comments')
+      .leftJoinAndSelect('comments.user', 'commentUser')
+      .orderBy('post.createdAt', 'DESC');
+
+    if (status) {
+      queryBuilder.where('post.status = :status', { status });
+    }
+
+    const total = await queryBuilder.getCount();
+    const skip = (page - 1) * limit;
+    const posts = await queryBuilder.skip(skip).take(limit).getMany();
+
+    const postsWithStats = await Promise.all(
+      posts.map(async (post) => {
+        const likeCount = post.likes?.length || 0;
+        const commentCount = await this.postCommentRepository.count({
+          where: { postId: post.id, parentId: null },
+        });
+
+        return {
+          ...post,
+          likeCount,
           commentCount,
         };
       }),
@@ -228,7 +297,15 @@ export class BlogService {
       parentId: createCommentDto.parentId || null,
     });
 
-    return this.postCommentRepository.save(comment);
+    const saved = await this.postCommentRepository.save(comment);
+
+    // Return with user relation so frontend can display commenter immediately
+    const withUser = await this.postCommentRepository.findOne({
+      where: { id: saved.id },
+      relations: ['user'],
+    });
+
+    return withUser as PostComment;
   }
 
   async getComments(postId: string, userId?: string): Promise<PostComment[]> {
@@ -300,6 +377,58 @@ export class BlogService {
     }
 
     await this.postCommentRepository.remove(comment);
+  }
+
+  async getReports(
+    page: number = 1,
+    limit: number = 10,
+    status?: PostReportStatus,
+  ): Promise<{ data: PostReport[]; total: number; page: number; limit: number; totalPages: number }> {
+    const queryBuilder = this.postReportRepository
+      .createQueryBuilder('report')
+      .leftJoinAndSelect('report.post', 'post')
+      .leftJoinAndSelect('report.user', 'user')
+      .orderBy('report.createdAt', 'DESC');
+
+    if (status) {
+      queryBuilder.where('report.status = :status', { status });
+    }
+
+    const total = await queryBuilder.getCount();
+    const reports = await queryBuilder
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
+
+    return {
+      data: reports,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async updateReportStatus(reportId: string, updateReportStatusDto: UpdateReportStatusDto): Promise<PostReport> {
+    const report = await this.postReportRepository.findOne({ where: { id: reportId } });
+    if (!report) {
+      throw new NotFoundException('Report not found');
+    }
+
+    report.status = updateReportStatusDto.status;
+    report.resolutionNote = updateReportStatusDto.resolutionNote;
+    await this.postReportRepository.save(report);
+
+    const updated = await this.postReportRepository.findOne({
+      where: { id: reportId },
+      relations: ['post', 'user'],
+    });
+
+    if (!updated) {
+      throw new NotFoundException('Report not found after update');
+    }
+
+    return updated;
   }
 }
 

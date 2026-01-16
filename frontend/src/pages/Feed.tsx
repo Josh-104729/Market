@@ -6,12 +6,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Label } from "@/components/ui/label"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +36,7 @@ import {
   Image as ImageIcon,
   Loader2,
   MessageCircle,
+  PlusCircle,
   Send,
   Share2,
   X,
@@ -64,6 +74,10 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
   const [loadingComments, setLoadingComments] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reportReason, setReportReason] = useState('')
+  const [reportDetails, setReportDetails] = useState('')
+  const [submittingReport, setSubmittingReport] = useState(false)
   const { isAuthenticated } = useAppSelector((state) => state.auth)
 
   const toggleComments = async () => {
@@ -101,13 +115,40 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
     }
   }
 
+  const handleReport = async () => {
+    if (!isAuthenticated) {
+      showToast.error("Sign in to report a post")
+      setReportOpen(false)
+      return
+    }
+    if (!reportReason.trim()) {
+      showToast.warning("Please provide a reason")
+      return
+    }
+
+    setSubmittingReport(true)
+    try {
+      await blogApi.reportPost(post.id, { reason: reportReason.trim(), details: reportDetails.trim() || undefined })
+      showToast.success("Report submitted. Thank you for your feedback.")
+      setReportOpen(false)
+      setReportReason("")
+      setReportDetails("")
+    } catch (error) {
+      console.error("Failed to report post:", error)
+      showToast.error("Failed to submit report")
+    } finally {
+      setSubmittingReport(false)
+    }
+  }
+
   const displayName = useMemo(() => getDisplayName(post), [post])
   const avatarUrl = post.user?.avatar || ""
   const avatarFallback = (displayName?.[0] || "A").toUpperCase()
 
   return (
-    <Card id={`post-${post.id}`} className="overflow-hidden">
-      <CardHeader className="space-y-3 pb-3">
+    <>
+      <Card id={`post-${post.id}`} className="overflow-hidden">
+        <CardHeader className="space-y-3 pb-3">
         <div className="flex items-start gap-3">
           <Avatar className="h-10 w-10">
             <AvatarImage src={avatarUrl} alt={displayName} />
@@ -141,9 +182,10 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
                       Copy link
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => {
-                        showToast.info("Report is coming soon.")
-                      }}
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      setReportOpen(true)
+                    }}
                     >
                       Report
                     </DropdownMenuItem>
@@ -327,8 +369,47 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
             )}
           </CollapsibleContent>
         </Collapsible>
-      </CardFooter>
-    </Card>
+        </CardFooter>
+      </Card>
+
+      <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Report post</DialogTitle>
+            <DialogDescription>Tell us what is wrong with this post.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="report-reason">Reason</Label>
+              <Input
+                id="report-reason"
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                placeholder="Spam, harassment, inappropriate content..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="report-details">Details (optional)</Label>
+              <Textarea
+                id="report-details"
+                value={reportDetails}
+                onChange={(e) => setReportDetails(e.target.value)}
+                placeholder="Add any additional information to help review."
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setReportOpen(false)} disabled={submittingReport}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={() => void handleReport()} disabled={submittingReport}>
+              {submittingReport ? "Submitting..." : "Submit report"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
@@ -410,13 +491,12 @@ function Feed() {
 
     setSubmittingPost(true)
     try {
-      const newPost = await blogApi.create({ content: postContent.trim() }, postImages.length > 0 ? postImages : undefined)
-      setPosts([newPost, ...posts])
+      await blogApi.create({ content: postContent.trim() }, postImages.length > 0 ? postImages : undefined)
       setPostContent('')
       setPostImages([])
       setImagePreviews([])
       setIsCreatingPost(false)
-      showToast.success('Post created successfully!')
+      showToast.success('Post submitted for review. It will appear after approval.')
     } catch (error) {
       console.error('Failed to create post:', error)
       showToast.error('Failed to create post')
@@ -448,6 +528,9 @@ function Feed() {
 
   const visiblePosts = useMemo(() => {
     let data = [...posts]
+
+    // Only show published posts on the public feed
+    data = data.filter((p) => p.status === 'published')
 
     if (activeTag) {
       data = data.filter((p) => extractHashtags(p.content || "").includes(activeTag))
@@ -482,15 +565,21 @@ function Feed() {
           {/* Composer */}
           {isAuthenticated ? (
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-6">
                 {!isCreatingPost ? (
                   <Button
                     type="button"
-                    variant="ghost"
-                    className="h-auto justify-start px-3 py-4 text-muted-foreground"
+                    variant="secondary"
+                    className="h-auto w-full justify-start gap-3 px-4 py-5 text-left shadow-sm"
                     onClick={() => setIsCreatingPost(true)}
                   >
-                    Share an update...
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <PlusCircle className="h-5 w-5" />
+                    </span>
+                    <span className="flex flex-col items-start gap-1">
+                      <span className="text-base font-semibold text-foreground">Create a post</span>
+                      <span className="text-sm text-muted-foreground">Share an update, ask a question, or add photos.</span>
+                    </span>
                   </Button>
                 ) : (
                   <div className="flex items-center justify-between">

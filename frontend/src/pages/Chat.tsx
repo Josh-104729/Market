@@ -327,6 +327,9 @@ function Chat() {
                 ...m,
                 isFraud: true,
                 fraud: data.fraud || { category: null, reason: null, confidence: null },
+                contentHiddenForViewer: m.senderId !== user?.id && user?.role !== 'admin' ? true : m.contentHiddenForViewer,
+                message: m.senderId !== user?.id && user?.role !== 'admin' ? '' : m.message,
+                attachmentFiles: m.senderId !== user?.id && user?.role !== 'admin' ? [] : m.attachmentFiles,
               }
             : m,
         ),
@@ -517,7 +520,7 @@ function Chat() {
         clearTimeout(markReadTimeoutRef.current)
       }
     }
-  }, [id, user?.id])
+  }, [id, user?.id, user?.role])
 
   useEffect(() => {
     // Only auto-scroll if we're not loading older messages and user is near bottom
@@ -1410,6 +1413,10 @@ function Chat() {
                     if (item.type === 'message') {
                       const message = item.data as Message
                       const isOwn = message.senderId === user?.id
+                      const hideContentForViewer =
+                        Boolean((message as any).contentHiddenForViewer) ||
+                        ((!isOwn && user?.role !== 'admin') && Boolean((message as any).isFraud || (message as any).fraud))
+                      const fraudReason = (message as any).fraud?.reason
                       const sender = message.sender
                       const messageIndex = messageIndexById.get(message.id) ?? -1
                       const isSelected = selectedMessageIds.has(message.id)
@@ -1520,12 +1527,12 @@ function Chat() {
                                   selectionMode ? 'cursor-pointer select-none' : '',
                                 ].join(' ')}
                               >
-                                {message.message && (
+                                {message.message && !hideContentForViewer && (
                                   <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mb-2">{message.message}</p>
                                 )}
 
                                 {/* File Attachments */}
-                                {message.attachmentFiles && message.attachmentFiles.length > 0 && (
+                                {message.attachmentFiles && message.attachmentFiles.length > 0 && !hideContentForViewer && (
                                   <div className="space-y-3 mb-2">
                                     {message.attachmentFiles.map((fileUrl, index) => {
                                       const fileName = fileUrl.split('/').pop() || `file-${index + 1}`
@@ -1772,11 +1779,16 @@ function Chat() {
                                         <AlertTitle className={`text-[11px] ${isOwn ? 'text-primary-foreground' : ''}`}>
                                           This message was flagged by fraud detection
                                         </AlertTitle>
-                                        {(message as any).fraud?.reason ? (
+                                        {fraudReason ? (
                                           <AlertDescription className={`text-[11px] ${isOwn ? 'text-primary-foreground/75' : ''}`}>
-                                            {(message as any).fraud.reason}
+                                            {fraudReason}
                                           </AlertDescription>
                                         ) : null}
+                                        {hideContentForViewer && (
+                                          <AlertDescription className={`text-[11px] ${isOwn ? 'text-primary-foreground/75' : ''}`}>
+                                            Message content is hidden for your safety.
+                                          </AlertDescription>
+                                        )}
                                       </div>
                                     </div>
                                   </Alert>
