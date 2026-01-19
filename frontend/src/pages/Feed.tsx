@@ -132,7 +132,8 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
   const [submittingReport, setSubmittingReport] = useState(false)
   const { isAuthenticated } = useAppSelector((state) => state.auth)
   
-  const { title, body } = useMemo(() => parsePostContent(post.content || ''), [post.content])
+  const title = post.title || ''
+  const body = post.content || ''
   const shouldTruncate = useMemo(() => needsTruncation(body), [body])
   
   const handleCardClick = (e: React.MouseEvent) => {
@@ -285,22 +286,28 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
               post.images.length === 1 ? "grid-cols-1" : "grid-cols-2",
             ].join(" ")}
           >
-            {post.images.map((image, idx) => {
+            {post.images.slice(0, 2).map((image, idx) => {
               const imageUrl = image.startsWith("http") ? image : image
+              const isLast = idx === 1 && post.images.length > 2
               return (
-                <button
+                <div
                   key={idx}
-                  type="button"
-                  className="group relative overflow-hidden rounded-md border bg-muted"
-                  onClick={() => window.open(imageUrl, "_blank")}
+                  className="group relative overflow-hidden rounded-lg border bg-muted w-full max-h-80"
                 >
                   <img
                     src={imageUrl}
                     alt={`Post image ${idx + 1}`}
-                    className="h-full w-full object-cover transition-opacity group-hover:opacity-90"
+                    className="w-full h-auto max-h-80 object-contain transition-opacity group-hover:opacity-90"
                     onError={() => console.error("Failed to load image:", imageUrl)}
                   />
-                </button>
+                  {isLast && post.images.length > 2 ? (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <span className="text-white font-semibold text-sm">
+                        +{post.images.length - 2} more
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
               )
             })}
           </div>
@@ -538,7 +545,7 @@ function Feed() {
       setLoading(true)
       const params: any = {
         page: pageToFetch,
-        limit: 10,
+        limit: 5,
       }
       if (searchTerm.trim()) {
         params.search = searchTerm.trim()
@@ -576,14 +583,41 @@ function Feed() {
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    if (files.length > 10) {
-      showToast.warning('Maximum 10 images allowed')
+    
+    if (files.length === 0) return
+
+    // Check total count including existing images
+    const currentCount = postImages.length
+    const newCount = currentCount + files.length
+    
+    if (newCount > 10) {
+      const remaining = 10 - currentCount
+      if (remaining > 0) {
+        showToast.warning(`You can add ${remaining} more image${remaining === 1 ? '' : 's'}. Maximum 10 images allowed.`)
+        // Only add up to the limit
+        const filesToAdd = files.slice(0, remaining)
+        setPostImages((prev) => [...prev, ...filesToAdd])
+        const newPreviews = filesToAdd.map((file) => URL.createObjectURL(file))
+        setImagePreviews((prev) => [...prev, ...newPreviews])
+      } else {
+        showToast.warning('Maximum 10 images already added. Please remove some images first.')
+      }
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
       return
     }
 
-    setPostImages(files)
-    const previews = files.map((file) => URL.createObjectURL(file))
-    setImagePreviews(previews)
+    // Append new images to existing ones
+    setPostImages((prev) => [...prev, ...files])
+    const newPreviews = files.map((file) => URL.createObjectURL(file))
+    setImagePreviews((prev) => [...prev, ...newPreviews])
+    
+    // Reset input value so user can select the same files again if needed
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   const removeImage = (index: number) => {
@@ -599,16 +633,10 @@ function Feed() {
 
     setSubmittingPost(true)
     try {
-      // Combine title (as bold) and content
-      let finalContent = ''
-      if (postTitle.trim()) {
-        finalContent = `<p><strong>${postTitle.trim()}</strong></p>`
-      }
-      if (postContent.trim()) {
-        finalContent += postContent.trim()
-      }
-      
-      await blogApi.create({ content: finalContent }, postImages.length > 0 ? postImages : undefined)
+      await blogApi.create({ 
+        title: postTitle.trim() || undefined,
+        content: postContent.trim() 
+      }, postImages.length > 0 ? postImages : undefined)
       setPostTitle('')
       setPostContent('')
       setPostImages([])
@@ -628,6 +656,23 @@ function Feed() {
       setPage((prev) => prev + 1)
     }
   }
+
+  // Infinite scroll: load more posts when scrolling near the bottom
+  useEffect(() => {
+    const handleScroll = () => {
+      // Calculate if user is near the bottom of the page (within 200px)
+      const scrollPosition = window.innerHeight + window.scrollY
+      const documentHeight = document.documentElement.scrollHeight
+      
+      if (documentHeight - scrollPosition < 200 && !loading && hasMore) {
+        loadMore()
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, hasMore])
 
   const trendingTags = useMemo(() => {
     const counts = new Map<string, number>()
@@ -857,16 +902,15 @@ function Feed() {
                 <PostCard key={post.id} post={post} onLike={handleLike} />
               ))}
 
-              {hasMore ? (
-                <div className="flex justify-center pt-2">
-                  <Button type="button" variant="outline" onClick={loadMore} disabled={loading} className="gap-2">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    {loading ? "Loading..." : "Load more"}
-                  </Button>
+              {loading && posts.length > 0 ? (
+                <div className="flex justify-center pt-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
-              ) : (
-                <div className="py-2 text-center text-xs text-muted-foreground">You're all caught up.</div>
-              )}
+              ) : null}
+
+              {!hasMore && visiblePosts.length > 0 ? (
+                <div className="py-4 text-center text-xs text-muted-foreground">You're all caught up.</div>
+              ) : null}
             </div>
           )}
         </div>

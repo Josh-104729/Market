@@ -18,6 +18,9 @@ export class Post extends BaseEntity {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  title: string;
+
   @Column({ type: 'text' })
   content: string;
 

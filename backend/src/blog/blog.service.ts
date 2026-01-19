@@ -30,6 +30,7 @@ export class BlogService {
   async create(userId: string, createPostDto: CreatePostDto): Promise<Post> {
     const post = this.postRepository.create({
       userId,
+      title: createPostDto.title,
       content: createPostDto.content,
       images: createPostDto.images || [],
       status: PostStatus.PENDING,
@@ -256,6 +257,9 @@ export class BlogService {
       throw new ForbiddenException('You can only update your own posts');
     }
 
+    if (updatePostDto.title !== undefined) {
+      post.title = updatePostDto.title;
+    }
     if (updatePostDto.content !== undefined) {
       post.content = updatePostDto.content;
     }

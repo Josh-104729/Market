@@ -35,7 +35,6 @@ import {
   MessageCircle,
   Send,
   Share2,
-  X,
 } from "lucide-react"
 
 function formatTimeAgo(dateString: string) {
@@ -212,7 +211,9 @@ function FeedDetail() {
   }
 
   const displayName = useMemo(() => post ? getDisplayName(post) : '', [post])
-  const { title, body } = useMemo(() => post ? parsePostContent(post.content || '') : { title: '', body: '' }, [post])
+  // Use post.title if available, otherwise try to parse from content for backward compatibility
+  const title = post?.title || ''
+  const body = post?.content || ''
   const avatarUrl = post?.user?.avatar || ""
   const avatarFallback = (displayName?.[0] || "A").toUpperCase()
 
@@ -340,19 +341,17 @@ function FeedDetail() {
               {post.images.map((image, idx) => {
                 const imageUrl = image.startsWith("http") ? image : image
                 return (
-                  <button
+                  <div
                     key={idx}
-                    type="button"
-                    className="group relative overflow-hidden rounded-md border bg-muted"
-                    onClick={() => window.open(imageUrl, "_blank")}
+                    className="group relative overflow-hidden rounded-lg border bg-muted w-full max-h-[600px]"
                   >
                     <img
                       src={imageUrl}
                       alt={`Post image ${idx + 1}`}
-                      className="h-full w-full object-cover transition-opacity group-hover:opacity-90"
+                      className="w-full h-auto max-h-[600px] object-contain transition-opacity group-hover:opacity-90"
                       onError={() => console.error("Failed to load image:", imageUrl)}
                     />
-                  </button>
+                  </div>
                 )
               })}
             </div>

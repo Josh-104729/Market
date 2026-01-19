@@ -537,6 +537,7 @@ export interface CreateMilestoneData {
 export interface Post {
   id: string;
   userId: string;
+  title?: string;
   content: string;
   images?: string[];
   status: 'pending' | 'published' | 'rejected' | 'archived';
@@ -576,6 +577,7 @@ export interface PostComment {
 }
 
 export interface CreatePostData {
+  title?: string;
   content: string;
   images?: string[];
 }
@@ -588,6 +590,9 @@ export interface CreateCommentData {
 export const blogApi = {
   create: async (data: CreatePostData, imageFiles?: File[]): Promise<Post> => {
     const formData = new FormData();
+    if (data.title) {
+      formData.append('title', data.title);
+    }
     formData.append('content', data.content);
     if (imageFiles && imageFiles.length > 0) {
       imageFiles.forEach((file) => {
@@ -619,6 +624,9 @@ export const blogApi = {
 
   update: async (id: string, data: CreatePostData, imageFiles?: File[]): Promise<Post> => {
     const formData = new FormData();
+    if (data.title !== undefined) {
+      formData.append('title', data.title || '');
+    }
     formData.append('content', data.content);
     if (imageFiles && imageFiles.length > 0) {
       imageFiles.forEach((file) => {
