@@ -58,43 +58,6 @@ function getDisplayName(post: Post) {
 }
 
 // Helper function to parse post content and extract title
-function parsePostContent(content: string): { title: string; body: string } {
-  if (!content) return { title: '', body: '' }
-  
-  // Check if content starts with <p><strong>...</strong></p> (title formatted as bold paragraph)
-  const titleMatch1 = content.match(/^<p><strong>(.*?)<\/strong><\/p>(.*)$/s)
-  if (titleMatch1) {
-    const titleText = titleMatch1[1].replace(/<[^>]*>/g, '').trim()
-    const bodyContent = titleMatch1[2].trim()
-    if (titleText) {
-      return { title: titleText, body: bodyContent || '' }
-    }
-  }
-  
-  // Check if content starts with <p><strong>...</strong> (without closing </p>)
-  const titleMatch2 = content.match(/^<p><strong>(.*?)<\/strong>(.*?)(<\/p>.*)$/s)
-  if (titleMatch2) {
-    const titleText = titleMatch2[1].replace(/<[^>]*>/g, '').trim()
-    const bodyContent = (titleMatch2[2] + titleMatch2[3]).trim()
-    if (titleText) {
-      return { title: titleText, body: bodyContent || '' }
-    }
-  }
-  
-  // Check if content starts with <strong>...</strong> (direct bold)
-  const boldMatch = content.match(/^<strong>(.*?)<\/strong>(.*)$/s)
-  if (boldMatch) {
-    const titleText = boldMatch[1].replace(/<[^>]*>/g, '').trim()
-    const bodyContent = boldMatch[2].trim()
-    if (titleText && bodyContent) {
-      return { title: titleText, body: bodyContent }
-    }
-  }
-  
-  // No title found, return empty title and full content as body
-  return { title: '', body: content }
-}
-
 function FeedDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()

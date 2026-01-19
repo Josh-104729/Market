@@ -72,44 +72,6 @@ function extractHashtags(text: string): string[] {
   return matches.map((t) => t.toLowerCase())
 }
 
-// Helper function to parse post content and extract title
-function parsePostContent(content: string): { title: string; body: string } {
-  if (!content) return { title: '', body: '' }
-  
-  // Check if content starts with <p><strong>...</strong></p> (title formatted as bold paragraph)
-  const titleMatch1 = content.match(/^<p><strong>(.*?)<\/strong><\/p>(.*)$/s)
-  if (titleMatch1) {
-    const titleText = titleMatch1[1].replace(/<[^>]*>/g, '').trim()
-    const bodyContent = titleMatch1[2].trim()
-    if (titleText) {
-      return { title: titleText, body: bodyContent || '' }
-    }
-  }
-  
-  // Check if content starts with <p><strong>...</strong> (without closing </p>)
-  const titleMatch2 = content.match(/^<p><strong>(.*?)<\/strong>(.*?)(<\/p>.*)$/s)
-  if (titleMatch2) {
-    const titleText = titleMatch2[1].replace(/<[^>]*>/g, '').trim()
-    const bodyContent = (titleMatch2[2] + titleMatch2[3]).trim()
-    if (titleText) {
-      return { title: titleText, body: bodyContent || '' }
-    }
-  }
-  
-  // Check if content starts with <strong>...</strong> (direct bold)
-  const boldMatch = content.match(/^<strong>(.*?)<\/strong>(.*)$/s)
-  if (boldMatch) {
-    const titleText = boldMatch[1].replace(/<[^>]*>/g, '').trim()
-    const bodyContent = boldMatch[2].trim()
-    if (titleText && bodyContent) {
-      return { title: titleText, body: bodyContent }
-    }
-  }
-  
-  // No title found, return empty title and full content as body
-  return { title: '', body: content }
-}
-
 // Helper function to check if content needs truncation
 function needsTruncation(html: string): boolean {
   if (!html) return false
@@ -288,7 +250,8 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
           >
             {post.images.slice(0, 2).map((image, idx) => {
               const imageUrl = image.startsWith("http") ? image : image
-              const isLast = idx === 1 && post.images.length > 2
+              const imagesLength = post.images?.length || 0
+              const isLast = idx === 1 && imagesLength > 2
               return (
                 <div
                   key={idx}
@@ -300,10 +263,10 @@ const PostCard = ({ post, onLike }: { post: Post; onLike: (postId: string) => vo
                     className="w-full h-auto max-h-80 object-contain transition-opacity group-hover:opacity-90"
                     onError={() => console.error("Failed to load image:", imageUrl)}
                   />
-                  {isLast && post.images.length > 2 ? (
+                  {isLast && imagesLength > 2 ? (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                       <span className="text-white font-semibold text-sm">
-                        +{post.images.length - 2} more
+                        +{imagesLength - 2} more
                       </span>
                     </div>
                   ) : null}
