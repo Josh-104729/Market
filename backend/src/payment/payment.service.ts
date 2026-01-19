@@ -72,6 +72,42 @@ export class PaymentService {
     return balance;
   }
 
+  async getUserStatistics(userId: string): Promise<{ totalSpent: number; totalEarned: number }> {
+    // Calculate total spent: CHARGE transactions (successful) + MILESTONE_PAYMENT where user is client (successful)
+    const spentFromCharges = await this.transactionRepository
+      .createQueryBuilder('transaction')
+      .select('COALESCE(SUM(transaction.amount), 0)', 'total')
+      .where('transaction.clientId = :userId', { userId })
+      .andWhere('transaction.type = :type', { type: TransactionType.CHARGE })
+      .andWhere('transaction.status = :status', { status: TransactionStatus.SUCCESS })
+      .getRawOne();
+
+    const spentFromMilestones = await this.transactionRepository
+      .createQueryBuilder('transaction')
+      .select('COALESCE(SUM(transaction.amount), 0)', 'total')
+      .where('transaction.clientId = :userId', { userId })
+      .andWhere('transaction.type = :type', { type: TransactionType.MILESTONE_PAYMENT })
+      .andWhere('transaction.status = :status', { status: TransactionStatus.SUCCESS })
+      .getRawOne();
+
+    // Calculate total earned: MILESTONE_PAYMENT where user is provider (successful)
+    const earnedFromMilestones = await this.transactionRepository
+      .createQueryBuilder('transaction')
+      .select('COALESCE(SUM(transaction.amount), 0)', 'total')
+      .where('transaction.providerId = :userId', { userId })
+      .andWhere('transaction.type = :type', { type: TransactionType.MILESTONE_PAYMENT })
+      .andWhere('transaction.status = :status', { status: TransactionStatus.SUCCESS })
+      .getRawOne();
+
+    const totalSpent = parseFloat(spentFromCharges?.total || '0') + parseFloat(spentFromMilestones?.total || '0');
+    const totalEarned = parseFloat(earnedFromMilestones?.total || '0');
+
+    return {
+      totalSpent,
+      totalEarned,
+    };
+  }
+
 
   async getTransactions(
     userId: string,

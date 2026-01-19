@@ -14,6 +14,11 @@ export class PaymentController {
     return this.paymentService.getBalance(req.user.id);
   }
 
+  @Get('statistics')
+  async getStatistics(@Request() req) {
+    return this.paymentService.getUserStatistics(req.user.id);
+  }
+
   @Get('transactions')
   async getTransactions(
     @Request() req,

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Post, PostStatus } from '../entities/post.entity';
@@ -14,6 +14,8 @@ import { UpdateReportStatusDto } from './dto/update-report-status.dto';
 
 @Injectable()
 export class BlogService {
+  private readonly logger = new Logger(BlogService.name);
+  
   constructor(
     @InjectRepository(Post)
     private postRepository: Repository<Post>,
@@ -28,15 +30,36 @@ export class BlogService {
   ) {}
 
   async create(userId: string, createPostDto: CreatePostDto): Promise<Post> {
+    // Ensure images is always an array, even if empty
+    const images = Array.isArray(createPostDto.images) ? createPostDto.images : [];
+    
     const post = this.postRepository.create({
       userId,
       title: createPostDto.title,
       content: createPostDto.content,
-      images: createPostDto.images || [],
+      images: images,
       status: PostStatus.PENDING,
     });
 
-    return this.postRepository.save(post);
+    const savedPost = await this.postRepository.save(post);
+    
+    // Verify images were saved correctly - reload to ensure JSON is properly parsed
+    const reloadedPost = await this.postRepository.findOne({ where: { id: savedPost.id } });
+    
+    if (images.length > 0) {
+      const savedImages = Array.isArray(reloadedPost?.images) ? reloadedPost.images : [];
+      if (savedImages.length === 0) {
+        this.logger.error(`Failed to save post images. Expected ${images.length}, got 0. Post ID: ${savedPost.id}`);
+        // Try to save again with explicit JSON
+        await this.postRepository.update(savedPost.id, { images: images });
+        const retryPost = await this.postRepository.findOne({ where: { id: savedPost.id } });
+        if (retryPost) {
+          return retryPost;
+        }
+      }
+    }
+    
+    return reloadedPost || savedPost;
   }
 
   async reportPost(postId: string, userId: string, createReportDto: CreateReportDto): Promise<PostReport> {
@@ -120,8 +143,12 @@ export class BlogService {
           where: { postId: post.id, parentId: null },
         });
 
+        // Ensure images is always an array
+        const normalizedImages = Array.isArray(post.images) ? post.images : (post.images ? [post.images] : []);
+        
         return {
           ...post,
+          images: normalizedImages,
           likeCount,
           isLiked,
           commentCount,
@@ -168,8 +195,12 @@ export class BlogService {
           where: { postId: post.id, parentId: null },
         });
 
+        // Ensure images is always an array
+        const normalizedImages = Array.isArray(post.images) ? post.images : (post.images ? [post.images] : []);
+        
         return {
           ...post,
+          images: normalizedImages,
           likeCount,
           commentCount,
         };
@@ -235,8 +266,12 @@ export class BlogService {
       }),
     );
 
+    // Ensure images is always an array
+    const normalizedImages = Array.isArray(post.images) ? post.images : (post.images ? [post.images] : []);
+    
     return {
       ...post,
+      images: normalizedImages,
       likeCount,
       isLiked,
       comments: commentsWithStats.filter(Boolean) as PostComment[],
@@ -257,20 +292,53 @@ export class BlogService {
       throw new ForbiddenException('You can only update your own posts');
     }
 
+    // Store original images BEFORE any modifications
+    const originalImages = Array.isArray(post.images) ? [...post.images] : (post.images ? [post.images] : []);
+
     if (updatePostDto.title !== undefined) {
       post.title = updatePostDto.title;
     }
     if (updatePostDto.content !== undefined) {
       post.content = updatePostDto.content;
     }
+    // Only update images if explicitly provided (not undefined)
+    // This preserves existing images when updating other fields like status
     if (updatePostDto.images !== undefined) {
-      post.images = updatePostDto.images;
+      // Ensure images is always an array
+      post.images = Array.isArray(updatePostDto.images) ? updatePostDto.images : [];
+    } else {
+      // Explicitly preserve existing images if not provided in update
+      post.images = originalImages;
     }
+    // Preserve existing images if status is being updated without image changes
     if (updatePostDto.status !== undefined) {
       post.status = updatePostDto.status;
+      // Ensure images are preserved when updating status
+      if (updatePostDto.images === undefined) {
+        // Explicitly set images to original to ensure they're preserved
+        post.images = originalImages;
+      }
     }
-
-    await this.postRepository.save(post);
+    
+    const savedPost = await this.postRepository.save(post);
+    
+    // Reload post to ensure JSON is properly parsed
+    const reloadedPost = await this.postRepository.findOne({ where: { id: savedPost.id } });
+    
+    // Verify images were preserved if they existed before
+    if (originalImages.length > 0 && updatePostDto.images === undefined) {
+      const savedImages = Array.isArray(reloadedPost?.images) ? reloadedPost.images : [];
+      if (savedImages.length === 0) {
+        this.logger.error(`Failed to preserve post images during update. Post ID: ${id}, Original images: ${originalImages.length}`);
+        // Try to restore images
+        await this.postRepository.update(id, { images: originalImages });
+        const retryPost = await this.postRepository.findOne({ where: { id } });
+        if (retryPost) {
+          return this.findOne(id, userId);
+        }
+      }
+    }
+    
     return this.findOne(id, userId);
   }
 

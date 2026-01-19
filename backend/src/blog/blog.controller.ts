@@ -140,10 +140,16 @@ export class BlogController {
     @Body() updatePostDto: UpdatePostDto,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
+    // Only update images if new files are uploaded
+    // This preserves existing images when updating other fields like status
     if (files && files.length > 0) {
       // Upload all files to Backblaze B2
       const imageUrls = await this.storageService.uploadFiles(files, 'posts');
       updatePostDto.images = imageUrls;
+    } else {
+      // Explicitly set images to undefined if no new files are uploaded
+      // This prevents clearing existing images when updating other fields
+      delete updatePostDto.images;
     }
     return this.blogService.update(id, req.user.id, updatePostDto);
   }

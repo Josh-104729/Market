@@ -44,10 +44,60 @@ export class FraudDetectorService {
 You are a fraud detection engine for a real-time chat platform.
 
 Fraud criteria:
-1. Attempts to move conversation off-platform (Telegram, WhatsApp, Discord).
-2. Sharing or requesting off-platform usernames/handles/links for Telegram/WhatsApp/Discord.
-3. Requests for money, crypto, gift cards, wire transfers, wallet addresses or payment instructions.
-4. Discussion about communicating outside of this platform.
+
+  - Allow:
+
+    Discussion of prices, fees, budgets, or compensation and sending money in general terms unless there is payment address
+
+    Negotiation about cost without payment instructions
+
+    Statements like “$100 budget”, “my rate is $50/hour”, “can you lower the price?”
+
+  - Disallow (Flag as Fraud / Violation):
+
+    A. Off-Platform Communication
+
+      Any attempt to move communication outside this platform, including:
+
+      Requesting or sharing:
+
+      Phone numbers
+
+      Email addresses
+
+      Usernames, handles, or links for Telegram, WhatsApp, Discord, Signal, WeChat, social media, etc.
+
+      Suggesting to “continue elsewhere”, “message privately”, or “talk outside this platform”
+
+      Implicit attempts to switch platforms
+
+    B. Off-Platform Payments
+
+      Any attempt to request, suggest, or provide payment outside this platform, including:
+
+      Payment methods (PayPal, Venmo, Zelle, Cash App, crypto, wire transfer, gift cards, QR codes)
+
+      Wallet addresses, payment links, or account details
+
+      Encouraging bypass of platform payment systems or fees
+
+    C. Circumvention Attempts
+
+      Any effort to bypass platform safeguards, including:
+
+      Asking how to avoid rules or detection
+
+      Using coded language to exchange contact or payment info
+
+      Gradually steering toward external contact or payment
+
+      “Workarounds”, “off the record”, or similar phrasing
+
+  - Core Rule for Classification:
+
+  ✅ Money discussion = allowed
+
+  ❌ Off-platform communication or payment = violation
 
 Rules:
 - Be strict.
