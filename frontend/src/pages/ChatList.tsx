@@ -39,13 +39,33 @@ function ChatList() {
 
   useEffect(() => {
     fetchConversations()
+    
+    // Listen for conversation viewed event to clear unread count
+    const handleConversationViewed = (event: CustomEvent) => {
+      const { conversationId } = event.detail
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv
+        )
+      )
+    }
+    
+    window.addEventListener('conversation-viewed', handleConversationViewed as EventListener)
+    
+    return () => {
+      window.removeEventListener('conversation-viewed', handleConversationViewed as EventListener)
+    }
+  }, [])
+
+  // Set up socket separately so it can access current selectedConversationId
+  useEffect(() => {
     const cleanup = setupSocket()
     return cleanup
-  }, [])
+  }, [selectedConversationId, user?.id])
 
   const setupSocket = () => {
     const socket = getSocket()
-    if (!socket) return
+    if (!socket) return () => {}
 
     socketRef.current = socket
 
@@ -59,17 +79,42 @@ function ChatList() {
           // Move conversation to top and update last message
           const conv = updated[index]
           updated.splice(index, 1)
+          
+          // Increment unread count if message is from another user and not currently viewing this conversation
+          // Use current selectedConversationId from the closure
+          const currentSelectedId = selectedConversationId
+          const isFromOtherUser = message.senderId !== user?.id
+          const isNotViewing = message.conversationId !== currentSelectedId
+          const currentUnreadCount = typeof conv.unreadCount === 'number' ? conv.unreadCount : 0
+          const newUnreadCount = isFromOtherUser && isNotViewing 
+            ? currentUnreadCount + 1 
+            : currentUnreadCount
+          
           updated.unshift({
             ...conv,
             lastMessage: message,
             updatedAt: message.createdAt,
+            unreadCount: newUnreadCount,
           })
+        } else {
+          // New conversation - add it with unread count if from other user
+          const isFromOtherUser = message.senderId !== user?.id
+          const currentSelectedId = selectedConversationId
+          const isNotViewing = message.conversationId !== currentSelectedId
+          updated.unshift({
+            id: message.conversationId,
+            lastMessage: message,
+            updatedAt: message.createdAt,
+            unreadCount: isFromOtherUser && isNotViewing ? 1 : 0,
+          } as ConversationWithLastMessage)
         }
         
         return updated
       })
     }
 
+    // Remove any existing handler first to avoid duplicates
+    socket.off('new_message')
     socket.on('new_message', handleNewMessage)
 
     return () => {
@@ -105,6 +150,7 @@ function ChatList() {
           return {
             ...conv,
             lastMessage,
+            unreadCount: typeof conv.unreadCount === 'number' ? conv.unreadCount : (typeof (conv as any).unreadCount === 'number' ? (conv as any).unreadCount : 0),
             otherUser: otherUser ? {
               id: otherUser.id,
               firstName: otherUser.firstName,
@@ -134,10 +180,13 @@ function ChatList() {
   const getOtherUserName = (conversation: ConversationWithLastMessage): string => {
     if (conversation.otherUser) {
       const { firstName, lastName, userName } = conversation.otherUser
+      if (userName) {
+        return userName
+      }
       if (firstName || lastName) {
         return `${firstName || ''} ${lastName || ''}`.trim()
       }
-      return userName || 'Unknown User'
+      return 'Unknown User'
     }
     return 'Unknown User'
   }
@@ -247,16 +296,28 @@ function ChatList() {
                 <div className="p-2">
                   {filteredConversations.map((conversation) => {
                     const otherUserName = getOtherUserName(conversation)
-                    const isUnread = Boolean(conversation.unreadCount && conversation.unreadCount > 0)
+                    const unreadCount = conversation.unreadCount ?? 0
+                    const isUnread = unreadCount > 0
                     const isSelected = conversation.id === selectedConversationId
 
                     return (
                       <button
                         key={conversation.id}
-                        onClick={() => navigate(`/chat/${conversation.id}`)}
+                        onClick={() => {
+                          // Clear unread count when selecting conversation
+                          if (isUnread) {
+                            setConversations((prev) =>
+                              prev.map((conv) =>
+                                conv.id === conversation.id ? { ...conv, unreadCount: 0 } : conv
+                              )
+                            )
+                          }
+                          navigate(`/chat/${conversation.id}`)
+                        }}
                         className={cn(
                           "w-full rounded-xl p-3 text-left transition-colors hover:bg-muted/40",
-                          isSelected && "bg-muted/60"
+                          isSelected && "bg-muted/60",
+                          isUnread && !isSelected && "bg-muted/20"
                         )}
                       >
                         <div className="flex items-start gap-3">
@@ -286,7 +347,11 @@ function ChatList() {
                                     {formatTime(conversation.lastMessage.createdAt)}
                                   </span>
                                 ) : null}
-                                {isUnread ? <Badge className="h-5 px-2 text-[10px]">New</Badge> : null}
+                                {(conversation.unreadCount ?? 0) > 0 ? (
+                                  <Badge className="h-5 min-w-5 px-1.5 flex items-center justify-center text-[10px] font-semibold bg-primary text-primary-foreground">
+                                    {conversation.unreadCount! > 99 ? '99+' : conversation.unreadCount}
+                                  </Badge>
+                                ) : null}
                               </div>
                             </div>
 

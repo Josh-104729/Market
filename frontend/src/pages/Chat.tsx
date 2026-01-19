@@ -308,11 +308,36 @@ function Chat() {
 
     // Listen for new messages
     const handleNewMessage = (message: Message) => {
+      // Only add message if it belongs to the current conversation
+      if (message.conversationId !== id) {
+        return
+      }
+      
       setMessages((prev) => {
-        // Check if message already exists
-        if (prev.some((m) => m.id === message.id)) {
-          return prev
+        // Check if message already exists (by real ID)
+        const existingIndex = prev.findIndex((m) => m.id === message.id)
+        if (existingIndex !== -1) {
+          // Update existing message (for optimistic updates or status changes)
+          return prev.map((m) => (m.id === message.id ? message : m))
         }
+        
+        // Check if there's an optimistic message from the same sender with similar content
+        // This helps replace optimistic messages when server confirms
+        const optimisticIndex = prev.findIndex(
+          (m) => m.id.startsWith('temp-') && 
+                 m.senderId === message.senderId && 
+                 m.message === message.message &&
+                 Math.abs(new Date(m.createdAt).getTime() - new Date(message.createdAt).getTime()) < 5000
+        )
+        
+        if (optimisticIndex !== -1) {
+          // Replace optimistic message with real message
+          const newMessages = [...prev]
+          newMessages[optimisticIndex] = message
+          return newMessages
+        }
+        
+        // Add new message
         return [...prev, message]
       })
     }
@@ -485,6 +510,8 @@ function Chat() {
       console.log('Joined conversation room:', id)
       // Mark messages as read when joining
       markMessagesAsRead()
+      // Notify ChatList to clear unread count
+      window.dispatchEvent(new CustomEvent('conversation-viewed', { detail: { conversationId: id } }))
     })
     socket.on('error', (error) => {
       console.error('Socket error:', error)
@@ -875,6 +902,34 @@ function Chat() {
       return
     }
 
+    // Store message content and files for optimistic update
+    const messageContent = messageText.trim() || (selectedFiles.length > 0 ? '📎 Sent file(s)' : '')
+    const tempMessageId = `temp-${Date.now()}-${Math.random()}`
+    
+    // Create optimistic message (without readAt, will be updated when server confirms)
+    const optimisticMessage: Message = {
+      id: tempMessageId,
+      conversationId: id,
+      senderId: user?.id || '',
+      message: messageContent,
+      attachmentFiles: selectedFiles.length > 0 ? [] : undefined, // Will be updated when files are uploaded
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      sender: user ? {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userName: user.userName,
+        avatar: user.avatar,
+      } : undefined,
+    }
+
+    // Add optimistic message immediately
+    setMessages((prev) => [...prev, optimisticMessage])
+    setMessageText('')
+    const filesToUpload = [...selectedFiles]
+    setSelectedFiles([])
+
     try {
       setSending(true)
       setUploadingFiles(true)
@@ -882,21 +937,32 @@ function Chat() {
       let attachmentFiles: string[] = []
 
       // Upload files if any
-      if (selectedFiles.length > 0) {
+      if (filesToUpload.length > 0) {
         try {
-          const uploadResult = await messageApi.uploadFiles(selectedFiles)
+          const uploadResult = await messageApi.uploadFiles(filesToUpload)
           attachmentFiles = uploadResult.urls
+          
+          // Update optimistic message with file URLs
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempMessageId
+                ? { ...m, attachmentFiles: uploadResult.urls }
+                : m
+            )
+          )
         } catch (error: any) {
           console.error('Failed to upload files:', error)
+          // Remove optimistic message on error
+          setMessages((prev) => prev.filter((m) => m.id !== tempMessageId))
           showToast.error(error.response?.data?.message || 'Failed to upload files. Please try again.')
           setSending(false)
           setUploadingFiles(false)
+          // Restore message text and files
+          setMessageText(messageContent)
+          setSelectedFiles(filesToUpload)
           return
         }
       }
-
-      // Send message with attachments
-      const messageContent = messageText.trim() || (attachmentFiles.length > 0 ? '📎 Sent file(s)' : '')
 
       // Try WebSocket first, fallback to HTTP API
       if (socketRef.current && socketRef.current.connected) {
@@ -905,22 +971,23 @@ function Chat() {
           message: messageContent,
           attachmentFiles: attachmentFiles.length > 0 ? attachmentFiles : undefined,
         })
-        setMessageText('')
-        setSelectedFiles([])
-        // Message will be added via WebSocket 'new_message' event
-        // Don't refetch all messages, just let WebSocket handle it
+        // Message will be replaced via WebSocket 'new_message' event with real ID
+        // The optimistic message will be replaced when server confirms
       } else {
         // Fallback to HTTP API if WebSocket not available
-        await messageApi.create(id, messageContent, attachmentFiles.length > 0 ? attachmentFiles : undefined)
-        setMessageText('')
-        setSelectedFiles([])
-        // Refresh messages to get the new one
-        const data = await messageApi.getByConversation(id!, 50)
-        setMessages(data.messages)
-        setHasMoreMessages(data.hasMore)
+        const createdMessage = await messageApi.create(id, messageContent, attachmentFiles.length > 0 ? attachmentFiles : undefined)
+        // Replace optimistic message with real message
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempMessageId ? createdMessage : m))
+        )
       }
     } catch (error: any) {
       console.error('Failed to send message:', error)
+      // Remove optimistic message on error
+      setMessages((prev) => prev.filter((m) => m.id !== tempMessageId))
+      // Restore message text and files
+      setMessageText(messageContent)
+      setSelectedFiles(filesToUpload)
       showToast.error(error.response?.data?.message || 'Failed to send message. Please try again.')
       if (String(error.response?.data?.message || '').toLowerCase().includes('blocked')) {
         fetchConversation()
@@ -1217,10 +1284,10 @@ function Chat() {
 
   const otherUser = getOtherUser()
   const isClient = conversation.clientId === user?.id
-  const otherUserName =
-    otherUser?.firstName && otherUser?.lastName
+  const otherUserName = otherUser?.userName 
+    || (otherUser?.firstName && otherUser?.lastName
       ? `${otherUser.firstName} ${otherUser.lastName}`
-      : otherUser?.userName || "User"
+      : "User")
 
   return (
     <div className="h-full flex flex-col bg-background text-foreground">
@@ -1493,9 +1560,10 @@ function Chat() {
                                 <AvatarImage
                                   src={sender?.avatar || undefined}
                                   alt={
-                                    sender?.firstName && sender?.lastName
-                                      ? `${sender.firstName} ${sender.lastName}`
-                                      : sender?.userName || "User"
+                                    sender?.userName 
+                                      || (sender?.firstName && sender?.lastName
+                                        ? `${sender.firstName} ${sender.lastName}`
+                                        : "User")
                                   }
                                 />
                                 <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
@@ -1510,9 +1578,10 @@ function Chat() {
                               {/* Sender name for incoming messages */}
                               {!isOwn && sender && (
                                 <span className="text-muted-foreground text-xs px-2 mb-0.5">
-                                  {sender.firstName && sender.lastName
-                                    ? `${sender.firstName} ${sender.lastName}`
-                                    : sender.userName || 'User'}
+                                  {sender.userName 
+                                    || (sender.firstName && sender.lastName
+                                      ? `${sender.firstName} ${sender.lastName}`
+                                      : 'User')}
                                 </span>
                               )}
 

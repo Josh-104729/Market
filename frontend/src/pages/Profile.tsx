@@ -8,6 +8,7 @@ import {
   blogApi,
   conversationApi,
   milestoneApi,
+  paymentApi,
   serviceApi,
   Conversation,
   Milestone,
@@ -83,6 +84,7 @@ function Profile() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loadingData, setLoadingData] = useState(false)
   const [loadingStats, setLoadingStats] = useState(false)
+  const [userStatistics, setUserStatistics] = useState<{ totalSpent: number; totalEarned: number } | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -123,6 +125,12 @@ function Profile() {
     const prefetchOverviewStats = async () => {
       setLoadingStats(true)
       try {
+        // Fetch user statistics (total spent, total earned) from transactions
+        const statsPromise = paymentApi.getStatistics().catch((err) => {
+          console.error("Failed to fetch user statistics:", err)
+          return { totalSpent: 0, totalEarned: 0 }
+        })
+
         // Services (use paginated endpoint; we only need the data array for current UI lists)
         const servicesRes = await serviceApi.getMyServices({ limit: 200 })
         setServices(Array.isArray(servicesRes.data) ? servicesRes.data : [])
@@ -151,6 +159,10 @@ function Profile() {
         const postsRes = await blogApi.getAll({ limit: 200 })
         const userPosts = (postsRes.data || []).filter((post) => post.userId === user.id)
         setPosts(userPosts)
+
+        // Set statistics
+        const stats = await statsPromise
+        setUserStatistics(stats)
       } catch (err) {
         console.error("Failed to prefetch profile stats:", err)
         // Don't toast here to avoid noisy UX on every profile load
@@ -263,12 +275,13 @@ function Profile() {
     totalMilestones: milestones.length,
     completedMilestones: milestones.filter((m) => m.status === "completed" || m.status === "released").length,
     totalPosts: posts.length,
-    totalEarnings: milestones
+    // Use statistics from transactions API if available, otherwise fall back to milestone calculation
+    totalEarnings: userStatistics?.totalEarned ?? milestones
       .filter((m) => (m.status === "completed" || m.status === "released") && m.providerId === user?.id)
-      .reduce((sum, m) => sum + m.balance, 0),
-    totalSpent: milestones
+      .reduce((sum, m) => sum + (Number(m.balance) || 0), 0),
+    totalSpent: userStatistics?.totalSpent ?? milestones
       .filter((m) => (m.status === "completed" || m.status === "released") && m.clientId === user?.id)
-      .reduce((sum, m) => sum + m.balance, 0),
+      .reduce((sum, m) => sum + (Number(m.balance) || 0), 0),
   }
 
   if (loading) {
@@ -542,7 +555,7 @@ function Profile() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Earnings</CardTitle>
-                <CardDescription>Based on completed milestones.</CardDescription>
+                <CardDescription>Based on successful transactions.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -927,7 +940,7 @@ function Profile() {
             <Card>
               <CardHeader>
                 <CardTitle>Earnings</CardTitle>
-                <CardDescription>Totals based on completed milestones.</CardDescription>
+                <CardDescription>Totals based on successful transactions.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, ConflictException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not, IsNull } from 'typeorm';
 import { Conversation } from '../entities/conversation.entity';
 import { Service } from '../entities/service.entity';
 import { Message } from '../entities/message.entity';
@@ -99,7 +99,7 @@ export class ConversationService {
   }
 
   async findAll(userId: string): Promise<Conversation[]> {
-    return this.conversationRepository.find({
+    const conversations = await this.conversationRepository.find({
       where: [
         { clientId: userId, deletedAt: null },
         { providerId: userId, deletedAt: null },
@@ -107,6 +107,28 @@ export class ConversationService {
       relations: ['service', 'client', 'provider', 'service.category'],
       order: { updatedAt: 'DESC' },
     });
+
+    // Get unread counts for each conversation
+    const unreadCounts = await Promise.all(
+      conversations.map(async (conv) => {
+        const count = await this.messageRepository.count({
+          where: {
+            conversationId: conv.id,
+            senderId: Not(userId), // Messages not from current user
+            readAt: IsNull(), // Unread messages
+            deletedAt: IsNull(),
+          },
+        });
+        return { conversationId: conv.id, count };
+      })
+    );
+
+    // Attach unread counts to conversations
+    const unreadMap = new Map(unreadCounts.map(({ conversationId, count }) => [conversationId, count]));
+    return conversations.map((conv) => ({
+      ...conv,
+      unreadCount: unreadMap.get(conv.id) || 0,
+    })) as any[];
   }
 
   async findOne(id: string, userId?: string, isAdmin: boolean = false): Promise<Conversation> {

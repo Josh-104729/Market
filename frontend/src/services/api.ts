@@ -468,6 +468,7 @@ export interface Conversation {
     avatar?: string;
   };
   messages?: Message[];
+  unreadCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -895,6 +896,11 @@ export interface WithdrawData {
 export const paymentApi = {
   getBalance: async (): Promise<Balance> => {
     const response = await api.get('/payment/balance');
+    return response.data;
+  },
+
+  getStatistics: async (): Promise<{ totalSpent: number; totalEarned: number }> => {
+    const response = await api.get('/payment/statistics');
     return response.data;
   },
 
