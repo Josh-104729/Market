@@ -22,10 +22,10 @@ import { MessageService } from '../message/message.service';
   cors: {
     origin: ['http://localhost:5173', 'http://localhost:5174'],
     credentials: true,
-    // methods: ['GET', 'POST'],
+    methods: ['GET', 'POST'],
   },
   namespace: '/chat',
-  // transports: ['websocket', 'polling'],
+  transports: ['websocket', 'polling'],
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
