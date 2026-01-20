@@ -20,9 +20,7 @@ class SocketIOAdapter extends IoAdapter {
       cors: {
         origin: getAllowedOrigins(),
         credentials: true,
-        methods: ['GET', 'POST'],
       },
-      transports: ['websocket', 'polling'],
     });
     return server;
   }
