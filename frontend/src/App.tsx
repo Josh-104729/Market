@@ -1,6 +1,10 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
 import { Toaster } from "@/components/ui/toaster"
-import { useAppSelector } from "./store/hooks"
+import { useAppSelector, useAppDispatch } from "./store/hooks"
+import { logout } from "./store/slices/authSlice"
+import { disconnectSocket } from "./services/socket"
+import { showToast } from "./utils/toast"
 import Home from './pages/Home'
 import SignIn from './pages/SignIn'
 import SignUp from './pages/SignUp'
@@ -30,11 +34,39 @@ import TermsOfService from "./pages/TermsOfService"
 import CookiePolicy from "./pages/CookiePolicy"
 import Support from "./pages/Support"
 
-function App() {
+function AppContent() {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated)
+  const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+
+  // Global handler for session expiration - works everywhere, including auth pages
+  useEffect(() => {
+    const handleAuthExpired = (event: CustomEvent) => {
+      const reason = event.detail?.reason || 'session_expired'
+      console.log('Session expired:', reason)
+      
+      // Disconnect socket
+      disconnectSocket()
+      
+      // Clear auth state
+      dispatch(logout())
+      
+      // Show notification
+      showToast.info('Your session has expired. Please sign in again.')
+      
+      // Navigate to sign in page
+      navigate('/signin', { replace: true })
+    }
+
+    window.addEventListener('auth-expired', handleAuthExpired as EventListener)
+    
+    return () => {
+      window.removeEventListener('auth-expired', handleAuthExpired as EventListener)
+    }
+  }, [dispatch, navigate])
 
   return (
-    <Router>
+    <>
       <Routes>
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
@@ -74,6 +106,14 @@ function App() {
         />
       </Routes>
       <Toaster />
+    </>
+  )
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   )
 }
