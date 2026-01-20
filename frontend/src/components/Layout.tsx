@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAppSelector, useAppDispatch } from '../store/hooks'
 import { logout, updateUser } from '../store/slices/authSlice'
 import { showToast } from '../utils/toast'
-import { getSocket } from '../services/socket'
+import { getSocket, disconnectSocket } from '../services/socket'
 import { Message, paymentApi, Balance, Notification, authApi } from '../services/api'
 import { Socket } from 'socket.io-client'
 import Footer from './Footer'
@@ -41,14 +41,19 @@ function Layout({ children }: LayoutProps) {
   const [profileHydrated, setProfileHydrated] = useState(false)
 
   const handleSignOut = () => {
+    // Disconnect socket before logout
+    disconnectSocket()
     dispatch(logout())
     showToast.info('You have been logged out')
     navigate('/signin')
   }
 
   // If the websocket reports auth expiry/invalid token, force logout so the app can recover cleanly.
+  // Note: This is a backup handler. The main handler is in App.tsx for global coverage.
   useEffect(() => {
     const onAuthExpired = () => {
+      // Disconnect socket before logout
+      disconnectSocket()
       dispatch(logout())
       showToast.info('Your session expired. Please sign in again.')
       navigate('/signin')
