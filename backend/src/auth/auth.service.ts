@@ -416,7 +416,11 @@ export class AuthService {
       const hashedToken = createHash('sha256').update(rawToken).digest('hex');
 
       user.resetPasswordToken = hashedToken;
-      user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      // Set expiration to 1 hour 15 minutes from now to account for email delivery delays
+      // Using Unix timestamp to avoid timezone issues
+      const expiresAt = new Date();
+      expiresAt.setTime(Date.now() + (60 + 15) * 60 * 1000); // 1 hour 15 minutes
+      user.resetPasswordExpires = expiresAt;
       await this.userRepository.save(user);
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -429,7 +433,8 @@ export class AuthService {
 
   async resetPassword(dto: ResetPasswordDto) {
     const hashedToken = createHash('sha256').update(dto.token).digest('hex');
-    const now = new Date();
+    // Use Unix timestamp for reliable comparison (avoids timezone issues)
+    const now = Date.now();
 
     const user = await this.userRepository.findOne({
       where: {
@@ -437,7 +442,9 @@ export class AuthService {
       },
     });
 
-    if (!user || !user.resetPasswordExpires || user.resetPasswordExpires.getTime() < now.getTime()) {
+    // Use Unix timestamp comparison to avoid timezone conversion issues
+    const expiresAt = user?.resetPasswordExpires?.getTime() || 0;
+    if (!user || !user.resetPasswordExpires || expiresAt < now) {
       throw new BadRequestException('Invalid or expired reset token');
     }
 
