@@ -2,7 +2,6 @@ import { io, Socket } from 'socket.io-client';
 
 let socket: Socket | null = null;
 let lastToken: string | null = null;
-let isReconnecting = false; // Flag to prevent multiple simultaneous reconnection attempts
 
 // Get socket URL from environment variable
 const SOCKET_BASE_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
@@ -53,7 +52,6 @@ export const getSocket = (): Socket | null => {
       if (currentToken) {
         lastToken = currentToken;
       }
-      isReconnecting = false; // Reset reconnection flag on successful connection
     });
 
     socket.on('reconnect', (attemptNumber) => {
@@ -81,7 +79,6 @@ export const getSocket = (): Socket | null => {
 
     socket.on('disconnect', (reason) => {
       console.log('❌ Disconnected from chat server:', reason);
-      isReconnecting = false; // Reset flag on disconnect
       if (reason === 'io server disconnect') {
         // Server disconnected the socket, need to reconnect manually
         // Avoid endless reconnect loop on auth failures.
@@ -139,7 +136,6 @@ export const disconnectSocket = () => {
     socket = null;
   }
   lastToken = null;
-  isReconnecting = false;
 };
 
 export const reconnectSocket = () => {
