@@ -178,7 +178,7 @@ function Home() {
 
             <div className="space-y-3">
               <h1 className="text-balance text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-                Buy services, hire talent, and build in public.
+                Anyone can sell anything and buy anything.
               </h1>
               <p className="text-pretty text-base text-muted-foreground sm:text-lg">
                 OmniMart combines a modern marketplace with a social feed—discover work, connect fast, and pay securely.
