@@ -2,6 +2,7 @@ import { io, Socket } from 'socket.io-client';
 
 let socket: Socket | null = null;
 let lastToken: string | null = null;
+let isReconnecting = false; // Flag to prevent multiple simultaneous reconnection attempts
 
 // Get socket URL from environment variable
 const SOCKET_BASE_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
@@ -52,6 +53,7 @@ export const getSocket = (): Socket | null => {
       if (currentToken) {
         lastToken = currentToken;
       }
+      isReconnecting = false; // Reset reconnection flag on successful connection
     });
 
     socket.on('reconnect', (attemptNumber) => {
@@ -79,14 +81,19 @@ export const getSocket = (): Socket | null => {
 
     socket.on('disconnect', (reason) => {
       console.log('❌ Disconnected from chat server:', reason);
+      isReconnecting = false; // Reset flag on disconnect
       if (reason === 'io server disconnect') {
         // Server disconnected the socket, need to reconnect manually
         // Avoid endless reconnect loop on auth failures.
         const tokenNow = localStorage.getItem('accessToken');
-        if (tokenNow && socket) {
+        if (tokenNow && socket && !socket.connected) {
           // Update auth with latest token before reconnecting
           socket.auth = { token: tokenNow };
-          socket.connect();
+          lastToken = tokenNow;
+          // Only connect if not already connecting
+          if (socket.disconnected) {
+            socket.connect();
+          }
         }
       }
     });
@@ -101,20 +108,18 @@ export const getSocket = (): Socket | null => {
 
     socket.on('error', (error: any) => {
       console.error('❌ Socket error:', error);
-      // Handle "Not authenticated" errors by attempting reconnection with fresh token
+      // Handle "Not authenticated" errors by updating auth token
+      // Don't manually disconnect/reconnect - let Socket.IO's built-in reconnection handle it
       if (error?.message && String(error.message).toLowerCase().includes('not authenticated')) {
         const currentToken = localStorage.getItem('accessToken');
         if (currentToken && socket) {
-          console.log('Attempting to re-authenticate socket with fresh token...');
-          // Update auth and reconnect
+          console.log('Updating socket auth token for next connection...');
+          // Update auth token for future connections/reconnections
           socket.auth = { token: currentToken };
-          socket.disconnect();
-          setTimeout(() => {
-            if (socket) {
-              socket.connect();
-            }
-          }, 1000);
-        } else {
+          lastToken = currentToken;
+          // Don't manually reconnect - Socket.IO will handle it automatically
+          // The updated auth will be used on the next reconnection attempt
+        } else if (!currentToken) {
           // No token available, trigger auth expiry
           window.dispatchEvent(new CustomEvent('auth-expired', { detail: { reason: 'missing_token' } }));
         }
@@ -127,10 +132,14 @@ export const getSocket = (): Socket | null => {
 
 export const disconnectSocket = () => {
   if (socket) {
-    socket.disconnect();
+    // Only disconnect if connected
+    if (socket.connected) {
+      socket.disconnect();
+    }
     socket = null;
   }
   lastToken = null;
+  isReconnecting = false;
 };
 
 export const reconnectSocket = () => {

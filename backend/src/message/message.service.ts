@@ -59,12 +59,19 @@ export class MessageService {
     const messageWithSender = await this.findOne(savedMessage.id);
 
     // Deliver the message immediately to ALL participants (sender + receiver) before fraud check
+    // Emit to BOTH user rooms (for notifications) AND conversation room (for active viewers)
     const participantIds = Array.from(
       new Set([conversation.clientId, conversation.providerId, userId].filter(Boolean)),
     ) as string[];
+    
+    // Emit to user rooms (for users not actively viewing the chat)
     for (const pid of participantIds) {
       this.chatGateway.server.to(`user:${pid}`).emit('new_message', messageWithSender);
     }
+    
+    // ALSO emit to conversation room (for users actively viewing the chat)
+    // This ensures messages appear in real-time when both users are viewing the conversation
+    this.chatGateway.server.to(`conversation:${conversationId}`).emit('new_message', messageWithSender);
 
     // Evaluate fraud AFTER message has been delivered (post-send check requirement)
     const fraudResult = await this.fraudService.evaluateMessage(conversationId, savedMessage);
@@ -89,19 +96,26 @@ export class MessageService {
           : { category: null, reason: null, confidence: null },
       };
 
+      // Emit fraud flag to both user rooms and conversation room
       for (const pid of participantIds) {
         this.chatGateway.server.to(`user:${pid}`).emit('message_fraud', fraudPayload);
       }
+      this.chatGateway.server.to(`conversation:${conversationId}`).emit('message_fraud', fraudPayload);
     }
 
     if (fraudResult.conversationBlocked) {
       // Both participants must know the conversation got blocked
+      // Emit to both user rooms and conversation room
       for (const pid of allParticipants) {
         this.chatGateway.server.to(`user:${pid}`).emit('conversation_blocked', {
           conversationId,
           reason: 'fraud_threshold_reached',
         });
       }
+      this.chatGateway.server.to(`conversation:${conversationId}`).emit('conversation_blocked', {
+        conversationId,
+        reason: 'fraud_threshold_reached',
+      });
     }
 
     // Create notification for recipients (client and provider) only if they're not in the conversation room

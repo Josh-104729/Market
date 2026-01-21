@@ -293,20 +293,36 @@ function Chat() {
 
     socketRef.current = socket
 
+    // Track current conversation ID to prevent stale joins
+    let currentConversationId = id
+    let hasJoined = false
+
     // Wait for connection before joining room
     const setupSocket = () => {
-      if (socket.connected) {
+      // Only proceed if we're still on the same conversation
+      if (currentConversationId !== id) {
+        console.log('⚠️ Conversation ID changed during setup, aborting')
+        return
+      }
+
+      if (socket.connected && !hasJoined) {
+        console.log('Socket connected, joining conversation:', id)
         socket.emit('join_conversation', { conversationId: id })
-      } else {
+        hasJoined = true
+      } else if (!socket.connected) {
         // Ensure we join when connected
         const onConnect = () => {
-          if (socket && id) {
+          // Double-check we're still on the same conversation
+          if (socket && currentConversationId === id && !hasJoined) {
+            console.log('Socket connected after wait, joining conversation:', id)
             socket.emit('join_conversation', { conversationId: id })
+            hasJoined = true
           }
         }
         socket.once('connect', onConnect)
         // Also try to connect if not already connected
         if (!socket.connected) {
+          console.log('Socket not connected, attempting to connect...')
           socket.connect()
         }
       }
@@ -314,10 +330,12 @@ function Chat() {
 
     setupSocket()
     
-    // Re-join conversation on reconnect
+    // Re-join conversation on reconnect (only if still on same conversation)
     const handleReconnect = () => {
-      if (socket && socket.connected && id) {
+      if (socket && socket.connected && currentConversationId === id && !hasJoined) {
+        console.log('Socket reconnected, re-joining conversation:', id)
         socket.emit('join_conversation', { conversationId: id })
+        hasJoined = true
       }
     }
     socket.on('reconnect', handleReconnect)
@@ -329,11 +347,21 @@ function Chat() {
         return
       }
       
+      // Log for debugging
+      console.log('📨 Received new message:', {
+        id: message.id,
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        currentUserId: user?.id,
+        message: message.message?.substring(0, 50),
+      })
+      
       setMessages((prev) => {
         // Check if message already exists (by real ID)
         const existingIndex = prev.findIndex((m) => m.id === message.id)
         if (existingIndex !== -1) {
           // Update existing message (for optimistic updates or status changes)
+          console.log('🔄 Updating existing message:', message.id)
           return prev.map((m) => (m.id === message.id ? message : m))
         }
         
@@ -348,12 +376,14 @@ function Chat() {
         
         if (optimisticIndex !== -1) {
           // Replace optimistic message with real message
+          console.log('✅ Replacing optimistic message with real message:', message.id)
           const newMessages = [...prev]
           newMessages[optimisticIndex] = message
           return newMessages
         }
         
         // Add new message - ensure it's added immediately
+        console.log('➕ Adding new message to chat:', message.id)
         return [...prev, message]
       })
       
@@ -532,8 +562,18 @@ function Chat() {
     socket.on('user_stopped_typing', handleStopTyping)
     socket.on('messages_read', handleMessagesRead)
     socket.on('message_deleted', handleMessageDeleted)
-    socket.on('joined_conversation', () => {
-      console.log('Joined conversation room:', id)
+    socket.on('joined_conversation', (data: { conversationId?: string }) => {
+      const joinedId = data?.conversationId || id
+      console.log('✅ Joined conversation room:', joinedId, 'Current id:', id)
+      
+      // Only proceed if we're still on this conversation (in case user navigated away)
+      if (joinedId !== id || currentConversationId !== id) {
+        console.log('⚠️ Joined different conversation, ignoring')
+        return
+      }
+      
+      hasJoined = true
+      
       // Mark messages as read when joining
       markMessagesAsRead()
       // Notify ChatList to clear unread count
@@ -552,9 +592,22 @@ function Chat() {
       }
     })
 
-    // Cleanup on unmount
+    // Cleanup on unmount or when conversation ID changes
     return () => {
+      console.log('🧹 Cleaning up socket listeners for conversation:', id)
+      
+      // Mark that we're no longer on this conversation
+      currentConversationId = ''
+      hasJoined = false
+      
       if (socket) {
+        // Leave the conversation room first (only if still connected)
+        if (id && socket.connected) {
+          console.log('Leaving conversation room:', id)
+          socket.emit('leave_conversation', { conversationId: id })
+        }
+        
+        // Remove all event listeners
         socket.off('new_message', handleNewMessage)
         socket.off('message_fraud', handleMessageFraud)
         socket.off('conversation_blocked', handleConversationBlocked)
@@ -569,7 +622,6 @@ function Chat() {
         socket.off('error')
         socket.off('connect_error')
         socket.off('reconnect', handleReconnect)
-        socket.emit('leave_conversation', { conversationId: id })
       }
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current)
@@ -645,7 +697,10 @@ function Chat() {
 
   // Mark messages as read
   const markMessagesAsRead = () => {
-    if (!socketRef.current || !id || !user) return
+    if (!socketRef.current || !id || !user) {
+      console.log('⚠️ Cannot mark messages as read:', { socket: !!socketRef.current, id, user: !!user })
+      return
+    }
 
     // Clear previous timeout
     if (markReadTimeoutRef.current) {
@@ -654,11 +709,18 @@ function Chat() {
 
     // Mark as read after a short delay (when user is viewing)
     markReadTimeoutRef.current = setTimeout(() => {
+      // Re-check socket and connection state
+      if (!socketRef.current || !socketRef.current.connected) {
+        console.log('⚠️ Socket not connected, cannot mark messages as read. Socket:', !!socketRef.current, 'Connected:', socketRef.current?.connected)
+        return
+      }
+
       const unreadMessageIds = messages
         .filter((msg) => msg.senderId !== user.id && !msg.readAt)
         .map((msg) => msg.id)
 
-      if (unreadMessageIds.length > 0 && socketRef.current?.connected) {
+      if (unreadMessageIds.length > 0) {
+        console.log('📖 Marking messages as read:', unreadMessageIds.length, 'messages in conversation', id)
         socketRef.current.emit('mark_messages_read', {
           conversationId: id,
           messageIds: unreadMessageIds,

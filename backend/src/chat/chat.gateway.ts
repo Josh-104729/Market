@@ -339,13 +339,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         relations: ['sender'],
       });
 
-      // Emit read receipt to all users in the conversation with updated messages
+      // Emit read receipt to conversation room (for active viewers)
       this.server.to(`conversation:${data.conversationId}`).emit('messages_read', {
         conversationId: data.conversationId,
         readBy: userId,
         messages: updatedMessages,
         messageIds: messageIdsToUpdate,
       });
+
+      // Also emit to user rooms (for users not actively viewing the chat)
+      // This ensures read receipts are received even when not in the conversation room
+      // Reuse the conversation variable that was already fetched above
+      if (conversation) {
+        const participants = [conversation.clientId, conversation.providerId].filter(Boolean) as string[];
+        for (const pid of participants) {
+          this.server.to(`user:${pid}`).emit('messages_read', {
+            conversationId: data.conversationId,
+            readBy: userId,
+            messages: updatedMessages,
+            messageIds: messageIdsToUpdate,
+          });
+        }
+      }
     } catch (error) {
       console.error('Error marking messages as read:', error);
     }
