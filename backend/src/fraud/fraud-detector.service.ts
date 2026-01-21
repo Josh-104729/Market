@@ -43,42 +43,11 @@ export class FraudDetectorService {
     return `
 You are a fraud detection engine for a real-time chat platform.
 
-Fraud Criteria:
+Detect fraudulent behavior in chat messages by identifying instances of external communication and payment attempts. Specifically, focus on the following:
 
-- Allow:
-  General Conversations: All common dialogues excluding any direct or indirect references to off-platform payment or communication.
-  Discussion of Prices, Fees, Budgets, or Compensation: Discussion about general pricing terms, fees, and compensation, unless there is a request for a specific payment address.
-  Cost Negotiations: Negotiating the cost or asking about pricing without explicit payment instructions or external platform suggestions.
-  General Statements: Statements like "$100 budget," "my rate is $50/hour," "can you lower the price?" are allowed, unless they are directly tied to requests for external payment methods.
+External Communication: Look for messages indicating communication with people or systems outside the platform or network. Examples include mentions of phone numbers, third-party platforms, emails, external links, or requests to move the conversation off-platform (e.g., "let’s talk on WhatsApp" or "contact me at my personal email").
 
-- Disallow (Flag as Fraud / Violation):
-
-  - Off-Platform Communication:
-    - Phone Numbers: Requesting or sharing phone numbers.
-    - Email Addresses: Requesting or sharing email addresses.
-    - Social Media or Messaging Handles: Requesting or sharing usernames, handles, or links for Telegram, WhatsApp, Discord, Signal, WeChat, social media, etc.
-    - Suggestions to Move Communication: Suggesting to "continue elsewhere," "message privately," "talk outside this platform," or similar phrases.
-    - Implicit Attempts to Switch Platforms: Any indirect or subtle suggestions to switch to another platform (e.g., proposing to shift to personal email or external messaging apps).
-
-  - Off-Platform Payments:
-    - External Payment Methods: Requesting or providing payment outside the platform (e.g., PayPal, Venmo, Zelle, Cash App, crypto, wire transfer, gift cards, QR codes).
-    - Payment Details: Sharing or requesting wallet addresses, payment links, or account details.
-    - Encouraging Bypassing Platform Payments: Encouraging users to bypass platform payment systems, including offering cheaper alternatives outside the platform.
-
-  - Circumvention Attempts:
-    - Asking to Avoid Rules or Detection: Asking how to avoid rules or detection (e.g., "Is there a way to pay outside this platform?").
-    - Coded Language: Using coded language or indirect references to contact or payment information (e.g., "Let’s continue on a more private channel").
-    - Steering Toward External Communication or Payment: Gradually steering the conversation toward external contact or payment through manipulation or subtle nudges.
-    - Workarounds: Using phrases like "workaround," "off the record," or similar language suggesting the intent to bypass platform security measures.
-
-  - Core Rule for Classification:
-    - Money Discussion: Allowed. Discussion of money, payments, or pricing is allowed as long as it doesn’t involve attempts to provide or request payment information outside the platform.
-    - Off-Platform Communication or Payment: Violation. Any attempt to move communication or payment off-platform, whether implicitly or explicitly, is flagged as fraud.
-
-  - Rules:
-    - Strict: The rules are enforced strictly to ensure that any attempt to move communication or payment outside the platform is flagged immediately.
-    - Error Handling: Non-relevant content such as casual greetings or common phrases (e.g., “I am good,” “Perfect”) should not trigger fraud detection unless linked to fraudulent behavior or attempts to move the conversation off-platform or initiate off-platform payment.
-
+Payment Attempts: Identify any mentions of payment requests, such as asking for money, offering or requesting payments outside the approved payment channels (e.g., asking for PayPal, bank transfers, or cryptocurrency transactions), or providing payment details outside authorized platforms.
 
 Output format (exact):
 {"fraud": true|false, "category": "string or null", "reason": "short string or null", "confidence": "low|medium|high"}

@@ -47,6 +47,24 @@ export const getSocket = (): Socket | null => {
 
     socket.on('connect', () => {
       console.log('✅ Connected to chat server');
+      // Update token reference on successful connection
+      const currentToken = localStorage.getItem('accessToken');
+      if (currentToken) {
+        lastToken = currentToken;
+      }
+    });
+
+    socket.on('reconnect', (attemptNumber) => {
+      console.log(`✅ Reconnected to chat server after ${attemptNumber} attempts`);
+      // Update token reference on reconnect to ensure we use the latest token
+      const currentToken = localStorage.getItem('accessToken');
+      if (currentToken) {
+        lastToken = currentToken;
+        // Update auth for future operations
+        if (socket) {
+          socket.auth = { token: currentToken };
+        }
+      }
     });
 
     socket.on('auth_error', (payload: any) => {
@@ -65,7 +83,11 @@ export const getSocket = (): Socket | null => {
         // Server disconnected the socket, need to reconnect manually
         // Avoid endless reconnect loop on auth failures.
         const tokenNow = localStorage.getItem('accessToken');
-        if (tokenNow) socket?.connect();
+        if (tokenNow && socket) {
+          // Update auth with latest token before reconnecting
+          socket.auth = { token: tokenNow };
+          socket.connect();
+        }
       }
     });
 
@@ -77,8 +99,26 @@ export const getSocket = (): Socket | null => {
       }
     });
 
-    socket.on('error', (error) => {
+    socket.on('error', (error: any) => {
       console.error('❌ Socket error:', error);
+      // Handle "Not authenticated" errors by attempting reconnection with fresh token
+      if (error?.message && String(error.message).toLowerCase().includes('not authenticated')) {
+        const currentToken = localStorage.getItem('accessToken');
+        if (currentToken && socket) {
+          console.log('Attempting to re-authenticate socket with fresh token...');
+          // Update auth and reconnect
+          socket.auth = { token: currentToken };
+          socket.disconnect();
+          setTimeout(() => {
+            if (socket) {
+              socket.connect();
+            }
+          }, 1000);
+        } else {
+          // No token available, trigger auth expiry
+          window.dispatchEvent(new CustomEvent('auth-expired', { detail: { reason: 'missing_token' } }));
+        }
+      }
     });
   }
 

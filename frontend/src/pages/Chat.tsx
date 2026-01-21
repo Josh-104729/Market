@@ -545,6 +545,10 @@ function Chat() {
       if (typeof msg === 'string' && msg.toLowerCase().includes('blocked')) {
         showToast.error(msg)
         fetchConversation()
+      } else if (typeof msg === 'string' && msg.toLowerCase().includes('not authenticated')) {
+        // Handle authentication error - socket will attempt to re-authenticate
+        console.warn('Socket authentication error, attempting to reconnect...')
+        // The socket service will handle re-authentication automatically
       }
     })
 

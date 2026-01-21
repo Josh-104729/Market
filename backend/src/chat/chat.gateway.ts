@@ -22,10 +22,10 @@ import { MessageService } from '../message/message.service';
   cors: {
     origin: ['http://localhost:5173', 'http://localhost:5174'],
     credentials: true,
-    // methods: ['GET', 'POST'],
+    methods: ['GET', 'POST'],
   },
   namespace: '/chat',
-  // transports: ['websocket', 'polling'],
+  transports: ['websocket', 'polling'],
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -41,7 +41,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private messageRepository: Repository<Message>,
     @Inject(forwardRef(() => MessageService))
     private messageService: MessageService,
-  ) {}
+  ) { }
 
   async handleConnection(client: Socket) {
     try {
@@ -52,11 +52,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // });
 
       // Try multiple ways to get the token
-      const token = 
-        client.handshake.auth?.token || 
+      const token =
+        client.handshake.auth?.token ||
         client.handshake.query?.token ||
         client.handshake.headers.authorization?.replace('Bearer ', '');
-      
+
       if (!token) {
         // No auth token: treat as unauthenticated and disconnect quietly.
         client.emit('auth_error', { reason: 'missing_token' });
@@ -108,14 +108,57 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(`User ${client.data.userId} disconnected from chat`);
   }
 
+  // Helper method to verify authentication for socket operations
+  private async verifyAuthentication(client: Socket): Promise<{ userId: string; user: User } | null> {
+    // First check if we already have userId stored (from initial connection)
+    if (client.data.userId && client.data.user) {
+      return { userId: client.data.userId, user: client.data.user };
+    }
+
+    // If not, try to re-authenticate using the token from handshake
+    const token =
+      client.handshake.auth?.token ||
+      client.handshake.query?.token ||
+      client.handshake.headers.authorization?.replace('Bearer ', '');
+
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const payload = this.jwtService.verify(token);
+      const user = await this.userRepository.findOne({ where: { id: payload.sub } });
+
+      if (!user) {
+        return null;
+      }
+
+      // Store user info in socket for future use
+      client.data.userId = user.id;
+      client.data.user = user;
+
+      return { userId: user.id, user };
+    } catch (err: any) {
+      // Token expired or invalid
+      const name = err?.name;
+      if (name === 'TokenExpiredError') {
+        client.emit('auth_error', { reason: 'jwt_expired' });
+      } else if (name === 'JsonWebTokenError' || name === 'NotBeforeError') {
+        client.emit('auth_error', { reason: 'invalid_token' });
+      }
+      return null;
+    }
+  }
+
   @SubscribeMessage('join_conversation')
   async handleJoinConversation(@ConnectedSocket() client: Socket, @MessageBody() data: { conversationId: string }) {
     try {
-      const userId = client.data.userId;
-      if (!userId) {
+      const auth = await this.verifyAuthentication(client);
+      if (!auth) {
         client.emit('error', { message: 'Not authenticated' });
         return;
       }
+      const { userId } = auth;
 
       // Verify user has access to this conversation
       const conversation = await this.conversationRepository.findOne({
@@ -157,11 +200,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { conversationId: string; message: string; attachmentFiles?: string[] },
   ) {
     try {
-      const userId = client.data.userId;
-      if (!userId) {
+      const auth = await this.verifyAuthentication(client);
+      if (!auth) {
         client.emit('error', { message: 'Not authenticated' });
         return;
       }
+      const { userId } = auth;
 
       // Verify user has access to this conversation
       const conversation = await this.conversationRepository.findOne({
@@ -205,10 +249,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { conversationId: string },
   ) {
     try {
-      const userId = client.data.userId;
-      if (!userId) return;
-
-      const user = client.data.user;
+      const auth = await this.verifyAuthentication(client);
+      if (!auth) return;
+      const { userId, user } = auth;
       const userName = user?.firstName || user?.userName || 'Someone';
 
       // Emit typing indicator to all other users in the conversation
@@ -227,8 +270,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { conversationId: string },
   ) {
     try {
-      const userId = client.data.userId;
-      if (!userId) return;
+      const auth = await this.verifyAuthentication(client);
+      if (!auth) return;
+      const { userId } = auth;
 
       // Emit stop typing to all other users in the conversation
       client.to(`conversation:${data.conversationId}`).emit('user_stopped_typing', {
@@ -245,8 +289,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { conversationId: string; messageIds?: string[] },
   ) {
     try {
-      const userId = client.data.userId;
-      if (!userId) return;
+      const auth = await this.verifyAuthentication(client);
+      if (!auth) return;
+      const { userId } = auth;
 
       // Verify user has access to this conversation
       const conversation = await this.conversationRepository.findOne({

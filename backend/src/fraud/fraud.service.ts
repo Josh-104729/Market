@@ -47,7 +47,7 @@ export class FraudService {
     const fraudCount = await this.fraudRepository.count({ where: { conversationId } });
     let conversationBlocked = Boolean(conversation.isBlocked);
 
-    if (fraudCount >= 3 && !conversation.isBlocked) {
+    if (fraudCount >= 5 && !conversation.isBlocked) {
       conversationBlocked = true;
       await this.conversationRepository.update(conversationId, {
         isBlocked: true,

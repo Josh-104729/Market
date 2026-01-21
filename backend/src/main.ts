@@ -21,6 +21,16 @@ class SocketIOAdapter extends IoAdapter {
         origin: getAllowedOrigins(),
         credentials: true,
       },
+      // Increase ping/pong timeouts to handle network interruptions better
+      // pingInterval: How often server sends ping (default: 25000ms)
+      // pingTimeout: How long to wait for pong response (default: 20000ms)
+      // Increasing these reduces false disconnections from temporary network issues
+      pingInterval: 30000, // 30 seconds (increased from 25s)
+      pingTimeout: 60000, // 60 seconds (increased from 20s) - more tolerant of slow networks
+      // Allow more time for connection attempts
+      connectTimeout: 45000, // 45 seconds (default: 45000ms)
+      // Enable per-message deflate compression for better performance
+      perMessageDeflate: true,
     });
     return server;
   }
