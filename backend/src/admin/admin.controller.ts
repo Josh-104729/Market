@@ -66,8 +66,11 @@ export class AdminController {
 
   @UseGuards(AdminGuard)
   @Post('temp-wallets/:walletId/transfer')
-  async transferFromTempWallet(@Param('walletId') walletId: string) {
-    return this.adminService.transferFromTempWallet(walletId);
+  async transferFromTempWallet(
+    @Param('walletId') walletId: string,
+    @Body() body: { amount?: number },
+  ) {
+    return this.adminService.transferFromTempWallet(walletId, body?.amount);
   }
 
   @UseGuards(AdminGuard)

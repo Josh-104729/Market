@@ -134,8 +134,10 @@ export const adminApi = {
     return response.data;
   },
 
-  transferFromTempWallet: async (walletId: string) => {
-    const response = await api.post(`/admin/temp-wallets/${walletId}/transfer`);
+  transferFromTempWallet: async (walletId: string, amount?: number) => {
+    const response = await api.post(`/admin/temp-wallets/${walletId}/transfer`, {
+      amount,
+    });
     return response.data;
   },
 

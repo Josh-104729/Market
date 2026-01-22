@@ -39,6 +39,7 @@ function TempWallets() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [selectedWallet, setSelectedWallet] = useState<TempWallet | null>(null)
   const [transferMode, setTransferMode] = useState<"TOKEN" | "TRX">("TOKEN")
+  const [transferAmount, setTransferAmount] = useState("")
   const [balancesById, setBalancesById] = useState<Record<string, TempWalletBalances>>({})
   const [balanceLoadingById, setBalanceLoadingById] = useState<Record<string, boolean>>({})
   const [balanceGasLoadedById, setBalanceGasLoadedById] = useState<Record<string, boolean>>({})
@@ -96,6 +97,8 @@ function TempWallets() {
     if (!wallet) return
     setSelectedWallet(wallet)
     setTransferMode("TOKEN")
+    const existingBalance = balancesById[walletId]
+    setTransferAmount(existingBalance ? String(existingBalance.tokenBalance || "") : "")
     setConfirmOpen(true)
   }
 
@@ -104,6 +107,7 @@ function TempWallets() {
     if (!wallet) return
     setSelectedWallet(wallet)
     setTransferMode("TRX")
+    setTransferAmount("")
     setConfirmOpen(true)
   }
   const refreshBalances = async (walletId: string) => {
@@ -150,7 +154,7 @@ function TempWallets() {
       const result =
         transferMode === "TRX"
           ? await adminApi.transferRemainingTRXFromTempWallet(walletId)
-          : await adminApi.transferFromTempWallet(walletId)
+          : await adminApi.transferFromTempWallet(walletId, parsedTransferAmount)
 
       // Show success toast with transaction details
       const currency =
@@ -200,11 +204,17 @@ function TempWallets() {
         const next = { ...prev }
         next[walletId] = {
           ...existing,
-          tokenBalance: transferMode === "TRX" ? existing.tokenBalance : 0,
+          tokenBalance:
+            transferMode === "TRX"
+              ? existing.tokenBalance
+              : Math.max(0, Number(existing.tokenBalance || 0) - parsedTransferAmount),
           gasBalance: transferMode === "TRX" ? 0 : existing.gasBalance,
         }
         return next
       })
+      if (transferMode === "TOKEN") {
+        setTransferAmount("")
+      }
       setConfirmOpen(false)
       setSelectedWallet(null)
     } catch (err: any) {
@@ -271,14 +281,16 @@ function TempWallets() {
 
   const selectedBalances = selectedWallet ? balancesById[selectedWallet.id] : null
 
+  const parsedTransferAmount = Number(transferAmount)
+  const maxTokenAmount = selectedBalances ? Number(selectedBalances.tokenBalance || 0) : 0
   const selectedAmount = useMemo(() => {
     if (!selectedWallet || !selectedBalances) return 0
     if (transferMode === "TRX") {
       const reserve = 0.1
       return Math.max(0, Number(selectedBalances.gasBalance || 0) - reserve)
     }
-    return Number(selectedBalances.tokenBalance || 0)
-  }, [selectedBalances, selectedWallet, transferMode])
+    return Number.isFinite(parsedTransferAmount) ? parsedTransferAmount : 0
+  }, [parsedTransferAmount, selectedBalances, selectedWallet, transferMode])
 
   const selectedCurrency =
     transferMode === "TRX"
@@ -578,6 +590,7 @@ function TempWallets() {
         setConfirmOpen(v)
         if (!v) {
           setSelectedWallet(null)
+          setTransferAmount("")
         }
       }}>
         <DialogContent>
@@ -603,6 +616,33 @@ function TempWallets() {
                   {selectedAmount.toFixed(2)} {selectedCurrency}
                 </div>
               </div>
+
+              {transferMode === "TOKEN" ? (
+                <div className="space-y-2">
+                  <Label>Transfer amount</Label>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    max={maxTokenAmount}
+                    step="0.000001"
+                    placeholder="0.00"
+                    value={transferAmount}
+                    onChange={(e) => {
+                      const nextValue = e.target.value
+                      const numeric = Number(nextValue)
+                      if (Number.isFinite(numeric) && numeric > maxTokenAmount) {
+                        setTransferAmount(String(maxTokenAmount))
+                      } else {
+                        setTransferAmount(nextValue)
+                      }
+                    }}
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    Max: {maxTokenAmount.toFixed(6)} {selectedCurrency}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="rounded-lg border border-border p-3">
                 <div className="text-xs text-muted-foreground mb-2">Live balances</div>
@@ -638,7 +678,11 @@ function TempWallets() {
               disabled={
                 !selectedWallet ||
                 selectedAmount <= 0 ||
-                transferring === selectedWallet?.id
+                transferring === selectedWallet?.id ||
+                (transferMode === "TOKEN" &&
+                  (!selectedBalances ||
+                    !Number.isFinite(parsedTransferAmount) ||
+                    parsedTransferAmount > maxTokenAmount))
               }
               className="gap-2"
             >

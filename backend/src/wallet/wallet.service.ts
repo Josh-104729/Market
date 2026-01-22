@@ -542,6 +542,7 @@ export class WalletService {
    */
   async transferFromTempWalletToMaster(
     tempWallet: TempWallet,
+    amountUSDT?: number,
   ): Promise<{ success: boolean; usdtTxHash?: string; trxTxHash?: string; error?: string }> {
     try {
       const masterWallet = this.getMasterWallet();
@@ -572,26 +573,19 @@ export class WalletService {
         await new Promise((resolve) => setTimeout(resolve, 5000));
       }
 
-      // Transfer USDT if balance > 0
-      const usdtBalance = await this.getUSDTBalance(tempWallet.address);
-      console.log('usdtBalance', usdtBalance);
-      if (usdtBalance > 0.000001) {
-        const usdtResult = await this.sendUSDT(privateKey, masterWallet.address, usdtBalance);
-        if (!usdtResult.success) {
-          return {
-            success: false,
-            error: `Failed to transfer USDT: ${usdtResult.error}`,
-          };
-        }
-        result.usdtTxHash = usdtResult.transactionHash;
-
-        // Wait a bit for transaction to be processed
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-      } else {
-        result.success = false;
-        result.error = `No USDT to transfer.`;
-        return result;
+      const amountToTransfer =
+        typeof amountUSDT === 'number' ? amountUSDT : await this.getUSDTBalance(tempWallet.address);
+      const usdtResult = await this.sendUSDT(privateKey, masterWallet.address, amountToTransfer);
+      if (!usdtResult.success) {
+        return {
+          success: false,
+          error: `Failed to transfer USDT: ${usdtResult.error}`,
+        };
       }
+      result.usdtTxHash = usdtResult.transactionHash;
+
+      // Wait a bit for transaction to be processed
+      await new Promise((resolve) => setTimeout(resolve, 3000));
 
       result.success = true;
       return result;
