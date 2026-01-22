@@ -381,6 +381,7 @@ export const blogApi = {
     page?: number;
     limit?: number;
     status?: Post['status'];
+    search?: string;
   }): Promise<PostListResponse> => {
     const response = await api.get('/blog/admin', { params });
     return response.data;

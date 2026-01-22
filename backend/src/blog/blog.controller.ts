@@ -105,10 +105,11 @@ export class BlogController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('status') status?: PostStatus,
+    @Query('search') search?: string,
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 10;
-    return this.blogService.findAllAdmin(pageNum, limitNum, status);
+    return this.blogService.findAllAdmin(pageNum, limitNum, status, search);
   }
 
   @Get(':id')

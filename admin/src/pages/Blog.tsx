@@ -1,39 +1,54 @@
-import { useEffect, useState } from 'react'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { useEffect, useMemo, useState } from "react"
+import { blogApi, Post, PostReport } from "../services/api"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import {
-  faSearch,
-  faSpinner,
-  faCheck,
-  faArchive,
-  faExclamationTriangle,
-  faChevronLeft,
-  faChevronRight,
-  faTrash,
-} from '@fortawesome/free-solid-svg-icons'
-import { blogApi, Post, PostReport } from '../services/api'
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Archive, Check, Search, Trash2, XCircle } from "lucide-react"
 
 interface ConfirmDialog {
   postId: string
   postContent: string
-  action: 'approve' | 'reject' | 'archive' | 'delete'
-  newStatus?: Post['status']
+  action: "approve" | "reject" | "archive" | "delete"
+  newStatus?: Post["status"]
+}
+
+const POST_STATUS_LABELS = {
+  pending: "Pending",
+  published: "Published",
+  rejected: "Rejected",
+  archived: "Archived",
 }
 
 function Blog() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("")
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
   const [reports, setReports] = useState<PostReport[]>([])
   const [reportsLoading, setReportsLoading] = useState(true)
-  const [reportStatusFilter, setReportStatusFilter] = useState<'open' | 'resolved' | 'rejected' | ''>('open')
+  const [reportStatusFilter, setReportStatusFilter] = useState<"open" | "resolved" | "rejected" | "">("open")
+  const [previewPost, setPreviewPost] = useState<Post | null>(null)
   const itemsPerPage = 10
 
-  const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
+  const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"
   const resolveImageUrl = (imagePath: string) => {
     try {
       return new URL(imagePath, BACKEND_BASE_URL).toString()
@@ -43,17 +58,13 @@ function Blog() {
   }
 
   useEffect(() => {
-    setCurrentPage(1) // Reset to first page when filters change
-  }, [statusFilter])
-
-  useEffect(() => {
-    setCurrentPage(1) // Reset to first page when search changes
-  }, [searchTerm])
+    setCurrentPage(1)
+  }, [statusFilter, searchTerm])
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchPosts()
-    }, searchTerm ? 300 : 0)
+    }, searchTerm ? 500 : 0)
     return () => clearTimeout(timeoutId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, statusFilter, searchTerm])
@@ -69,30 +80,20 @@ function Blog() {
       const params: any = {
         page: currentPage,
         limit: itemsPerPage,
-        status: statusFilter || undefined,
+      }
+      if (statusFilter) {
+        params.status = statusFilter
+      }
+      if (searchTerm.trim()) {
+        params.search = searchTerm.trim()
       }
       const response = await blogApi.getAll(params)
-      let filteredPosts = response.data
-
-      // Apply search filter
-      if (searchTerm.trim()) {
-        const search = searchTerm.toLowerCase()
-        filteredPosts = filteredPosts.filter(
-          (post) =>
-            post.content.toLowerCase().includes(search) ||
-            post.user?.firstName?.toLowerCase().includes(search) ||
-            post.user?.lastName?.toLowerCase().includes(search) ||
-            post.user?.userName?.toLowerCase().includes(search) ||
-            post.user?.email?.toLowerCase().includes(search),
-        )
-      }
-
-      setPosts(filteredPosts)
+      setPosts(response.data)
       setTotal(response.total)
       setTotalPages(response.totalPages)
     } catch (error) {
-      console.error('Failed to fetch posts:', error)
-      alert('Failed to load posts')
+      console.error("Failed to fetch posts:", error)
+      alert("Failed to load posts")
     } finally {
       setLoading(false)
     }
@@ -108,8 +109,8 @@ function Blog() {
       })
       setReports(response.data)
     } catch (error) {
-      console.error('Failed to fetch reports:', error)
-      alert('Failed to load reports')
+      console.error("Failed to fetch reports:", error)
+      alert("Failed to load reports")
     } finally {
       setReportsLoading(false)
     }
@@ -118,12 +119,12 @@ function Blog() {
   const handleStatusChangeClick = (
     id: string,
     content: string,
-    action: ConfirmDialog['action'],
-    newStatus?: Post['status'],
+    action: ConfirmDialog["action"],
+    newStatus?: Post["status"]
   ) => {
     setConfirmDialog({
       postId: id,
-      postContent: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+      postContent: content.substring(0, 50) + (content.length > 50 ? "..." : ""),
       action,
       newStatus,
     })
@@ -133,7 +134,7 @@ function Blog() {
     if (!confirmDialog) return
 
     try {
-      if (confirmDialog.action === 'delete') {
+      if (confirmDialog.action === "delete") {
         await blogApi.delete(confirmDialog.postId)
       } else if (confirmDialog.newStatus) {
         await blogApi.updateStatus(confirmDialog.postId, confirmDialog.newStatus)
@@ -141,526 +142,568 @@ function Blog() {
       setConfirmDialog(null)
       fetchPosts()
     } catch (error) {
-      console.error('Failed to update post:', error)
-      alert('Failed to update post')
+      console.error("Failed to update post:", error)
+      alert("Failed to update post")
       setConfirmDialog(null)
     }
   }
 
-  const handleReportStatus = async (id: string, status: PostReport['status']) => {
+  const handlePreviewPost = (post: Post) => {
+    setPreviewPost(post)
+  }
+
+  const handleReportStatus = async (id: string, status: PostReport["status"]) => {
     try {
       await blogApi.updateReportStatus(id, status)
       fetchReports()
     } catch (error) {
-      console.error('Failed to update report:', error)
-      alert('Failed to update report')
+      console.error("Failed to update report:", error)
+      alert("Failed to update report")
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    const badges = {
-      pending: 'bg-blue-900 text-blue-200',
-      published: 'bg-green-900 text-green-200',
-      rejected: 'bg-red-900 text-red-200',
-      archived: 'bg-yellow-900 text-yellow-200',
+  const getPostStatusVariant = (
+    status: string
+  ): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case "published":
+        return "default"
+      case "pending":
+        return "secondary"
+      case "rejected":
+        return "destructive"
+      case "archived":
+        return "outline"
+      default:
+        return "outline"
     }
-    return badges[status as keyof typeof badges] || 'bg-neutral-700 text-neutral-200'
   }
 
-  const getReportStatusBadge = (status: PostReport['status']) => {
-    const badges = {
-      open: 'bg-orange-900 text-orange-200',
-      resolved: 'bg-green-900 text-green-200',
-      rejected: 'bg-red-900 text-red-200',
+  const getReportStatusVariant = (
+    status: PostReport["status"]
+  ): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case "open":
+        return "secondary"
+      case "resolved":
+        return "default"
+      case "rejected":
+        return "destructive"
+      default:
+        return "outline"
     }
-    return badges[status] || 'bg-neutral-700 text-neutral-200'
   }
 
   const getUserName = (post: Post) => {
     if (post.user?.userName) return post.user.userName
     if (post.user?.firstName || post.user?.lastName) {
-      return `${post.user.firstName || ''} ${post.user.lastName || ''}`.trim()
+      return `${post.user.firstName || ""} ${post.user.lastName || ""}`.trim()
     }
-    return post.user?.email || 'Anonymous'
+    return post.user?.email || "Anonymous"
   }
 
   const getReporterName = (report: PostReport) => {
     const user = report.user
-    if (!user) return 'Unknown'
+    if (!user) return "Unknown"
     if (user.userName) return user.userName
     if (user.firstName || user.lastName) {
-      return `${user.firstName || ''} ${user.lastName || ''}`.trim()
+      return `${user.firstName || ""} ${user.lastName || ""}`.trim()
     }
-    return user.email || 'Unknown'
+    return user.email || "Unknown"
   }
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
+  const paginationMeta = useMemo(() => {
+    const maxVisible = 5
+    const pageCount = Math.max(totalPages, 1)
+    let start = Math.max(1, currentPage - 2)
+    let end = Math.min(pageCount, start + maxVisible - 1)
+    start = Math.max(1, end - maxVisible + 1)
+    const pages = []
+    for (let page = start; page <= end; page += 1) {
+      pages.push(page)
+    }
+    return {
+      pages,
+      showLeftEllipsis: start > 1,
+      showRightEllipsis: end < pageCount,
+    }
+  }, [currentPage, totalPages])
+
+  const startItem = total === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1
+  const endItem = Math.min(currentPage * itemsPerPage, total)
+
+  const dialogMeta = useMemo(() => {
+    if (!confirmDialog) return null
+
+    switch (confirmDialog.action) {
+      case "delete":
+        return {
+          title: "Delete Post",
+          description: "This action cannot be undone.",
+          confirmLabel: "Delete Post",
+          icon: Trash2,
+          variant: "destructive" as const,
+        }
+      case "archive":
+        return {
+          title: "Archive Post",
+          description: "This will hide the post from the feed.",
+          confirmLabel: "Archive Post",
+          icon: Archive,
+          variant: "secondary" as const,
+        }
+      case "reject":
+        return {
+          title: "Reject Post",
+          description: "This will mark the post as rejected and hide it from users.",
+          confirmLabel: "Reject Post",
+          icon: XCircle,
+          variant: "destructive" as const,
+        }
+      default:
+        return {
+          title: "Approve Post",
+          description: "This will make the post visible to users.",
+          confirmLabel: "Approve Post",
+          icon: Check,
+          variant: "default" as const,
+        }
+    }
+  }, [confirmDialog])
+
   return (
-    <div className="min-h-screen bg-neutral-900">
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-2 drop-shadow-lg">Blog Management</h1>
-          <p className="text-blue-100">Review and manage all blog posts</p>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Blog Management</h1>
+          <p className="text-sm text-muted-foreground">Review and manage all blog posts.</p>
         </div>
+        <Badge variant="secondary">Total posts: {total}</Badge>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search */}
-        <div className="bg-neutral-800 rounded-xl shadow-md p-6 mb-6">
-          <div className="relative">
-            <FontAwesomeIcon
-              icon={faSearch}
-              className="absolute left-4 top-1/2 transform -tranneutral-y-1/2 text-neutral-400"
-            />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search posts by content or author..."
-              className="w-full pl-12 pr-4 py-3 border border-neutral-700 bg-neutral-700 text-neutral-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+      <Card>
+        <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>Filters</CardTitle>
+            <CardDescription>Search by content or author.</CardDescription>
           </div>
-        </div>
-
-        {/* Status Filter Bar */}
-        <div className="bg-neutral-800 rounded-xl shadow-md p-4 mb-6 overflow-x-auto">
-          <div className="flex items-center space-x-2 min-w-max">
-            <button
-              onClick={() => setStatusFilter('')}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                statusFilter === ''
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-              }`}
-            >
-              All Statuses
-            </button>
-            <button
-              onClick={() => setStatusFilter('pending')}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                statusFilter === 'pending'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-              }`}
-            >
-              Pending
-            </button>
-            <button
-              onClick={() => setStatusFilter('published')}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                statusFilter === 'published'
-                  ? 'bg-green-600 text-white shadow-md'
-                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-              }`}
-            >
-              Published
-            </button>
-            <button
-              onClick={() => setStatusFilter('rejected')}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                statusFilter === 'rejected'
-                  ? 'bg-red-600 text-white shadow-md'
-                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-              }`}
-            >
-              Rejected
-            </button>
-            <button
-              onClick={() => setStatusFilter('archived')}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                statusFilter === 'archived'
-                  ? 'bg-yellow-600 text-white shadow-md'
-                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-              }`}
-            >
-              Archived
-            </button>
-          </div>
-        </div>
-
-        {/* Reports */}
-        <div className="bg-neutral-800 rounded-xl shadow-md p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-white">Post reports</h3>
-              <p className="text-sm text-neutral-400">Review and take action on user reports.</p>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search posts..."
+                className="pl-9"
+              />
             </div>
-            <div className="flex items-center gap-2">
-              {[
-                { label: 'Open', value: 'open' },
-                { label: 'Resolved', value: 'resolved' },
-                { label: 'Rejected', value: 'rejected' },
-                { label: 'All', value: '' },
-              ].map((item) => (
-                <button
-                  key={item.value || 'all'}
-                  onClick={() => setReportStatusFilter(item.value as any)}
-                  className={`px-3 py-2 rounded-lg font-medium text-sm transition-all ${
-                    reportStatusFilter === item.value
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+            <Select
+              value={statusFilter || "all"}
+              onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}
+            >
+              <SelectTrigger className="w-full sm:w-[170px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="published">Published</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+        </CardHeader>
+      </Card>
 
+      <Card>
+        <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>Post Reports</CardTitle>
+            <CardDescription>Review and take action on user reports.</CardDescription>
+          </div>
+          <Select
+            value={reportStatusFilter || "all"}
+            onValueChange={(value) => setReportStatusFilter(value === "all" ? "" : (value as any))}
+          >
+            <SelectTrigger className="w-full sm:w-[170px]">
+              <SelectValue placeholder="Report status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="open">Open</SelectItem>
+              <SelectItem value="resolved">Resolved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="all">All</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardHeader>
+        <CardContent>
           {reportsLoading ? (
-            <p className="text-neutral-400">Loading reports...</p>
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
           ) : reports.length === 0 ? (
-            <p className="text-neutral-400">No reports found for this filter.</p>
+            <p className="text-sm text-muted-foreground">No reports found for this filter.</p>
           ) : (
-            <div className="space-y-4">
-              {reports.map((report) => (
-                <div
-                  key={report.id}
-                  className="rounded-lg border border-neutral-700 bg-neutral-900 p-4 flex flex-col gap-3"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-white">{report.reason}</span>
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full font-semibold ${getReportStatusBadge(report.status)}`}
-                        >
-                          {report.status}
-                        </span>
-                      </div>
-                      {report.details && <p className="text-sm text-neutral-300">{report.details}</p>}
-                    </div>
-                    <div className="text-xs text-neutral-400 whitespace-nowrap">
-                      {new Date(report.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-
-                  <div className="text-sm text-neutral-300">
-                    <span className="text-neutral-400">Post:</span>{' '}
-                    <span className="font-medium text-white">
-                      {report.post?.content ? report.post.content.slice(0, 80) : 'Unknown post'}
-                      {report.post?.content && report.post.content.length > 80 ? '...' : ''}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3 text-sm text-neutral-400">
-                    <div>Reported by: {getReporterName(report)}</div>
-                    <div className="flex items-center gap-2">
-                      {report.status === 'open' ? (
-                        <>
-                          <button
-                            onClick={() => handleReportStatus(report.id, 'resolved')}
-                            className="px-3 py-2 rounded-lg bg-green-700 text-white hover:bg-green-600 text-sm font-medium"
-                          >
-                            Resolve
-                          </button>
-                          <button
-                            onClick={() => handleReportStatus(report.id, 'rejected')}
-                            className="px-3 py-2 rounded-lg bg-red-700 text-white hover:bg-red-600 text-sm font-medium"
-                          >
-                            Reject
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() => handleReportStatus(report.id, 'open')}
-                          className="px-3 py-2 rounded-lg bg-neutral-700 text-white hover:bg-neutral-600 text-sm font-medium"
-                        >
-                          Reopen
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Reason</TableHead>
+                    <TableHead>Post</TableHead>
+                    <TableHead>Reporter</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reports.map((report) => (
+                    <TableRow key={report.id}>
+                      <TableCell className="font-medium text-foreground">{report.reason}</TableCell>
+                      <TableCell className="max-w-[260px]">
+                        <p className="line-clamp-2 text-sm text-muted-foreground">
+                          {report.post?.content ? report.post.content : "Unknown post"}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm text-foreground">{getReporterName(report)}</div>
+                        {report.user?.email && (
+                          <div className="text-xs text-muted-foreground">{report.user.email}</div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getReportStatusVariant(report.status)}>{report.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{formatDate(report.createdAt)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {report.status === "open" ? (
+                            <>
+                              <Button size="sm" onClick={() => handleReportStatus(report.id, "resolved")}>
+                                Resolve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleReportStatus(report.id, "rejected")}
+                              >
+                                Reject
+                              </Button>
+                            </>
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => handleReportStatus(report.id, "open")}>
+                              Reopen
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Posts List */}
-        {loading ? (
-          <div className="text-center py-20 bg-neutral-800 rounded-xl shadow-md">
-            <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-400 mb-4" />
-            <p className="text-neutral-400">Loading posts...</p>
-          </div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-20 bg-neutral-800 rounded-xl shadow-md">
-            <p className="text-neutral-400 mb-6 text-lg">No posts found</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {posts.map((post) => (
-              <div key={post.id} className="bg-neutral-800 rounded-xl shadow-md border border-neutral-700 p-6">
-                <div className="flex items-start space-x-4">
-                  {/* Post Images */}
-                  {post.images && post.images.length > 0 && (
-                    <div className="flex-shrink-0">
-                      <div className="w-24 h-24 rounded-lg overflow-hidden bg-neutral-700">
-                        <img
-                          src={resolveImageUrl(post.images[0])}
-                          alt="Post"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      {post.images.length > 1 && (
-                        <div className="text-xs text-neutral-400 mt-1 text-center">+{post.images.length - 1} more</div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Post Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="text-white font-semibold">{getUserName(post)}</span>
-                          <span
-                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(
-                              post.status,
-                            )}`}
-                          >
-                            {post.status}
-                          </span>
+      <Card>
+        <CardHeader>
+          <CardTitle>Posts</CardTitle>
+          <CardDescription>Approve, reject, or archive user posts.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : posts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No posts found.</p>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Post</TableHead>
+                    <TableHead>Author</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Stats</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {posts.map((post) => (
+                    <TableRow key={post.id} onClick={() => handlePreviewPost(post)} className="cursor-pointer">
+                      <TableCell className="min-w-[320px]">
+                        <div className="flex items-start gap-3">
+                          {post.images && post.images.length > 0 ? (
+                            <img
+                              src={resolveImageUrl(post.images[0])}
+                              alt="Post"
+                              className="h-16 w-16 rounded-md object-cover"
+                            />
+                          ) : (
+                            <div className="h-16 w-16 rounded-md bg-muted" />
+                          )}
+                          <div className="space-y-1">
+                            <p className="line-clamp-2 text-sm font-medium text-foreground">{post.content}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {post.images && post.images.length > 0
+                                ? `${post.images.length} image${post.images.length > 1 ? "s" : ""}`
+                                : "No images"}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-sm text-neutral-400">
-                          {new Date(post.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-neutral-200 mb-3 line-clamp-3">{post.content}</p>
-                    <div className="flex items-center space-x-4 text-sm text-neutral-400">
-                      {post.likeCount !== undefined && (
-                        <span>❤️ {post.likeCount} likes</span>
-                      )}
-                      {post.commentCount !== undefined && (
-                        <span>💬 {post.commentCount} comments</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex-shrink-0 flex flex-col space-y-2">
-                    {post.status === 'pending' && (
-                      <>
-                        <button
-                          onClick={() => handleStatusChangeClick(post.id, post.content, 'approve', 'published')}
-                          className="text-green-400 hover:text-green-300 font-medium px-3 py-1 rounded hover:bg-green-900/30 transition-all flex items-center space-x-1"
-                          title="Approve and publish"
-                        >
-                          <FontAwesomeIcon icon={faCheck} />
-                          <span>Approve</span>
-                        </button>
-                        <button
-                          onClick={() => handleStatusChangeClick(post.id, post.content, 'reject', 'rejected')}
-                          className="text-red-400 hover:text-red-300 font-medium px-3 py-1 rounded hover:bg-red-900/30 transition-all flex items-center space-x-1"
-                          title="Reject"
-                        >
-                          <FontAwesomeIcon icon={faExclamationTriangle} />
-                          <span>Reject</span>
-                        </button>
-                      </>
-                    )}
-                    {post.status === 'published' && (
-                      <button
-                        onClick={() => handleStatusChangeClick(post.id, post.content, 'archive', 'archived')}
-                        className="text-yellow-400 hover:text-yellow-300 font-medium px-3 py-1 rounded hover:bg-yellow-900/30 transition-all flex items-center space-x-1"
-                        title="Archive"
-                      >
-                        <FontAwesomeIcon icon={faArchive} />
-                        <span>Archive</span>
-                      </button>
-                    )}
-                    {(post.status === 'archived' || post.status === 'rejected') && (
-                      <button
-                        onClick={() => handleStatusChangeClick(post.id, post.content, 'approve', 'published')}
-                        className="text-green-400 hover:text-green-300 font-medium px-3 py-1 rounded hover:bg-green-900/30 transition-all flex items-center space-x-1"
-                        title="Publish"
-                      >
-                        <FontAwesomeIcon icon={faCheck} />
-                        <span>Publish</span>
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleStatusChangeClick(post.id, post.content, 'delete')}
-                      className="text-red-400 hover:text-red-300 font-medium px-3 py-1 rounded hover:bg-red-900/30 transition-all flex items-center space-x-1"
-                      title="Delete"
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                      <span>Delete</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Pagination */}
-        {!loading && totalPages > 1 && (
-          <div className="bg-neutral-800 rounded-xl shadow-md p-6 mt-8">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-neutral-400">
-                Showing {posts.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to{' '}
-                {Math.min(currentPage * itemsPerPage, total)} of {total} posts
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 border border-neutral-600 rounded-lg font-medium text-neutral-300 hover:bg-neutral-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                >
-                  <FontAwesomeIcon icon={faChevronLeft} />
-                  <span>Previous</span>
-                </button>
-
-                <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum: number
-                    if (totalPages <= 5) {
-                      pageNum = i + 1
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i
-                    } else {
-                      pageNum = currentPage - 2 + i
-                    }
-
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                          currentPage === pageNum
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'border border-neutral-600 text-neutral-300 hover:bg-neutral-700'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    )
-                  })}
-                </div>
-
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-neutral-600 rounded-lg font-medium text-neutral-300 hover:bg-neutral-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                >
-                  <span>Next</span>
-                  <FontAwesomeIcon icon={faChevronRight} />
-                </button>
-              </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-medium text-foreground">{getUserName(post)}</div>
+                        {post.user?.email && <div className="text-xs text-muted-foreground">{post.user.email}</div>}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getPostStatusVariant(post.status)}>
+                          {POST_STATUS_LABELS[post.status as keyof typeof POST_STATUS_LABELS] || post.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm text-muted-foreground">
+                          ❤️ {post.likeCount ?? 0} · 💬 {post.commentCount ?? 0}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{formatDate(post.createdAt)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {post.status === "pending" && (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  handleStatusChangeClick(post.id, post.content, "approve", "published")
+                                }}
+                              >
+                                <Check className="mr-2 h-4 w-4" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  handleStatusChangeClick(post.id, post.content, "reject", "rejected")
+                                }}
+                              >
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Reject
+                              </Button>
+                            </>
+                          )}
+                          {post.status === "published" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                handleStatusChangeClick(post.id, post.content, "archive", "archived")
+                              }}
+                            >
+                              <Archive className="mr-2 h-4 w-4" />
+                              Archive
+                            </Button>
+                          )}
+                          {(post.status === "archived" || post.status === "rejected") && (
+                            <Button
+                              size="sm"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                handleStatusChangeClick(post.id, post.content, "approve", "published")
+                              }}
+                            >
+                              <Check className="mr-2 h-4 w-4" />
+                              Publish
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              handleStatusChangeClick(post.id, post.content, "delete")
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          </div>
-        )}
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Confirmation Dialog */}
-        {confirmDialog && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={() => setConfirmDialog(null)}
-          >
-            <div
-              className="bg-neutral-800 rounded-xl shadow-2xl max-w-md w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <div className="flex items-center space-x-4 mb-4">
-                  <div
-                    className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
-                      confirmDialog.action === 'delete'
-                        ? 'bg-red-900'
-                        : confirmDialog.action === 'archive'
-                        ? 'bg-yellow-900'
-                        : confirmDialog.action === 'reject'
-                        ? 'bg-red-900'
-                        : 'bg-green-900'
-                    }`}
-                  >
-                    <FontAwesomeIcon
-                      icon={
-                        confirmDialog.action === 'delete'
-                          ? faTrash
-                          : confirmDialog.action === 'reject'
-                          ? faExclamationTriangle
-                          : faCheck
-                      }
-                      className={`text-2xl ${
-                        confirmDialog.action === 'delete'
-                          ? 'text-red-300'
-                          : confirmDialog.action === 'archive'
-                          ? 'text-yellow-300'
-                          : confirmDialog.action === 'reject'
-                          ? 'text-red-300'
-                          : 'text-green-300'
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-neutral-100">
-                      {confirmDialog.action === 'delete'
-                        ? 'Delete Post'
-                        : confirmDialog.action === 'archive'
-                        ? 'Archive Post'
-                        : confirmDialog.action === 'reject'
-                        ? 'Reject Post'
-                        : 'Approve Post'}
-                    </h3>
-                    <p className="text-sm text-neutral-400 mt-1">
-                      {confirmDialog.action === 'delete'
-                        ? 'This action cannot be undone'
-                        : confirmDialog.action === 'archive'
-                        ? 'This will hide the post from the feed'
-                        : confirmDialog.action === 'reject'
-                        ? 'This will mark the post as rejected and hide it from users'
-                        : 'This will make the post visible to users'}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-neutral-300 mb-6">
-                  Are you sure you want to {confirmDialog.action} the post{' '}
-                  <span className="font-semibold">"{confirmDialog.postContent}"</span>?
-                </p>
-                <div className="flex justify-end space-x-3">
-                  <button
-                    onClick={() => setConfirmDialog(null)}
-                    className="px-6 py-3 border-2 border-neutral-600 rounded-lg text-neutral-300 font-semibold hover:bg-neutral-700 transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleStatusChange}
-                    className={`px-6 py-3 text-white rounded-lg font-semibold transition-all shadow-md hover:shadow-lg ${
-                      confirmDialog.action === 'delete'
-                        ? 'bg-red-600 hover:bg-red-700'
-                        : confirmDialog.action === 'archive'
-                        ? 'bg-yellow-600 hover:bg-yellow-700'
-                        : confirmDialog.action === 'reject'
-                        ? 'bg-red-600 hover:bg-red-700'
-                        : 'bg-green-600 hover:bg-green-700'
-                    }`}
-                  >
-                    {confirmDialog.action === 'delete'
-                      ? 'Delete Post'
-                      : confirmDialog.action === 'archive'
-                      ? 'Archive Post'
-                      : confirmDialog.action === 'reject'
-                      ? 'Reject Post'
-                      : 'Approve Post'}
-                  </button>
-                </div>
-              </div>
-            </div>
+      {!loading && total > 0 && (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {startItem} to {endItem} of {total} posts
           </div>
-        )}
-      </div>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                  }}
+                />
+              </PaginationItem>
+              {paginationMeta.showLeftEllipsis && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+              {paginationMeta.pages.map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    href="#"
+                    isActive={page === currentPage}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      setCurrentPage(page)
+                    }}
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              {paginationMeta.showRightEllipsis && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                  }}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+
+      <Dialog
+        open={Boolean(confirmDialog)}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDialog(null)
+        }}
+      >
+        <DialogContent>
+          {confirmDialog && dialogMeta && (
+            <>
+              <div className="flex items-start gap-4">
+                <div
+                  className={`flex h-11 w-11 items-center justify-center rounded-full ${
+                    dialogMeta.variant === "destructive"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-primary/10 text-primary"
+                  }`}
+                >
+                  <dialogMeta.icon className="h-5 w-5" />
+                </div>
+                <DialogHeader className="text-left">
+                  <DialogTitle>{dialogMeta.title}</DialogTitle>
+                  <DialogDescription>{dialogMeta.description}</DialogDescription>
+                </DialogHeader>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Are you sure you want to {confirmDialog.action} the post{" "}
+                <span className="font-semibold text-foreground">"{confirmDialog.postContent}"</span>?
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setConfirmDialog(null)}>
+                  Cancel
+                </Button>
+                <Button variant={dialogMeta.variant} onClick={handleStatusChange}>
+                  {dialogMeta.confirmLabel}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(previewPost)}
+        onOpenChange={(open) => {
+          if (!open) setPreviewPost(null)
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          {previewPost && (
+            <>
+              <DialogHeader className="text-left">
+                <DialogTitle>Post details</DialogTitle>
+                <DialogDescription>Full content and attachments.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Badge variant={getPostStatusVariant(previewPost.status)}>
+                    {POST_STATUS_LABELS[previewPost.status as keyof typeof POST_STATUS_LABELS] || previewPost.status}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {formatDate(previewPost.createdAt)} · {getUserName(previewPost)}
+                  </span>
+                </div>
+                <p className="whitespace-pre-wrap text-sm text-foreground">{previewPost.content}</p>
+                {previewPost.images && previewPost.images.length > 0 && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {previewPost.images.map((image, index) => (
+                      <img
+                        key={`${previewPost.id}-${index}`}
+                        src={resolveImageUrl(image)}
+                        alt={`Post image ${index + 1}`}
+                        className="h-48 w-full rounded-md object-cover"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setPreviewPost(null)}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   )
 }

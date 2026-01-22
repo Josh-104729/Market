@@ -171,6 +171,7 @@ export class BlogService {
     page: number = 1,
     limit: number = 10,
     status?: PostStatus,
+    search?: string,
   ): Promise<{ data: Post[]; total: number; page: number; limit: number; totalPages: number }> {
     const queryBuilder = this.postRepository
       .createQueryBuilder('post')
@@ -182,6 +183,25 @@ export class BlogService {
 
     if (status) {
       queryBuilder.where('post.status = :status', { status });
+    }
+
+    if (search) {
+      const searchWords = search
+        .trim()
+        .split(/\s+/)
+        .filter((word) => word.length > 0)
+        .map((word) => word.trim());
+
+      if (searchWords.length > 0) {
+        searchWords.forEach((word, index) => {
+          const paramName = `searchWord${index}`;
+          const searchPattern = `%${word}%`;
+          queryBuilder.andWhere(
+            `(post.content LIKE :${paramName} OR user.firstName LIKE :${paramName} OR user.lastName LIKE :${paramName} OR user.userName LIKE :${paramName} OR user.email LIKE :${paramName})`,
+            { [paramName]: searchPattern },
+          );
+        });
+      }
     }
 
     const total = await queryBuilder.getCount();
