@@ -4,6 +4,22 @@ import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { logout } from '../store/slices/authSlice'
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Separator } from "@/components/ui/separator"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
 import {
   LayoutDashboard,
   FolderTree,
@@ -17,7 +33,6 @@ import {
   Megaphone,
   LifeBuoy,
   LogOut,
-  Menu,
 } from "lucide-react"
 
 interface LayoutProps {
@@ -49,70 +64,83 @@ function Layout({ children }: LayoutProps) {
     { path: '/helps', label: 'Helps', icon: LifeBuoy },
   ]
 
+  const getIsActive = (path: string) => {
+    if (path === '/') return location.pathname === '/'
+    return location.pathname.startsWith(path)
+  }
+
+  const currentPageLabel =
+    navItems.find((item) => getIsActive(item.path))?.label || 'Dashboard'
+
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* Top Navigation */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border shadow-sm">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold group-hover:scale-105 transition-transform">
-                O
-              </div>
-              <span className="text-lg font-bold tracking-tight text-foreground hidden sm:block">
-                OmniMart Admin
-              </span>
-            </Link>
-
-            <nav className="hidden lg:flex items-center gap-1">
-              {navItems.map((item) => (
-                <Button
-                  key={item.path}
-                  variant={location.pathname === item.path ? "secondary" : "ghost"}
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => navigate(item.path)}
-                >
-                  <item.icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </Button>
-              ))}
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex flex-col items-end">
-              <span className="text-sm font-medium text-foreground leading-none">
-                {user?.userName || 'Admin'}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {user?.email}
-              </span>
+    <SidebarProvider>
+      <Sidebar collapsible="icon">
+        <SidebarHeader>
+          <Link to="/" className="flex items-center gap-2 px-2 py-1">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-semibold">
+              O
             </div>
-            <ThemeToggle />
+            <div className="flex flex-col leading-none">
+              <span className="text-sm font-semibold text-sidebar-foreground">OmniMart</span>
+              <span className="text-xs text-sidebar-foreground/70">Admin</span>
+            </div>
+          </Link>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Management</SidebarGroupLabel>
+            <SidebarMenu>
+              {navItems.map((item) => (
+                <SidebarMenuItem key={item.path}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={getIsActive(item.path)}
+                    tooltip={item.label}
+                  >
+                    <Link to={item.path}>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter>
+          <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/30 p-3">
+            <div className="text-sm font-medium text-sidebar-foreground">
+              {user?.userName || 'Admin'}
+            </div>
+            <div className="text-xs text-sidebar-foreground/70">{user?.email}</div>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="gap-2 text-muted-foreground border-border"
+              className="mt-3 w-full justify-start gap-2 text-sidebar-foreground/80"
               onClick={handleLogout}
             >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </Button>
-            <Button variant="ghost" size="icon" className="lg:hidden">
-              <Menu className="w-5 h-5" />
+              <LogOut className="h-4 w-4" />
+              Logout
             </Button>
           </div>
-        </div>
-      </header>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
 
-      {/* Main Content */}
-      <main className="flex-1 pt-20 pb-12">
-        <div className="container mx-auto px-4">
+      <SidebarInset>
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur md:px-6">
+          <SidebarTrigger />
+          <Separator orientation="vertical" className="h-4" />
+          <div className="flex-1 text-sm font-medium text-foreground">{currentPageLabel}</div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+          </div>
+        </header>
+        <main className="flex-1 px-4 py-6 md:px-6 lg:px-8">
           {children}
-        </div>
-      </main>
-    </div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
 
