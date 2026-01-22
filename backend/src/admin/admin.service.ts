@@ -205,27 +205,27 @@ export class AdminService {
       let usdtBalance = 0;
       let usdcBalance = 0; // kept for backwards-compatible admin UI payloads
 
-      if (wallet.network === WalletNetwork.TRON) {
-        const key = `TRON:${wallet.address}:USDT`;
-        const cached = this.getCachedBalance(key);
-        if (cached !== null) {
-          usdtBalance = cached;
-        } else {
-          usdtBalance = await this.walletService.getUSDTBalance(wallet.address);
-          this.setCachedBalance(key, usdtBalance, TTL_MS);
-        }
-      }
+      // if (wallet.network === WalletNetwork.TRON) {
+      //   const key = `TRON:${wallet.address}:USDT`;
+      //   const cached = this.getCachedBalance(key);
+      //   if (cached !== null) {
+      //     usdtBalance = cached;
+      //   } else {
+      //     usdtBalance = await this.walletService.getUSDTBalance(wallet.address);
+      //     this.setCachedBalance(key, usdtBalance, TTL_MS);
+      //   }
+      // }
 
-      if (wallet.network === WalletNetwork.POLYGON) {
-        const key = `POLYGON:${wallet.address}:USDC`;
-        const cached = this.getCachedBalance(key);
-        if (cached !== null) {
-          usdcBalance = cached;
-        } else {
-          usdcBalance = await this.polygonWalletService.getUSDCBalance(wallet.address);
-          this.setCachedBalance(key, usdcBalance, TTL_MS);
-        }
-      }
+      // if (wallet.network === WalletNetwork.POLYGON) {
+      //   const key = `POLYGON:${wallet.address}:USDC`;
+      //   const cached = this.getCachedBalance(key);
+      //   if (cached !== null) {
+      //     usdcBalance = cached;
+      //   } else {
+      //     usdcBalance = await this.polygonWalletService.getUSDCBalance(wallet.address);
+      //     this.setCachedBalance(key, usdcBalance, TTL_MS);
+      //   }
+      // }
 
       return {
         ...wallet,
