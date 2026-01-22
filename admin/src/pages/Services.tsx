@@ -1,22 +1,31 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { faStar } from "@fortawesome/free-solid-svg-icons"
+import { faStar as faStarRegular, faStarHalfStroke } from "@fortawesome/free-regular-svg-icons"
+import { serviceApi, categoryApi, Service, Category } from "../services/api"
+import { renderIcon } from "../utils/iconHelper"
+import ImageWithLoader from "../components/ImageWithLoader"
+import { useDefaultServiceImageSrc } from "../hooks/use-default-service-image"
+import { formatPaymentDurationSuffix } from "../utils/paymentDuration"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import {
-  faSearch,
-  faSpinner,
-  faCheck,
-  faBan,
-  faExclamationTriangle,
-  faChevronLeft,
-  faChevronRight,
-  faStar,
-} from '@fortawesome/free-solid-svg-icons'
-import { faStar as faStarRegular, faStarHalfStroke } from '@fortawesome/free-regular-svg-icons'
-import { serviceApi, categoryApi, Service, Category } from '../services/api'
-import { renderIcon } from '../utils/iconHelper'
-import ImageWithLoader from '../components/ImageWithLoader'
-import { useDefaultServiceImageSrc } from '../hooks/use-default-service-image'
-import { formatPaymentDurationSuffix } from '../utils/paymentDuration'
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { AlertTriangle, Ban, Check, Search } from "lucide-react"
 
 const StarRating = ({ rating }: { rating: number }) => {
   const fullStars = Math.floor(rating)
@@ -24,7 +33,7 @@ const StarRating = ({ rating }: { rating: number }) => {
   const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
 
   return (
-    <div className="flex items-center space-x-1">
+    <div className="flex items-center gap-1">
       {[...Array(fullStars)].map((_, i) => (
         <FontAwesomeIcon key={`full-${i}`} icon={faStar} className="text-yellow-400" />
       ))}
@@ -49,9 +58,9 @@ function Services() {
   const [services, setServices] = useState<Service[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('')
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("")
+  const [selectedCategory, setSelectedCategory] = useState<string>("")
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -89,7 +98,7 @@ function Services() {
       const data = await categoryApi.getAll()
       setCategories(data)
     } catch (error) {
-      console.error('Failed to fetch categories:', error)
+      console.error("Failed to fetch categories:", error)
     }
   }
 
@@ -114,8 +123,8 @@ function Services() {
       setTotal(response.total)
       setTotalPages(response.totalPages)
     } catch (error) {
-      console.error('Failed to fetch services:', error)
-      alert('Failed to load services')
+      console.error("Failed to fetch services:", error)
+      alert("Failed to load services")
     } finally {
       setLoading(false)
     }
@@ -124,8 +133,8 @@ function Services() {
   const handleStatusChangeClick = (
     id: string,
     title: string,
-    action: 'approve' | 'block' | 'unblock',
-    newStatus: 'draft' | 'active' | 'blocked',
+    action: "approve" | "block" | "unblock",
+    newStatus: "draft" | "active" | "blocked"
   ) => {
     setConfirmDialog({
       serviceId: id,
@@ -143,460 +152,396 @@ function Services() {
       setConfirmDialog(null)
       fetchServices()
     } catch (error) {
-      console.error('Failed to update service status:', error)
-      alert('Failed to update service status')
+      console.error("Failed to update service status:", error)
+      alert("Failed to update service status")
       setConfirmDialog(null)
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    const badges = {
-      draft: 'bg-neutral-700 text-neutral-200',
-      active: 'bg-green-900 text-green-200',
-      blocked: 'bg-red-900 text-red-200',
+  const getStatusBadgeVariant = (
+    status: string
+  ): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case "active":
+        return "default"
+      case "blocked":
+        return "destructive"
+      case "draft":
+        return "secondary"
+      default:
+        return "outline"
     }
-    return badges[status as keyof typeof badges] || badges.draft
   }
 
+  const getServiceRating = (service: Service) => {
+    const rating =
+      service.averageRating !== undefined && service.averageRating > 0 ? service.averageRating : service.rating
+    if (rating === undefined || rating === null) return 0
+    return typeof rating === "number" ? rating : parseFloat(String(rating))
+  }
+
+  const getServicePrice = (service: Service) => {
+    const value = typeof service.balance === "number" ? service.balance : parseFloat(service.balance as any)
+    if (Number.isNaN(value)) return "0.00"
+    return (Math.round(value * 100) / 100).toFixed(2)
+  }
+
+  const paginationMeta = useMemo(() => {
+    const maxVisible = 5
+    const pageCount = Math.max(totalPages, 1)
+    let start = Math.max(1, currentPage - 2)
+    let end = Math.min(pageCount, start + maxVisible - 1)
+    start = Math.max(1, end - maxVisible + 1)
+    const pages = []
+    for (let page = start; page <= end; page += 1) {
+      pages.push(page)
+    }
+    return {
+      pages,
+      showLeftEllipsis: start > 1,
+      showRightEllipsis: end < pageCount,
+    }
+  }, [currentPage, totalPages])
+
+  const startItem = total === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1
+  const endItem = Math.min(currentPage * itemsPerPage, total)
+
   return (
-    <div className="min-h-screen bg-neutral-900">
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-2 drop-shadow-lg">Services Management</h1>
-          <p className="text-blue-100">Review and manage all services</p>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Services</h1>
+          <p className="text-sm text-muted-foreground">Review and manage all services.</p>
         </div>
+        <Badge variant="secondary">Total services: {totalServiceCount}</Badge>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search */}
-        <div className="bg-neutral-800 rounded-xl shadow-md p-6 mb-6">
-          <div className="relative">
-            <FontAwesomeIcon
-              icon={faSearch}
-              className="absolute left-4 top-1/2 transform -tranneutral-y-1/2 text-neutral-400"
-            />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search services by title, description, or tags..."
-              className="w-full pl-12 pr-4 py-3 border border-neutral-700 bg-neutral-700 text-neutral-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+      <Card>
+        <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>Filters</CardTitle>
+            <CardDescription>Search by title, description, or tags.</CardDescription>
           </div>
-        </div>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search services..."
+                className="pl-9"
+              />
+            </div>
+            <Select
+              value={statusFilter || "all"}
+              onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}
+            >
+              <SelectTrigger className="w-full sm:w-[170px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="blocked">Blocked</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={selectedCategory || "all"}
+              onValueChange={(value) => setSelectedCategory(value === "all" ? "" : value)}
+            >
+              <SelectTrigger className="w-full sm:w-[220px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories ({totalServiceCount})</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    <span className="flex items-center gap-2">
+                      {category.icon ? renderIcon(category.icon, "text-sm") : null}
+                      <span>{category.title}</span>
+                      {category.serviceCount ? (
+                        <span className="text-muted-foreground">({category.serviceCount})</span>
+                      ) : null}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent className="text-xs text-muted-foreground">
+          Showing {startItem} to {endItem} of {total} services
+        </CardContent>
+      </Card>
 
-        {/* Status Filter Bar */}
-        <div className="bg-neutral-800 rounded-xl shadow-md p-4 mb-6 overflow-x-auto">
-          <div className="flex items-center space-x-2 min-w-max">
-            <button
-              onClick={() => setStatusFilter('')}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                statusFilter === ''
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-              }`}
-            >
-              All Statuses
-            </button>
-            <button
-              onClick={() => setStatusFilter('draft')}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                statusFilter === 'draft'
-                  ? 'bg-neutral-600 text-white shadow-md'
-                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-              }`}
-            >
-              Draft
-            </button>
-            <button
-              onClick={() => setStatusFilter('active')}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                statusFilter === 'active'
-                  ? 'bg-green-600 text-white shadow-md'
-                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-              }`}
-            >
-              Active
-            </button>
-            <button
-              onClick={() => setStatusFilter('blocked')}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                statusFilter === 'blocked'
-                  ? 'bg-red-600 text-white shadow-md'
-                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-              }`}
-            >
-              Blocked
-            </button>
+      <Card>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>Services List</CardTitle>
+            <CardDescription>Approve, block, or review service listings.</CardDescription>
           </div>
-        </div>
-
-        {/* Category Filter Bar */}
-        <div className="bg-neutral-800 rounded-xl shadow-md p-4 mb-8 overflow-x-auto scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-neutral-700">
-          <div className="flex items-center space-x-2 min-w-max">
-            <button
-              onClick={() => setSelectedCategory('')}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all flex items-center space-x-2 ${
-                selectedCategory === ''
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-              }`}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Rows per page</span>
+            <Select
+              value={String(itemsPerPage)}
+              onValueChange={(value) => {
+                setCurrentPage(1)
+                setItemsPerPage(Number(value))
+              }}
             >
-              <span>All Categories</span>
-              {totalServiceCount > 0 && (
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                    selectedCategory === ''
-                      ? 'bg-white/20 text-white'
-                      : 'bg-blue-600 text-blue-200'
-                  }`}
-                >
-                  {totalServiceCount}
-                </span>
-              )}
-            </button>
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all flex items-center space-x-2 ${
-                  selectedCategory === category.id
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-                }`}
-              >
-                {category.icon && (
-                  <span className={selectedCategory === category.id ? 'text-white' : 'text-blue-400'}>
-                    {renderIcon(category.icon, 'text-lg')}
-                  </span>
-                )}
-                <span>{category.title}</span>
-                {category.serviceCount !== undefined && category.serviceCount > 0 && (
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                      selectedCategory === category.id
-                        ? 'bg-white/20 text-white'
-                        : 'bg-blue-600 text-blue-200'
-                    }`}
-                  >
-                    {category.serviceCount}
-                  </span>
-                )}
-              </button>
-            ))}
+              <SelectTrigger className="w-[90px]">
+                <SelectValue placeholder={itemsPerPage} />
+              </SelectTrigger>
+              <SelectContent>
+                {[5, 10, 20, 50].map((count) => (
+                  <SelectItem key={count} value={String(count)}>
+                    {count}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-
-        {/* Services Table */}
-        {loading ? (
-          <div className="text-center py-20 bg-neutral-800 rounded-xl shadow-md">
-            <FontAwesomeIcon icon={faSpinner} className="animate-spin text-4xl text-blue-400 mb-4" />
-            <p className="text-neutral-400">Loading services...</p>
-          </div>
-        ) : services.length === 0 ? (
-          <div className="text-center py-20 bg-neutral-800 rounded-xl shadow-md">
-            <p className="text-neutral-400 mb-6 text-lg">No services found</p>
-          </div>
-        ) : (
-          <div className="bg-neutral-800 rounded-xl shadow-md overflow-hidden">
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : services.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-10 text-sm text-muted-foreground">
+              <Search className="h-5 w-5" />
+              No services found.
+            </div>
+          ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-neutral-700">
-                <thead className="bg-gradient-to-r from-neutral-700 to-neutral-800">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
-                      Image
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
-                      Title
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
-                      Category
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
-                      Seller
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
-                      Rating
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
-                      Price
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-neutral-300 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-neutral-800 divide-y divide-neutral-700">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Image</TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Seller</TableHead>
+                    <TableHead>Rating</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {services.map((service) => (
-                    <tr key={service.id} className="hover:bg-neutral-700 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="w-16 h-16 rounded-lg overflow-hidden relative">
+                    <TableRow key={service.id}>
+                      <TableCell>
+                        <div className="h-16 w-16 overflow-hidden rounded-lg border bg-muted/30">
                           <ImageWithLoader
                             src={service.adImage?.trim() ? service.adImage : defaultServiceImageSrc}
                             alt={service.title}
                             className="max-w-full max-h-full object-contain"
-                            containerClassName="w-full h-full"
+                            containerClassName="h-full w-full"
                             showBlurBackground={true}
                           />
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div
-                          className="text-sm font-semibold text-neutral-100 max-w-xs truncate cursor-pointer hover:text-blue-400 transition-colors"
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                        <button
+                          type="button"
+                          className="text-left text-sm font-semibold text-foreground hover:text-primary transition-colors"
                           onClick={() => navigate(`/services/${service.id}`)}
                         >
                           {service.title}
+                        </button>
+                        <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                          {service.adText || "No description provided."}
                         </div>
-                        <div className="text-xs text-neutral-400 mt-1 line-clamp-2 max-w-xs">{service.adText}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-neutral-100">{service.category?.title || 'N/A'}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-neutral-100">
-                          {service.user?.firstName && service.user?.lastName
-                            ? `${service.user.firstName} ${service.user.lastName}`
-                            : service.user?.userName || service.user?.email || 'N/A'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <StarRating
-                            rating={
-                              service.averageRating !== undefined && service.averageRating > 0
-                                ? service.averageRating
-                                : service.rating
-                                  ? typeof service.rating === 'number'
-                                    ? service.rating
-                                    : parseFloat(service.rating as any)
-                                  : 0
-                            }
-                          />
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-neutral-100">
-                          ${typeof service.balance === 'number' 
-                            ? (Math.round(service.balance * 100) / 100).toFixed(2)
-                            : (Math.round(parseFloat(service.balance as any) * 100) / 100).toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(
-                            service.status,
-                          )}`}
-                        >
+                      </TableCell>
+                      <TableCell>{service.category?.title || "N/A"}</TableCell>
+                      <TableCell>
+                        {service.user?.firstName && service.user?.lastName
+                          ? `${service.user.firstName} ${service.user.lastName}`
+                          : service.user?.userName || service.user?.email || "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        <StarRating rating={getServiceRating(service)} />
+                      </TableCell>
+                      <TableCell className="font-semibold text-foreground">
+                        ${getServicePrice(service)}
+                        {formatPaymentDurationSuffix(service.paymentDuration)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusBadgeVariant(service.status)} className="capitalize">
                           {service.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-400">
-                        {new Date(service.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {new Date(service.createdAt).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
                         })}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          {service.status === 'draft' && (
-                            <button
-                              onClick={() => handleStatusChangeClick(service.id, service.title, 'approve', 'active')}
-                              className="text-green-400 hover:text-green-300 font-medium px-3 py-1 rounded hover:bg-green-900/30 transition-all flex items-center space-x-1"
-                              title="Approve"
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          {service.status === "draft" && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleStatusChangeClick(service.id, service.title, "approve", "active")}
                             >
-                              <FontAwesomeIcon icon={faCheck} />
-                              <span>Approve</span>
-                            </button>
+                              <Check className="h-4 w-4" />
+                              Approve
+                            </Button>
                           )}
-                          {service.status === 'active' && (
-                            <button
-                              onClick={() => handleStatusChangeClick(service.id, service.title, 'block', 'blocked')}
-                              className="text-red-400 hover:text-red-300 font-medium px-3 py-1 rounded hover:bg-red-900/30 transition-all flex items-center space-x-1"
-                              title="Block"
+                          {service.status === "active" && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleStatusChangeClick(service.id, service.title, "block", "blocked")}
                             >
-                              <FontAwesomeIcon icon={faBan} />
-                              <span>Block</span>
-                            </button>
+                              <Ban className="h-4 w-4" />
+                              Block
+                            </Button>
                           )}
-                          {service.status === 'blocked' && (
-                            <button
-                              onClick={() => handleStatusChangeClick(service.id, service.title, 'unblock', 'active')}
-                              className="text-green-400 hover:text-green-300 font-medium px-3 py-1 rounded hover:bg-green-900/30 transition-all flex items-center space-x-1"
-                              title="Unblock"
+                          {service.status === "blocked" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleStatusChangeClick(service.id, service.title, "unblock", "active")}
                             >
-                              <FontAwesomeIcon icon={faCheck} />
-                              <span>Unblock</span>
-                            </button>
+                              <Check className="h-4 w-4" />
+                              Unblock
+                            </Button>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
-          </div>
-        )}
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Pagination */}
-        {!loading && (
-          <div className="bg-neutral-800 rounded-xl shadow-md p-6 mt-8">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="text-sm text-neutral-400">
-                  Showing {services.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to{' '}
-                  {Math.min(currentPage * itemsPerPage, total)} of {total} services
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-neutral-400">Items per page:</label>
-                  <select
-                    value={itemsPerPage}
-                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                    className="px-3 py-1 bg-neutral-700 border border-neutral-600 rounded-lg text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      {!loading && total > 0 && (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {startItem} to {endItem} of {total} services
+          </div>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                  }}
+                />
+              </PaginationItem>
+              {paginationMeta.showLeftEllipsis && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+              {paginationMeta.pages.map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    href="#"
+                    isActive={page === currentPage}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      setCurrentPage(page)
+                    }}
                   >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 border border-neutral-600 rounded-lg font-medium text-neutral-300 hover:bg-neutral-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              {paginationMeta.showRightEllipsis && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                  }}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+
+      <Dialog
+        open={Boolean(confirmDialog)}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDialog(null)
+        }}
+      >
+        <DialogContent>
+          {confirmDialog && (
+            <>
+              <div className="flex items-start gap-4">
+                <div
+                  className={`flex h-11 w-11 items-center justify-center rounded-full ${
+                    confirmDialog.action === "block" ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+                  }`}
                 >
-                  <FontAwesomeIcon icon={faChevronLeft} />
-                  <span>Previous</span>
-                </button>
-
-                <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum: number
-                    if (totalPages <= 5) {
-                      pageNum = i + 1
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i
-                    } else {
-                      pageNum = currentPage - 2 + i
-                    }
-
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                          currentPage === pageNum
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'border border-neutral-600 text-neutral-300 hover:bg-neutral-700'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    )
-                  })}
+                  {confirmDialog.action === "block" ? (
+                    <Ban className="h-5 w-5" />
+                  ) : (
+                    <AlertTriangle className="h-5 w-5" />
+                  )}
                 </div>
-
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-neutral-600 rounded-lg font-medium text-neutral-300 hover:bg-neutral-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                <DialogHeader className="text-left">
+                  <DialogTitle>
+                    {confirmDialog.action === "approve"
+                      ? "Approve Service"
+                      : confirmDialog.action === "block"
+                      ? "Block Service"
+                      : "Unblock Service"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {confirmDialog.action === "approve"
+                      ? "This will make the service visible to users."
+                      : confirmDialog.action === "block"
+                      ? "This will hide the service from users."
+                      : "This will make the service visible to users again."}
+                  </DialogDescription>
+                </DialogHeader>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Are you sure you want to {confirmDialog.action} the service{" "}
+                <span className="font-semibold text-foreground">"{confirmDialog.serviceTitle}"</span>?
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setConfirmDialog(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant={confirmDialog.action === "block" ? "destructive" : "default"}
+                  onClick={handleStatusChange}
                 >
-                  <span>Next</span>
-                  <FontAwesomeIcon icon={faChevronRight} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Confirmation Dialog */}
-        {confirmDialog && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={() => setConfirmDialog(null)}
-          >
-            <div
-              className="bg-neutral-800 rounded-xl shadow-2xl max-w-md w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <div className="flex items-center space-x-4 mb-4">
-                  <div
-                    className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
-                      confirmDialog.action === 'approve' || confirmDialog.action === 'unblock'
-                        ? 'bg-green-900'
-                        : 'bg-red-900'
-                    }`}
-                  >
-                    <FontAwesomeIcon
-                      icon={confirmDialog.action === 'block' ? faBan : faExclamationTriangle}
-                      className={`text-2xl ${
-                        confirmDialog.action === 'approve' || confirmDialog.action === 'unblock'
-                          ? 'text-green-300'
-                          : 'text-red-300'
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-neutral-100">
-                      {confirmDialog.action === 'approve'
-                        ? 'Approve Service'
-                        : confirmDialog.action === 'block'
-                        ? 'Block Service'
-                        : 'Unblock Service'}
-                    </h3>
-                    <p className="text-sm text-neutral-400 mt-1">
-                      {confirmDialog.action === 'approve'
-                        ? 'This will make the service visible to users'
-                        : confirmDialog.action === 'block'
-                        ? 'This will hide the service from users'
-                        : 'This will make the service visible to users again'}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-neutral-300 mb-6">
-                  Are you sure you want to {confirmDialog.action} the service{' '}
-                  <span className="font-semibold">"{confirmDialog.serviceTitle}"</span>?
-                </p>
-                <div className="flex justify-end space-x-3">
-                  <button
-                    onClick={() => setConfirmDialog(null)}
-                    className="px-6 py-3 border-2 border-neutral-600 rounded-lg text-neutral-300 font-semibold hover:bg-neutral-700 transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleStatusChange}
-                    className={`px-6 py-3 text-white rounded-lg font-semibold transition-all shadow-md hover:shadow-lg ${
-                      confirmDialog.action === 'approve' || confirmDialog.action === 'unblock'
-                        ? 'bg-green-600 hover:bg-green-700'
-                        : 'bg-red-600 hover:bg-red-700'
-                    }`}
-                  >
-                    {confirmDialog.action === 'approve'
-                      ? 'Approve Service'
-                      : confirmDialog.action === 'block'
-                      ? 'Block Service'
-                      : 'Unblock Service'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+                  {confirmDialog.action === "approve"
+                    ? "Approve Service"
+                    : confirmDialog.action === "block"
+                    ? "Block Service"
+                    : "Unblock Service"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
