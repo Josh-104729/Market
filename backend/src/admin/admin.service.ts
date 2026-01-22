@@ -238,8 +238,8 @@ export class AdminService {
     return walletsWithBalances;
   }
 
-  // Fetch full balances for a single temp wallet on-demand (used by the admin transfer dialog).
-  async getTempWalletBalances(walletId: string) {
+  // Fetch balances for a single temp wallet on-demand (used by the admin temp wallet list).
+  async getTempWalletBalances(walletId: string, asset?: 'token' | 'gas') {
     const wallet = await this.tempWalletRepository.findOne({
       where: { id: walletId },
     });
@@ -249,10 +249,8 @@ export class AdminService {
     }
 
     if (wallet.network === WalletNetwork.TRON) {
-      const [usdt, trx] = await Promise.all([
-        this.walletService.getUSDTBalance(wallet.address),
-        this.walletService.getTRXBalance(wallet.address),
-      ]);
+      const usdt = asset === 'gas' ? 0 : await this.walletService.getUSDTBalance(wallet.address);
+      const trx = asset === 'token' ? 0 : await this.walletService.getTRXBalance(wallet.address);
       return {
         walletId: wallet.id,
         network: wallet.network,
@@ -265,10 +263,8 @@ export class AdminService {
     }
 
     if (wallet.network === WalletNetwork.POLYGON) {
-      const [usdc, matic] = await Promise.all([
-        this.polygonWalletService.getUSDCBalance(wallet.address),
-        this.polygonWalletService.getMATICBalance(wallet.address),
-      ]);
+      const usdc = asset === 'gas' ? 0 : await this.polygonWalletService.getUSDCBalance(wallet.address);
+      const matic = asset === 'token' ? 0 : await this.polygonWalletService.getMATICBalance(wallet.address);
       return {
         walletId: wallet.id,
         network: wallet.network,
@@ -283,7 +279,7 @@ export class AdminService {
     throw new BadRequestException('Unsupported wallet network');
   }
 
-  async transferFromTempWallet(walletId: string) {
+  async transferFromTempWallet(walletId: string, amount?: number) {
     const tempWallet = await this.tempWalletRepository.findOne({
       where: { id: walletId },
     });
@@ -292,28 +288,29 @@ export class AdminService {
       throw new NotFoundException('Temp wallet not found');
     }
 
-    // Get balance before transfer
     let amountTransferred = 0;
-    if (tempWallet.network === WalletNetwork.TRON) {
-      amountTransferred = await this.walletService.getUSDTBalance(tempWallet.address);
-    } else if (tempWallet.network === WalletNetwork.POLYGON) {
-      amountTransferred = await this.polygonWalletService.getUSDCBalance(tempWallet.address);
-    } else {
-      throw new BadRequestException('Unsupported wallet network');
-    }
-
-    if (amountTransferred <= 0) {
-      throw new BadRequestException('No funds to transfer');
-    }
+    // if (tempWallet.network === WalletNetwork.TRON) {
+    //   amountTransferred =
+    //     typeof amount === 'number' ? amount : await this.walletService.getUSDTBalance(tempWallet.address);
+    // } else if (tempWallet.network === WalletNetwork.POLYGON) {
+    //   amountTransferred =
+    //     typeof amount === 'number' ? amount : await this.polygonWalletService.getUSDCBalance(tempWallet.address);
+    // } else {
+    //   throw new BadRequestException('Unsupported wallet network');
+    // }
+    amountTransferred = typeof amount === 'number' ? amount : 0;
 
     let transferResult: { success: boolean; usdtTxHash?: string; usdcTxHash?: string; maticTxHash?: string; trxTxHash?: string; error?: string };
 
     if (tempWallet.network === WalletNetwork.TRON) {
       // Transfer USDT from temp wallet to master wallet
       // If temp wallet doesn't have enough TRX, master wallet will send 30 TRX first
-      transferResult = await this.walletService.transferFromTempWalletToMaster(tempWallet);
+      transferResult = await this.walletService.transferFromTempWalletToMaster(tempWallet, amountTransferred);
     } else if (tempWallet.network === WalletNetwork.POLYGON) {
-      transferResult = await this.polygonWalletService.transferUSDCFromTempWalletToMaster(tempWallet);
+      transferResult = await this.polygonWalletService.transferUSDCFromTempWalletToMaster(
+        tempWallet,
+        amountTransferred,
+      );
     } else {
       throw new BadRequestException('Unsupported wallet network');
     }

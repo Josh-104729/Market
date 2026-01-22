@@ -124,13 +124,20 @@ export const adminApi = {
     return response.data;
   },
 
-  getTempWalletBalances: async (walletId: string): Promise<TempWalletBalances> => {
-    const response = await api.get(`/admin/temp-wallets/${walletId}/balances`);
+  getTempWalletBalances: async (
+    walletId: string,
+    asset?: 'token' | 'gas',
+  ): Promise<TempWalletBalances> => {
+    const response = await api.get(`/admin/temp-wallets/${walletId}/balances`, {
+      params: asset ? { asset } : undefined,
+    });
     return response.data;
   },
 
-  transferFromTempWallet: async (walletId: string) => {
-    const response = await api.post(`/admin/temp-wallets/${walletId}/transfer`);
+  transferFromTempWallet: async (walletId: string, amount?: number) => {
+    const response = await api.post(`/admin/temp-wallets/${walletId}/transfer`, {
+      amount,
+    });
     return response.data;
   },
 

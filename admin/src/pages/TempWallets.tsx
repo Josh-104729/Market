@@ -38,9 +38,12 @@ function TempWallets() {
 
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [selectedWallet, setSelectedWallet] = useState<TempWallet | null>(null)
-  const [balancesLoading, setBalancesLoading] = useState(false)
-  const [balances, setBalances] = useState<TempWalletBalances | null>(null)
   const [transferMode, setTransferMode] = useState<"TOKEN" | "TRX">("TOKEN")
+  const [transferAmount, setTransferAmount] = useState("")
+  const [balancesById, setBalancesById] = useState<Record<string, TempWalletBalances>>({})
+  const [balanceLoadingById, setBalanceLoadingById] = useState<Record<string, boolean>>({})
+  const [balanceGasLoadedById, setBalanceGasLoadedById] = useState<Record<string, boolean>>({})
+  const [balanceErrorById, setBalanceErrorById] = useState<Record<string, string>>({})
 
   useEffect(() => {
     loadWallets()
@@ -51,6 +54,35 @@ function TempWallets() {
       setLoading(true)
       const data = await adminApi.getTempWallets()
       setWallets(data)
+      setBalancesById((prev) => {
+        const next: Record<string, TempWalletBalances> = {}
+        data.forEach((wallet) => {
+          const existing = prev[wallet.id]
+          if (existing) next[wallet.id] = existing
+        })
+        return next
+      })
+      setBalanceLoadingById((prev) => {
+        const next: Record<string, boolean> = {}
+        data.forEach((wallet) => {
+          if (prev[wallet.id]) next[wallet.id] = prev[wallet.id]
+        })
+        return next
+      })
+      setBalanceGasLoadedById((prev) => {
+        const next: Record<string, boolean> = {}
+        data.forEach((wallet) => {
+          if (prev[wallet.id]) next[wallet.id] = prev[wallet.id]
+        })
+        return next
+      })
+      setBalanceErrorById((prev) => {
+        const next: Record<string, string> = {}
+        data.forEach((wallet) => {
+          if (prev[wallet.id]) next[wallet.id] = prev[wallet.id]
+        })
+        return next
+      })
       setError(null)
     } catch (err: any) {
       console.error('Failed to load temp wallets:', err)
@@ -64,8 +96,9 @@ function TempWallets() {
     const wallet = wallets.find((w) => w.id === walletId) || null
     if (!wallet) return
     setSelectedWallet(wallet)
-    setBalances(null)
     setTransferMode("TOKEN")
+    const existingBalance = balancesById[walletId]
+    setTransferAmount(existingBalance ? String(existingBalance.tokenBalance || "") : "")
     setConfirmOpen(true)
   }
 
@@ -73,28 +106,43 @@ function TempWallets() {
     const wallet = wallets.find((w) => w.id === walletId) || null
     if (!wallet) return
     setSelectedWallet(wallet)
-    setBalances(null)
     setTransferMode("TRX")
+    setTransferAmount("")
     setConfirmOpen(true)
   }
+  const refreshBalances = async (walletId: string) => {
+    setBalanceLoadingById((prev) => ({ ...prev, [walletId]: true }))
+    setBalanceGasLoadedById((prev) => ({ ...prev, [walletId]: false }))
+    setBalanceErrorById((prev) => ({ ...prev, [walletId]: "" }))
+    try {
+      const tokenData = await adminApi.getTempWalletBalances(walletId, "token")
+      setBalancesById((prev) => ({ ...prev, [walletId]: tokenData }))
 
-  useEffect(() => {
-    const fetchBalances = async () => {
-      if (!confirmOpen || !selectedWallet) return
-      setBalancesLoading(true)
-      try {
-        const data = await adminApi.getTempWalletBalances(selectedWallet.id)
-        setBalances(data)
-      } catch (err: any) {
-        console.error("Failed to fetch wallet balances:", err)
-        showToast.error(err.response?.data?.message || "Failed to fetch wallet balances")
-        setBalances(null)
-      } finally {
-        setBalancesLoading(false)
-      }
+      const gasData = await adminApi.getTempWalletBalances(walletId, "gas")
+      setBalancesById((prev) => ({
+        ...prev,
+        [walletId]: {
+          ...prev[walletId],
+          gasSymbol: gasData.gasSymbol,
+          gasBalance: gasData.gasBalance,
+        },
+      }))
+      setBalanceGasLoadedById((prev) => ({ ...prev, [walletId]: true }))
+    } catch (err: any) {
+      console.error("Failed to fetch wallet balances:", err)
+      const message = err.response?.data?.message || "Failed to fetch wallet balances"
+      setBalancesById((prev) => {
+        const next = { ...prev }
+        delete next[walletId]
+        return next
+      })
+      setBalanceGasLoadedById((prev) => ({ ...prev, [walletId]: false }))
+      setBalanceErrorById((prev) => ({ ...prev, [walletId]: message }))
+      showToast.error(message)
+    } finally {
+      setBalanceLoadingById((prev) => ({ ...prev, [walletId]: false }))
     }
-    void fetchBalances()
-  }, [confirmOpen, selectedWallet])
+  }
 
   const confirmTransfer = async () => {
     if (!selectedWallet) return
@@ -106,7 +154,7 @@ function TempWallets() {
       const result =
         transferMode === "TRX"
           ? await adminApi.transferRemainingTRXFromTempWallet(walletId)
-          : await adminApi.transferFromTempWallet(walletId)
+          : await adminApi.transferFromTempWallet(walletId, parsedTransferAmount)
 
       // Show success toast with transaction details
       const currency =
@@ -150,6 +198,23 @@ function TempWallets() {
       // Wait a moment for blockchain to update, then reload wallets to update balances
       await new Promise(resolve => setTimeout(resolve, 2000))
       await loadWallets()
+      setBalancesById((prev) => {
+        const existing = prev[walletId]
+        if (!existing) return prev
+        const next = { ...prev }
+        next[walletId] = {
+          ...existing,
+          tokenBalance:
+            transferMode === "TRX"
+              ? existing.tokenBalance
+              : Math.max(0, Number(existing.tokenBalance || 0) - parsedTransferAmount),
+          gasBalance: transferMode === "TRX" ? 0 : existing.gasBalance,
+        }
+        return next
+      })
+      if (transferMode === "TOKEN") {
+        setTransferAmount("")
+      }
       setConfirmOpen(false)
       setSelectedWallet(null)
     } catch (err: any) {
@@ -203,39 +268,34 @@ function TempWallets() {
   }, [networkFilter, search, statusFilter, wallets])
 
   const totals = useMemo(() => {
-    const tron = wallets.filter((w) => w.network === "TRON")
-    const polygon = wallets.filter((w) => w.network === "POLYGON")
-    const totalUSDT = tron.reduce((sum, w) => sum + Number((w as any).usdtBalance || 0), 0)
-    const totalUSDC = polygon.reduce((sum, w) => sum + Number((w as any).usdcBalance || 0), 0)
-    const withBalance = wallets.filter((w) => {
-      const bal = w.network === "POLYGON" ? Number((w as any).usdcBalance || 0) : Number((w as any).usdtBalance || 0)
-      return bal > 0
-    }).length
+    const balances = Object.values(balancesById)
+    const totalUSDT = balances
+      .filter((bal) => bal.tokenSymbol === "USDT")
+      .reduce((sum, bal) => sum + Number(bal.tokenBalance || 0), 0)
+    const totalUSDC = balances
+      .filter((bal) => bal.tokenSymbol === "USDC")
+      .reduce((sum, bal) => sum + Number(bal.tokenBalance || 0), 0)
+    const withBalance = balances.filter((bal) => Number(bal.tokenBalance || 0) > 0).length
     return { totalUSDT, totalUSDC, withBalance }
-  }, [wallets])
+  }, [balancesById])
 
+  const selectedBalances = selectedWallet ? balancesById[selectedWallet.id] : null
+
+  const parsedTransferAmount = Number(transferAmount)
+  const maxTokenAmount = selectedBalances ? Number(selectedBalances.tokenBalance || 0) : 0
   const selectedAmount = useMemo(() => {
-    // Use on-demand fetched balance when dialog is open; fallback to list balance.
-    if (balances && selectedWallet && balances.walletId === selectedWallet.id) {
-      if (transferMode === "TRX") {
-        const reserve = 0.1
-        return Math.max(0, Number(balances.gasBalance || 0) - reserve)
-      }
-      return Number(balances.tokenBalance || 0)
+    if (!selectedWallet || !selectedBalances) return 0
+    if (transferMode === "TRX") {
+      const reserve = 0.1
+      return Math.max(0, Number(selectedBalances.gasBalance || 0) - reserve)
     }
-    if (!selectedWallet) return 0
-    if (transferMode === "TRX") return 0
-    return selectedWallet.network === "POLYGON"
-      ? Number((selectedWallet as any).usdcBalance || 0)
-      : Number((selectedWallet as any).usdtBalance || 0)
-  }, [balances, selectedWallet, transferMode])
+    return Number.isFinite(parsedTransferAmount) ? parsedTransferAmount : 0
+  }, [parsedTransferAmount, selectedBalances, selectedWallet, transferMode])
 
   const selectedCurrency =
     transferMode === "TRX"
-      ? "TRX"
-      : selectedWallet?.network === "POLYGON"
-        ? "USDC"
-        : "USDT"
+      ? selectedBalances?.gasSymbol || "TRX"
+      : selectedBalances?.tokenSymbol || (selectedWallet?.network === "POLYGON" ? "USDC" : "USDT")
 
   const statusBadge = (status: string) => {
     const s = String(status || "").toUpperCase()
@@ -287,7 +347,7 @@ function TempWallets() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totals.totalUSDT.toFixed(2)}</div>
-            <div className="text-xs text-muted-foreground">Real-time token balance sum</div>
+            <div className="text-xs text-muted-foreground">Loaded token balance sum</div>
           </CardContent>
         </Card>
         <Card>
@@ -296,7 +356,7 @@ function TempWallets() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totals.totalUSDC.toFixed(2)}</div>
-            <div className="text-xs text-muted-foreground">Real-time token balance sum</div>
+            <div className="text-xs text-muted-foreground">Loaded token balance sum</div>
           </CardContent>
         </Card>
       </div>
@@ -377,10 +437,15 @@ function TempWallets() {
               <TableBody>
                 {filteredWallets.map((w) => {
                   const net = networkLabel(w.network)
-                  const balance =
-                    w.network === "POLYGON" ? Number((w as any).usdcBalance || 0) : Number((w as any).usdtBalance || 0)
                   const currency = w.network === "POLYGON" ? "USDC" : "USDT"
-                  const canTransfer = balance > 0 && transferring !== w.id
+                  const rowBalances = balancesById[w.id]
+                  const rowLoading = Boolean(balanceLoadingById[w.id])
+                  const rowGasLoaded = Boolean(balanceGasLoadedById[w.id])
+                  const rowError = balanceErrorById[w.id]
+                  const tokenBalance = Number(rowBalances?.tokenBalance || 0)
+                  const gasBalance = Number(rowBalances?.gasBalance || 0)
+                  const canTransfer = Boolean(rowBalances) && tokenBalance > 0 && transferring !== w.id
+                  const canTransferGas = Boolean(rowBalances) && gasBalance > 0.1 && transferring !== w.id
                   const isBusy = transferring === w.id
                   return (
                     <TableRow key={w.id}>
@@ -421,10 +486,36 @@ function TempWallets() {
                       <TableCell>{statusBadge(w.status)}</TableCell>
 
                       <TableCell className="text-right">
-                        <div className={`font-semibold ${balance > 0 ? "text-foreground" : "text-muted-foreground"}`}>
-                          {balance.toFixed(2)} {currency}
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="text-right">
+                            {rowBalances ? (
+                              <div className="space-y-1">
+                                <div className="font-semibold">
+                                  {tokenBalance.toFixed(2)} {rowBalances.tokenSymbol}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {rowGasLoaded
+                                    ? `${gasBalance.toFixed(4)} ${rowBalances.gasSymbol}`
+                                    : "Loading gas..."}
+                                </div>
+                              </div>
+                            ) : rowError ? (
+                              <div className="text-sm text-destructive">Error</div>
+                            ) : (
+                              <div className="text-sm text-muted-foreground">Not loaded</div>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => void refreshBalances(w.id)}
+                            disabled={rowLoading}
+                            title="Refresh balance"
+                          >
+                            <RefreshCcw className={`h-4 w-4 ${rowLoading ? "animate-spin" : ""}`} />
+                          </Button>
                         </div>
-                        <div className="text-xs text-muted-foreground">Real-time</div>
                       </TableCell>
 
                       <TableCell className="text-right">
@@ -442,8 +533,8 @@ function TempWallets() {
                         <Button
                           size="sm"
                           className="gap-2"
-                          variant={balance > 0 ? "default" : "outline"}
-                          disabled={!canTransfer && !isBusy}
+                          variant={canTransfer ? "default" : "outline"}
+                          disabled={!canTransfer || isBusy}
                           onClick={() => handleTransfer(w.id)}
                         >
                           <Send className="h-4 w-4" />
@@ -454,7 +545,7 @@ function TempWallets() {
                             size="sm"
                             variant="outline"
                             className="ml-2 gap-2"
-                            disabled={isBusy}
+                            disabled={!canTransferGas || isBusy}
                             onClick={() => handleTransferTRX(w.id)}
                             title="Transfer remaining TRX from temp wallet to master"
                           >
@@ -499,8 +590,7 @@ function TempWallets() {
         setConfirmOpen(v)
         if (!v) {
           setSelectedWallet(null)
-          setBalances(null)
-          setBalancesLoading(false)
+          setTransferAmount("")
         }
       }}>
         <DialogContent>
@@ -527,22 +617,44 @@ function TempWallets() {
                 </div>
               </div>
 
+              {transferMode === "TOKEN" ? (
+                <div className="space-y-2">
+                  <Label>Transfer amount</Label>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    max={maxTokenAmount}
+                    step="0.000001"
+                    placeholder="0.00"
+                    value={transferAmount}
+                    onChange={(e) => {
+                      const nextValue = e.target.value
+                      const numeric = Number(nextValue)
+                      if (Number.isFinite(numeric) && numeric > maxTokenAmount) {
+                        setTransferAmount(String(maxTokenAmount))
+                      } else {
+                        setTransferAmount(nextValue)
+                      }
+                    }}
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    Max: {maxTokenAmount.toFixed(6)} {selectedCurrency}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="rounded-lg border border-border p-3">
                 <div className="text-xs text-muted-foreground mb-2">Live balances</div>
-                {balancesLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-40" />
-                    <Skeleton className="h-4 w-32" />
-                  </div>
-                ) : balances ? (
+                {selectedBalances ? (
                   <div className="space-y-1 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">{balances.tokenSymbol}</span>
-                      <span className="font-medium">{Number(balances.tokenBalance || 0).toFixed(6)}</span>
+                      <span className="text-muted-foreground">{selectedBalances.tokenSymbol}</span>
+                      <span className="font-medium">{Number(selectedBalances.tokenBalance || 0).toFixed(6)}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">{balances.gasSymbol}</span>
-                      <span className="font-medium">{Number(balances.gasBalance || 0).toFixed(6)}</span>
+                      <span className="text-muted-foreground">{selectedBalances.gasSymbol}</span>
+                      <span className="font-medium">{Number(selectedBalances.gasBalance || 0).toFixed(6)}</span>
                     </div>
                     {transferMode === "TRX" ? (
                       <div className="pt-2 text-xs text-muted-foreground">
@@ -551,7 +663,7 @@ function TempWallets() {
                     ) : null}
                   </div>
                 ) : (
-                  <div className="text-sm text-muted-foreground">Unable to load balances.</div>
+                  <div className="text-sm text-muted-foreground">Balances not loaded yet.</div>
                 )}
               </div>
             </div>
@@ -565,9 +677,12 @@ function TempWallets() {
               onClick={() => void confirmTransfer()}
               disabled={
                 !selectedWallet ||
-                balancesLoading ||
                 selectedAmount <= 0 ||
-                transferring === selectedWallet?.id
+                transferring === selectedWallet?.id ||
+                (transferMode === "TOKEN" &&
+                  (!selectedBalances ||
+                    !Number.isFinite(parsedTransferAmount) ||
+                    parsedTransferAmount > maxTokenAmount))
               }
               className="gap-2"
             >

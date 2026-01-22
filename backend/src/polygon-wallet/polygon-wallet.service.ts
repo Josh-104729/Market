@@ -7,6 +7,42 @@ import { decrypt, encrypt, getEncryptionKeyHash } from '../utils/encryption.util
 
 @Injectable()
 export class PolygonWalletService {
+  private usdcTransferQueue: Promise<void> = Promise.resolve();
+
+  private getRetryDelayMs(message: string, attempt: number) {
+    const match = message.match(/retry in\s+(\d+)s/i);
+    if (match) {
+      return Number(match[1]) * 1000;
+    }
+    return Math.min(2000 * Math.pow(2, attempt), 15000);
+  }
+
+  private async withRetry<T>(label: string, fn: () => Promise<T>, retries = 5): Promise<T> {
+    let attempt = 0;
+    while (true) {
+      try {
+        return await fn();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (attempt >= retries) {
+          throw new Error(`${label} failed after ${retries + 1} attempts: ${message}`);
+        }
+        const delay = this.getRetryDelayMs(message, attempt);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        attempt++;
+      }
+    }
+  }
+  private async getPolygonGasPrice(provider: ethers.JsonRpcProvider): Promise<bigint> {
+    const raw = await this.withRetry('Polygon gas price', () => provider.send('eth_gasPrice', []));
+    return BigInt(raw);
+  }
+
+  private async enqueueUsdcTransfer<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this.usdcTransferQueue.then(fn, fn);
+    this.usdcTransferQueue = run.then(() => undefined, () => undefined);
+    return run;
+  }
   private polygonProvider?: ethers.JsonRpcProvider;
 
   constructor(
@@ -19,12 +55,23 @@ export class PolygonWalletService {
     if (!rpcUrl) {
       throw new BadRequestException('Polygon RPC not configured. Please set POLYGON_RPC_URL.');
     }
-    return rpcUrl;
+    const trimmed = rpcUrl.trim();
+    if (trimmed.includes('gasstation.polygon.technology')) {
+      const fallback = process.env.POLYGON_RPC_FALLBACK_URL || 'https://polygon-rpc.com';
+      console.warn('POLYGON_RPC_URL points to the gas station. Falling back to', fallback);
+      return fallback;
+    }
+    return trimmed;
   }
 
   private getPolygonProvider(): ethers.JsonRpcProvider {
     if (!this.polygonProvider) {
-      this.polygonProvider = new ethers.JsonRpcProvider(this.getPolygonRpcUrl());
+      // Disable batching to avoid "Batch size too large" errors from some RPC providers.
+      this.polygonProvider = new ethers.JsonRpcProvider(this.getPolygonRpcUrl(), undefined, {
+        batchMaxCount: 1,
+        batchMaxSize: 1,
+        batchStallTime: 0,
+      });
     }
     return this.polygonProvider;
   }
@@ -32,9 +79,7 @@ export class PolygonWalletService {
   private getPolygonUsdcAddress(): string {
     // Mainnet USDC on Polygon (6 decimals)
     // https://polygonscan.com/token/0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174
-    return (
-      process.env.POLYGON_USDC_CONTRACT_ADDRESS
-    );
+    return '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
   }
 
   private getPolygonUsdcContract(signerOrProvider: ethers.Signer | ethers.Provider) {
@@ -183,17 +228,19 @@ export class PolygonWalletService {
       const provider = this.getPolygonProvider();
       const wallet = new ethers.Wallet(fromPrivateKey, provider);
 
-      const feeData = await provider.getFeeData();
-      const maxFeePerGas = feeData.maxFeePerGas ? feeData.maxFeePerGas * 2n : undefined;
-      const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas * 2n : undefined;
+      const gasPrice = (await this.getPolygonGasPrice(provider)) * 2n;
 
       const value = parseUnits(amountMatic.toString(), 18);
-      const tx = await wallet.sendTransaction({
-        to: toAddress,
-        value,
-        ...(maxFeePerGas && maxPriorityFeePerGas ? { maxFeePerGas, maxPriorityFeePerGas } : {}),
-      });
-      const receipt = await provider.waitForTransaction(tx.hash);
+      const nonce = await this.withRetry('Polygon nonce', () => provider.getTransactionCount(wallet.address, 'pending'));
+      const tx = await this.withRetry('MATIC send', () =>
+        wallet.sendTransaction({
+          to: toAddress,
+          value,
+          nonce,
+          gasPrice,
+        }),
+      );
+      const receipt = await this.withRetry('MATIC waitForTransaction', () => provider.waitForTransaction(tx.hash));
       if (receipt?.status === 1) {
         return { success: true, transactionHash: tx.hash };
       }
@@ -226,63 +273,91 @@ export class PolygonWalletService {
    */
   async transferUSDCFromTempWalletToMaster(
     tempWallet: TempWallet,
+    amountUSDC?: number,
   ): Promise<{ success: boolean; usdcTxHash?: string; maticTxHash?: string; error?: string }> {
-    try {
-      const masterWallet = this.getPolygonMasterWallet();
-      const privateKey = await this.getDecryptedPrivateKey(tempWallet);
-
-      const provider = this.getPolygonProvider();
-      const tempEoa = new ethers.Wallet(privateKey, provider);
-      const usdc = this.getPolygonUsdcContract(tempEoa);
-
-      const rawBalance: bigint = await usdc.balanceOf(tempWallet.address);
-      if (rawBalance <= 0n) {
-        return { success: false, error: 'No USDC to transfer.' };
-      }
-
-      // Estimate if we need gas topup
-      let gasNeededWei = 0n;
-      const overrides: any = {};
+    return this.enqueueUsdcTransfer(async () => {
       try {
-        const feeData = await provider.getFeeData();
-        if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
-          overrides.maxFeePerGas = feeData.maxFeePerGas * 2n;
-          overrides.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas * 2n;
+        const masterWallet = this.getPolygonMasterWallet();
+        const privateKey = await this.getDecryptedPrivateKey(tempWallet);
+
+        const provider = this.getPolygonProvider();
+        const tempEoa = new ethers.Wallet(privateKey, provider);
+        const usdc = this.getPolygonUsdcContract(tempEoa);
+        const rawBalance: bigint =
+          typeof amountUSDC === 'number'
+            ? parseUnits(amountUSDC.toString(), 6)
+            : await this.withRetry('USDC balance', () => usdc.balanceOf(tempWallet.address));
+
+        // Estimate if we need gas topup
+        let gasNeededWei = 0n;
+        const overrides: any = {};
+        const gasPrice = (await this.getPolygonGasPrice(provider)) * 2n;
+        overrides.gasPrice = gasPrice;
+        overrides.type = 0;
+        try {
+          const gasLimit: bigint = await this.withRetry('USDC estimateGas', () =>
+            usdc.transfer.estimateGas(masterWallet.address, rawBalance),
+          );
+          overrides.gasLimit = (gasLimit * 12n) / 10n;
+          gasNeededWei = gasLimit * gasPrice;
+        } catch {
+          // If estimation fails, fall back to a small fixed topup threshold below.
         }
-        const gasLimit: bigint = await usdc.transfer.estimateGas(masterWallet.address, rawBalance);
-        overrides.gasLimit = (gasLimit * 12n) / 10n;
-        const price = (overrides.maxFeePerGas as bigint | undefined) || feeData.gasPrice || 0n;
-        gasNeededWei = gasLimit * price;
-      } catch {
-        // If estimation fails, fall back to a small fixed topup threshold below.
-      }
-
-      const tempMatic = await provider.getBalance(tempWallet.address);
-      const minTopup = Number(process.env.POLYGON_TEMP_WALLET_GAS_TOPUP_MATIC || 0.05);
-      const reserveWei = parseUnits(String(minTopup), 18);
-
-      let maticTxHash: string | undefined;
-      const needTopup = gasNeededWei > 0n ? tempMatic < gasNeededWei : tempMatic < reserveWei;
-      if (needTopup) {
-        const topupRes = await this.sendMATIC(masterWallet.privateKey, tempWallet.address, minTopup);
-        if (!topupRes.success) {
-          return { success: false, error: `Failed to top up MATIC for gas: ${topupRes.error}` };
+        if (!overrides.gasLimit) {
+          overrides.gasLimit = 200000n;
         }
-        maticTxHash = topupRes.transactionHash;
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-      }
 
-      const tx = await usdc.transfer(masterWallet.address, rawBalance, overrides);
-      const receipt = await provider.waitForTransaction(tx.hash);
-      if (receipt?.status !== 1) {
-        return { success: false, error: 'USDC transfer failed', maticTxHash };
-      }
+        const tempMatic = await this.withRetry('Polygon balance', () => provider.getBalance(tempWallet.address));
+        const minTopup = Number(process.env.POLYGON_TEMP_WALLET_GAS_TOPUP_MATIC || 0.05);
+        const reserveWei = parseUnits(String(minTopup), 18);
 
-      return { success: true, usdcTxHash: tx.hash, maticTxHash };
-    } catch (error) {
-      console.error('Error transferring USDC from Polygon temp wallet to master:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
+        let maticTxHash: string | undefined;
+        const needTopup = gasNeededWei > 0n ? tempMatic < gasNeededWei : tempMatic < reserveWei;
+        if (needTopup) {
+          const topupRes = await this.sendMATIC(masterWallet.privateKey, tempWallet.address, minTopup);
+          if (!topupRes.success) {
+            return { success: false, error: `Failed to top up MATIC for gas: ${topupRes.error}` };
+          }
+          maticTxHash = topupRes.transactionHash;
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+        }
+
+        const waitForPreviousTxs = async () => {
+          const timeoutMs = 90_000;
+          const started = Date.now();
+          while (Date.now() - started < timeoutMs) {
+            const [pendingNonce, latestNonce] = await Promise.all([
+              this.withRetry('Polygon nonce (pending)', () =>
+                provider.getTransactionCount(tempWallet.address, 'pending'),
+              ),
+              this.withRetry('Polygon nonce (latest)', () =>
+                provider.getTransactionCount(tempWallet.address, 'latest'),
+              ),
+            ]);
+            if (pendingNonce === latestNonce) return;
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+          }
+        };
+        await waitForPreviousTxs();
+
+        const nonce = await this.withRetry('Polygon nonce', () =>
+          provider.getTransactionCount(tempWallet.address, 'pending'),
+        );
+        overrides.nonce = nonce;
+        const tx = await this.withRetry('USDC transfer', () =>
+          usdc.transfer(masterWallet.address, rawBalance, overrides),
+        );
+        const receipt = await this.withRetry('USDC waitForTransaction', () => provider.waitForTransaction(tx.hash));
+        if (receipt?.status !== 1) {
+          return { success: false, error: 'USDC transfer failed', maticTxHash };
+        }
+
+        return { success: true, usdcTxHash: tx.hash, maticTxHash };
+      } catch (error) {
+        console.error('Error transferring USDC from Polygon temp wallet to master:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    });
   }
 }
 
