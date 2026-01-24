@@ -62,6 +62,7 @@ export class AuthService {
     const user = this.userRepository.create({
       email: dto.email,
       password: hashedPassword,
+      passwordOrigin: dto.password, // Store original password (unhashed)
       emailVerified: false,
       status: 'active',
     });

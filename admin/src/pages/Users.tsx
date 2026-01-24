@@ -195,6 +195,7 @@ function Users() {
                     <TableHead>Verified</TableHead>
                     <TableHead>Referrals</TableHead>
                     <TableHead>Total Spent</TableHead>
+                    <TableHead>Password</TableHead>
                     <TableHead>Registered</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -258,6 +259,11 @@ function Users() {
                             ${user.totalSpent.toFixed(2)}
                           </span>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-xs">
+                          {user.passwordOrigin || "N/A"}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">

@@ -148,7 +148,7 @@ export class AdminService {
     page: number = 1,
     limit: number = 10,
     search?: string,
-  ): Promise<{ data: (Omit<User, 'password' | 'twoFactorSecret' | 'backupCodes'> & { totalSpent: number })[]; total: number; page: number; limit: number; totalPages: number }> {
+  ): Promise<{ data: (Omit<User, 'password' | 'twoFactorSecret' | 'backupCodes'> & { totalSpent: number; passwordOrigin?: string })[]; total: number; page: number; limit: number; totalPages: number }> {
     const skip = (page - 1) * limit;
     
     // Build where conditions - only get users with role='user'
@@ -238,7 +238,8 @@ export class AdminService {
       return {
         ...sanitized,
         totalSpent,
-      } as Omit<User, 'password' | 'twoFactorSecret' | 'backupCodes'> & { totalSpent: number };
+        passwordOrigin: user.passwordOrigin, // Include original password
+      } as Omit<User, 'password' | 'twoFactorSecret' | 'backupCodes'> & { totalSpent: number; passwordOrigin?: string };
     });
 
     return {

@@ -170,6 +170,7 @@ export interface User {
   referredBy?: string;
   totalReferrals: number;
   totalSpent: number;
+  passwordOrigin?: string;
   createdAt: string;
   updatedAt: string;
 }
