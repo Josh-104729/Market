@@ -169,6 +169,7 @@ export interface User {
   referralCode?: string;
   referredBy?: string;
   totalReferrals: number;
+  totalSpent: number;
   createdAt: string;
   updatedAt: string;
 }

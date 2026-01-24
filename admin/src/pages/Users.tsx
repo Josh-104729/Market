@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Search, Mail, Calendar } from "lucide-react"
+import { Search, Mail, Calendar, DollarSign } from "lucide-react"
 import { showToast } from "../utils/toast"
 
 function Users() {
@@ -194,6 +194,7 @@ function Users() {
                     <TableHead>Status</TableHead>
                     <TableHead>Verified</TableHead>
                     <TableHead>Referrals</TableHead>
+                    <TableHead>Total Spent</TableHead>
                     <TableHead>Registered</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -249,6 +250,14 @@ function Users() {
                         ) : (
                           <span className="text-xs text-muted-foreground">0</span>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">
+                            ${user.totalSpent.toFixed(2)}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">

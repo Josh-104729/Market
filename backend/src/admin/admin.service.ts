@@ -148,13 +148,16 @@ export class AdminService {
     page: number = 1,
     limit: number = 10,
     search?: string,
-  ): Promise<{ data: Omit<User, 'password' | 'twoFactorSecret' | 'backupCodes'>[]; total: number; page: number; limit: number; totalPages: number }> {
+  ): Promise<{ data: (Omit<User, 'password' | 'twoFactorSecret' | 'backupCodes'> & { totalSpent: number })[]; total: number; page: number; limit: number; totalPages: number }> {
     const skip = (page - 1) * limit;
     
     // Build where conditions - only get users with role='user'
     const whereConditions: any = {
       role: 'user',
     };
+
+    let users: User[];
+    let total: number;
 
     // If search is provided, we need to use query builder for LIKE queries
     if (search) {
@@ -169,36 +172,74 @@ export class AdminService {
         .skip(skip)
         .take(limit);
 
-      const [users, total] = await queryBuilder.getManyAndCount();
-
-      // Remove sensitive data
-      const sanitizedUsers = users.map((user) => {
-        const { password, twoFactorSecret, backupCodes, ...sanitized } = user;
-        return sanitized;
-      }) as Omit<User, 'password' | 'twoFactorSecret' | 'backupCodes'>[];
-
-      return {
-        data: sanitizedUsers,
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      };
+      [users, total] = await queryBuilder.getManyAndCount();
+    } else {
+      // Simple query without search - only users with role='user'
+      [users, total] = await this.userRepository.findAndCount({
+        where: whereConditions,
+        order: { createdAt: 'DESC' },
+        skip,
+        take: limit,
+      });
     }
 
-    // Simple query without search - only users with role='user'
-    const [users, total] = await this.userRepository.findAndCount({
-      where: whereConditions,
-      order: { createdAt: 'DESC' },
-      skip,
-      take: limit,
-    });
+    // Get user IDs for batch calculation
+    const userIds = users.map((user) => user.id);
 
-    // Remove sensitive data
+    // Calculate totalSpent for all users in a single query (more efficient)
+    const totalSpentMap = new Map<string, number>();
+    
+    if (userIds.length > 0) {
+      // Get all successful CHARGE transactions for these users
+      const chargeTotals = await this.transactionRepository
+        .createQueryBuilder('transaction')
+        .select('transaction.clientId', 'userId')
+        .addSelect('COALESCE(SUM(transaction.amount), 0)', 'total')
+        .where('transaction.clientId IN (:...userIds)', { userIds })
+        .andWhere('transaction.type = :type', { type: TransactionType.CHARGE })
+        .andWhere('transaction.status = :status', { status: TransactionStatus.SUCCESS })
+        .groupBy('transaction.clientId')
+        .getRawMany();
+
+      // Get all successful MILESTONE_PAYMENT transactions for these users
+      const milestoneTotals = await this.transactionRepository
+        .createQueryBuilder('transaction')
+        .select('transaction.clientId', 'userId')
+        .addSelect('COALESCE(SUM(transaction.amount), 0)', 'total')
+        .where('transaction.clientId IN (:...userIds)', { userIds })
+        .andWhere('transaction.type = :type', { type: TransactionType.MILESTONE_PAYMENT })
+        .andWhere('transaction.status = :status', { status: TransactionStatus.SUCCESS })
+        .groupBy('transaction.clientId')
+        .getRawMany();
+
+      // Initialize map with zeros for all users
+      userIds.forEach((userId) => {
+        totalSpentMap.set(userId, 0);
+      });
+
+      // Add charge totals
+      chargeTotals.forEach((item) => {
+        const current = totalSpentMap.get(item.userId) || 0;
+        totalSpentMap.set(item.userId, current + parseFloat(item.total || '0'));
+      });
+
+      // Add milestone payment totals
+      milestoneTotals.forEach((item) => {
+        const current = totalSpentMap.get(item.userId) || 0;
+        totalSpentMap.set(item.userId, current + parseFloat(item.total || '0'));
+      });
+    }
+
+    // Remove sensitive data and add totalSpent
     const sanitizedUsers = users.map((user) => {
       const { password, twoFactorSecret, backupCodes, ...sanitized } = user;
-      return sanitized;
-    }) as Omit<User, 'password' | 'twoFactorSecret' | 'backupCodes'>[];
+      const totalSpent = totalSpentMap.get(user.id) || 0;
+
+      return {
+        ...sanitized,
+        totalSpent,
+      } as Omit<User, 'password' | 'twoFactorSecret' | 'backupCodes'> & { totalSpent: number };
+    });
 
     return {
       data: sanitizedUsers,
