@@ -144,6 +144,71 @@ export class AdminService {
     };
   }
 
+  async getUsers(
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+  ): Promise<{ data: Omit<User, 'password' | 'twoFactorSecret' | 'backupCodes'>[]; total: number; page: number; limit: number; totalPages: number }> {
+    const skip = (page - 1) * limit;
+    
+    // Build where conditions - only get users with role='user'
+    const whereConditions: any = {
+      role: 'user',
+    };
+
+    // If search is provided, we need to use query builder for LIKE queries
+    if (search) {
+      const queryBuilder = this.userRepository
+        .createQueryBuilder('user')
+        .where('user.role = :role', { role: 'user' })
+        .andWhere(
+          '(user.email LIKE :search OR user.userName LIKE :search OR user.firstName LIKE :search OR user.lastName LIKE :search)',
+          { search: `%${search}%` },
+        )
+        .orderBy('user.createdAt', 'DESC')
+        .skip(skip)
+        .take(limit);
+
+      const [users, total] = await queryBuilder.getManyAndCount();
+
+      // Remove sensitive data
+      const sanitizedUsers = users.map((user) => {
+        const { password, twoFactorSecret, backupCodes, ...sanitized } = user;
+        return sanitized;
+      }) as Omit<User, 'password' | 'twoFactorSecret' | 'backupCodes'>[];
+
+      return {
+        data: sanitizedUsers,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    }
+
+    // Simple query without search - only users with role='user'
+    const [users, total] = await this.userRepository.findAndCount({
+      where: whereConditions,
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    // Remove sensitive data
+    const sanitizedUsers = users.map((user) => {
+      const { password, twoFactorSecret, backupCodes, ...sanitized } = user;
+      return sanitized;
+    }) as Omit<User, 'password' | 'twoFactorSecret' | 'backupCodes'>[];
+
+    return {
+      data: sanitizedUsers,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   async getWithdraws(
     page: number = 1,
     limit: number = 10,

@@ -151,6 +151,36 @@ export interface MasterWalletTransactionListResponse {
   totalPages: number;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  userName?: string;
+  firstName?: string;
+  lastName?: string;
+  middleName?: string;
+  bio?: string;
+  avatar?: string;
+  address?: string;
+  phoneNumber?: string;
+  role: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  status: string;
+  referralCode?: string;
+  referredBy?: string;
+  totalReferrals: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UsersListResponse {
+  data: User[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const adminApi = {
   signIn: async (data: AdminSignInData) => {
     const response = await api.post('/admin/signin', data);
@@ -159,6 +189,11 @@ export const adminApi = {
 
   getProfile: async () => {
     const response = await api.get('/admin/profile');
+    return response.data;
+  },
+
+  getAllUsers: async (params?: { page?: number; limit?: number; search?: string }): Promise<UsersListResponse> => {
+    const response = await api.get('/admin/users', { params });
     return response.data;
   },
 

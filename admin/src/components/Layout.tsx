@@ -32,6 +32,7 @@ import {
   ShieldAlert,
   Megaphone,
   LifeBuoy,
+  Users,
   LogOut,
 } from "lucide-react"
 
@@ -55,6 +56,7 @@ function Layout({ children }: LayoutProps) {
     { path: '/categories', label: 'Categories', icon: FolderTree },
     { path: '/services', label: 'Services', icon: Briefcase },
     { path: '/blog', label: 'Blog', icon: FileText },
+    { path: '/users', label: 'Users', icon: Users },
     { path: '/temp-wallets', label: 'Temp Wallets', icon: Wallet },
     { path: '/withdraws', label: 'Withdraws', icon: ArrowUpRight },
     { path: '/master-wallet', label: 'Master Wallet', icon: ArrowLeftRight },
