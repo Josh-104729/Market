@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Search, Mail, Shield, Calendar } from "lucide-react"
+import { Search, Mail, Calendar } from "lucide-react"
 import { showToast } from "../utils/toast"
 
 function Users() {
