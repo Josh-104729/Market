@@ -35,6 +35,7 @@ function ChatList() {
   const [conversations, setConversations] = useState<ConversationWithLastMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set())
   const socketRef = useRef<Socket | null>(null)
 
   useEffect(() => {
@@ -117,9 +118,59 @@ function ChatList() {
     socket.off('new_message')
     socket.on('new_message', handleNewMessage)
 
+    // Listen for user status changes
+    const handleUserStatusChange = (data: { userId: string; isOnline: boolean; conversationId: string }) => {
+      setOnlineUsers((prev) => {
+        const updated = new Set(prev)
+        if (data.isOnline) {
+          updated.add(data.userId)
+        } else {
+          updated.delete(data.userId)
+        }
+        return updated
+      })
+    }
+
+    socket.on('user_status_change', handleUserStatusChange)
+
+    // Request initial online status for all conversation partners
+    const requestOnlineStatus = () => {
+      if (conversations.length > 0 && socket.connected) {
+        const userIds = conversations
+          .map((conv) => {
+            const otherUserId = conv.clientId === user?.id ? conv.providerId : conv.clientId
+            return otherUserId
+          })
+          .filter((id): id is string => Boolean(id))
+        
+        if (userIds.length > 0) {
+          socket.emit('get_online_status', { userIds })
+        }
+      }
+    }
+
+    const handleOnlineStatusResponse = (statusMap: Record<string, boolean>) => {
+      const onlineSet = new Set<string>()
+      Object.entries(statusMap).forEach(([userId, isOnline]) => {
+        if (isOnline) {
+          onlineSet.add(userId)
+        }
+      })
+      setOnlineUsers(onlineSet)
+    }
+
+    socket.on('online_status_response', handleOnlineStatusResponse)
+
+    // Request status when conversations are loaded
+    if (conversations.length > 0) {
+      requestOnlineStatus()
+    }
+
     return () => {
       if (socketRef.current) {
         socketRef.current.off('new_message', handleNewMessage)
+        socketRef.current.off('user_status_change', handleUserStatusChange)
+        socketRef.current.off('online_status_response', handleOnlineStatusResponse)
       }
     }
   }
@@ -330,12 +381,20 @@ function ChatList() {
                         )}
                       >
                         <div className="flex items-start gap-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={conversation.otherUser?.avatar || undefined} alt={otherUserName} />
-                            <AvatarFallback className="bg-primary/10 text-primary">
-                              {(otherUserName[0] || "U").toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
+                          <div className="relative">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={conversation.otherUser?.avatar || undefined} alt={otherUserName} />
+                              <AvatarFallback className="bg-primary/10 text-primary">
+                                {(otherUserName[0] || "U").toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            {(() => {
+                              const otherUserId = conversation.clientId === user?.id ? conversation.providerId : conversation.clientId
+                              return otherUserId && onlineUsers.has(otherUserId) ? (
+                                <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background bg-green-500" />
+                              ) : null
+                            })()}
+                          </div>
 
                           <div className="min-w-0 flex-1 overflow-hidden">
                             <div className="flex items-start justify-between gap-2 min-w-0">
