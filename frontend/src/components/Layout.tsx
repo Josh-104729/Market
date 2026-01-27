@@ -39,6 +39,7 @@ function Layout({ children }: LayoutProps) {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState<boolean | null>(null)
   const socketRef = useRef<Socket | null>(null)
   const [profileHydrated, setProfileHydrated] = useState(false)
+  const [totalUnreadMessages, setTotalUnreadMessages] = useState(0)
 
   const handleSignOut = () => {
     // Disconnect socket before logout
@@ -142,6 +143,22 @@ function Layout({ children }: LayoutProps) {
     if (!socket) return
     socketRef.current = socket
 
+    const fetchUnreadCount = async () => {
+      try {
+        const conversations = await conversationApi.getAll()
+        const total = conversations.reduce((sum, conv) => {
+          const unread = typeof conv.unreadCount === 'number' ? conv.unreadCount : 0
+          return sum + unread
+        }, 0)
+        setTotalUnreadMessages(total)
+      } catch (error) {
+        console.error('Failed to fetch unread messages count:', error)
+      }
+    }
+
+    // Fetch initial unread count
+    fetchUnreadCount()
+
     const handleNewMessage = (message: Message) => {
       if (message.senderId === user.id) return
       const isOnChatPage = location.pathname.startsWith('/chat/')
@@ -158,6 +175,9 @@ function Layout({ children }: LayoutProps) {
             <p className="text-sm truncate">{message.message}</p>
           </div>
         )
+        
+        // Update unread count
+        setTotalUnreadMessages((prev) => prev + 1)
       }
     }
 
@@ -201,16 +221,30 @@ function Layout({ children }: LayoutProps) {
       }
     }
 
+    const handleMessagesRead = () => {
+      // Refresh unread count when messages are read
+      fetchUnreadCount()
+    }
+
     socket.on('new_message', handleNewMessage)
     socket.on('balance_updated', handleBalanceUpdate)
     socket.on('new_notification', handleNewNotification)
+    socket.on('messages_read', handleMessagesRead)
+
+    // Listen for conversation viewed events to update unread count
+    const handleConversationViewed = () => {
+      fetchUnreadCount()
+    }
+    window.addEventListener('conversation-viewed', handleConversationViewed)
 
     return () => {
       if (socketRef.current) {
         socketRef.current.off('new_message', handleNewMessage)
         socketRef.current.off('balance_updated', handleBalanceUpdate)
         socketRef.current.off('new_notification', handleNewNotification)
+        socketRef.current.off('messages_read', handleMessagesRead)
       }
+      window.removeEventListener('conversation-viewed', handleConversationViewed)
     }
   }, [isAuthenticated, user, location.pathname, navigate])
 
@@ -305,6 +339,7 @@ function Layout({ children }: LayoutProps) {
           avatar: (user as any).avatar || "",
         }}
         onLogout={handleSignOut}
+        unreadMessagesCount={totalUnreadMessages}
       />
       <SidebarInset>
         <SiteHeader title={title} right={headerRight} />

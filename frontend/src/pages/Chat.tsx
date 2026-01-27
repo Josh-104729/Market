@@ -39,7 +39,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { showToast } from '../utils/toast'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Loader2 } from "lucide-react"
+import { Loader2, ChevronDown } from "lucide-react"
 
 function Chat() {
   const { id } = useParams<{ id: string }>()
@@ -96,6 +96,7 @@ function Chat() {
   const [showDeleteSelectedDialog, setShowDeleteSelectedDialog] = useState(false)
   const [deleteSubmitting, setDeleteSubmitting] = useState(false)
   const [isOtherUserOnline, setIsOtherUserOnline] = useState(false)
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false)
 
   const isBlocked = Boolean(conversation?.isBlocked)
   const reactivationPending = Boolean(conversation?.reactivationRequestPending) || reactivationRequested
@@ -279,6 +280,8 @@ function Chat() {
       fetchMessages(50) // Load latest 50 messages
       fetchMilestones()
       setHasMoreMessages(true) // Reset hasMore when conversation changes
+      setIsOtherUserOnline(false) // Reset online status when conversation changes
+      setShowScrollToBottom(false) // Reset scroll button visibility
     }
   }, [id])
 
@@ -678,6 +681,10 @@ function Chat() {
     }
     // Mark messages as read when new messages arrive or when viewing
     markMessagesAsRead()
+    // Check scroll position after messages update
+    if (messagesAreaRef.current) {
+      checkScrollPosition(messagesAreaRef.current)
+    }
   }, [messages, milestones, pendingPayments, successfulPayments])
 
   // Mark messages as read when user is actively viewing (scroll or focus)
@@ -924,6 +931,17 @@ function Chat() {
         messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
       }
     }
+  }
+
+  const handleScrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
+  const checkScrollPosition = (container: HTMLElement) => {
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100
+    setShowScrollToBottom(!isAtBottom)
   }
 
   const fetchConversation = async () => {
@@ -1427,7 +1445,7 @@ function Chat() {
     <div className="h-full flex flex-col bg-background text-foreground">
       <div className="flex-1 flex min-h-0 overflow-hidden">
           {/* Main Chat Area */}
-          <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          <div className="flex-1 flex flex-col min-w-0 min-h-0 relative">
             <Dialog open={showDeleteSelectedDialog} onOpenChange={setShowDeleteSelectedDialog}>
               <DialogContent>
                 <DialogHeader>
@@ -1557,6 +1575,8 @@ function Chat() {
               onDrop={handleDrop}
               onScroll={(e) => {
                 const target = e.currentTarget
+                // Check scroll position for scroll-to-bottom button
+                checkScrollPosition(target)
                 // Load more when scrolled to top (within 100px)
                 if (target.scrollTop < 100 && hasMoreMessages && !loadingMoreMessages) {
                   loadMoreMessages()
@@ -2234,6 +2254,20 @@ function Chat() {
                 <div ref={messagesEndRef} />
               </div>
             </div>
+
+            {/* Scroll to bottom button */}
+            {showScrollToBottom && (
+              <div className="absolute bottom-[85px] right-[21px] z-10">
+                <Button
+                  onClick={handleScrollToBottom}
+                  className="h-10 w-10 rounded-full shadow-lg p-0 bg-primary hover:bg-primary/90"
+                  size="icon"
+                  variant="default"
+                >
+                  <ChevronDown className="h-5 w-5" />
+                </Button>
+              </div>
+            )}
 
             {/* Input Area */}
             <div className="glass-card border-t border-border px-4 py-3 flex-shrink-0 relative">

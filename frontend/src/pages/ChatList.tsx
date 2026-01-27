@@ -244,8 +244,8 @@ function ChatList() {
 
   const formatMessagePreview = (message?: Message): string => {
     if (!message) return 'No messages yet'
-    if (message.message.length > 50) {
-      return message.message.substring(0, 50) + '...'
+    if (message.message.length > 40) {
+      return message.message.substring(0, 40) + '...'
     }
     return message.message
   }
