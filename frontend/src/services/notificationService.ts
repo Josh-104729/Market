@@ -92,7 +92,7 @@ class NotificationService {
 
       const newSubscription = await this.registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey),
+        applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
       });
 
       this.isSubscribed = true;
@@ -164,7 +164,7 @@ class NotificationService {
     for (let i = 0; i < rawData.length; ++i) {
       outputArray[i] = rawData.charCodeAt(i);
     }
-    return outputArray;
+    return outputArray as Uint8Array;
   }
 
   private async sendSubscriptionToBackend(subscription: PushSubscription) {
