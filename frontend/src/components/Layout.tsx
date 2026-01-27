@@ -4,7 +4,7 @@ import { useAppSelector, useAppDispatch } from '../store/hooks'
 import { logout, updateUser } from '../store/slices/authSlice'
 import { showToast } from '../utils/toast'
 import { getSocket, disconnectSocket } from '../services/socket'
-import { Message, paymentApi, Balance, Notification, authApi } from '../services/api'
+import { Message, paymentApi, Balance, Notification, authApi, conversationApi, Conversation } from '../services/api'
 import { Socket } from 'socket.io-client'
 import Footer from './Footer'
 import NotificationDropdown from './NotificationDropdown'
@@ -146,7 +146,7 @@ function Layout({ children }: LayoutProps) {
     const fetchUnreadCount = async () => {
       try {
         const conversations = await conversationApi.getAll()
-        const total = conversations.reduce((sum, conv) => {
+        const total = conversations.reduce((sum: number, conv: Conversation) => {
           const unread = typeof conv.unreadCount === 'number' ? conv.unreadCount : 0
           return sum + unread
         }, 0)
