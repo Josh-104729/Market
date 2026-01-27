@@ -226,83 +226,88 @@ function UserProfile() {
             <div className="space-y-4">
               {profile.services.map((service) => {
                 const isBlocked = service.status === "blocked"
-                const ServiceWrapper = isBlocked ? "div" : Link
-                const wrapperProps = isBlocked
-                  ? {
-                      className: "block border rounded-lg p-4 opacity-60 cursor-not-allowed",
-                      title: "This service is blocked and cannot be accessed",
-                      onClick: (e: React.MouseEvent) => {
-                        e.preventDefault()
-                        showToast.error("This service is blocked and cannot be accessed")
-                      },
-                    }
-                  : {
-                      to: `/services/${service.id}`,
-                      className: "block border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer",
-                    }
-
-                return (
-                  <ServiceWrapper key={service.id} {...wrapperProps}>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className={`font-semibold truncate ${!isBlocked ? "hover:text-primary transition-colors" : ""}`}>
-                            {service.title}
-                          </h3>
-                          <Badge
-                            variant={service.status === "active" ? "default" : service.status === "blocked" ? "destructive" : "secondary"}
-                            className="text-xs"
-                          >
-                            {service.status}
-                          </Badge>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Coins className="h-3.5 w-3.5" />
-                            {formatCurrency(service.balance)} {formatPaymentDuration(service.paymentDuration)}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3.5 w-3.5" />
-                            {formatDate(service.createdAt)}
-                          </span>
-                        </div>
+                const serviceContent = (
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className={`font-semibold truncate ${!isBlocked ? "hover:text-primary transition-colors" : ""}`}>
+                          {service.title}
+                        </h3>
+                        <Badge
+                          variant={service.status === "active" ? "default" : service.status === "blocked" ? "destructive" : "secondary"}
+                          className="text-xs"
+                        >
+                          {service.status}
+                        </Badge>
                       </div>
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        {service.rating > 0 ? (
-                          <>
-                            <div className="flex items-center gap-1">
-                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                              <span className="font-semibold text-base">{service.rating.toFixed(1)}</span>
-                            </div>
-                            <div className="flex items-center gap-0.5">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                  key={star}
-                                  className={`h-3 w-3 ${
-                                    star <= Math.round(service.rating)
-                                      ? "fill-yellow-400 text-yellow-400"
-                                      : "text-muted-foreground"
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          </>
-                        ) : (
-                          <div className="flex flex-col items-end gap-1">
-                            <span className="text-xs text-muted-foreground">No rating</span>
-                            <div className="flex items-center gap-0.5">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                  key={star}
-                                  className="h-3 w-3 text-muted-foreground"
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Coins className="h-3.5 w-3.5" />
+                          {formatCurrency(service.balance)} {formatPaymentDuration(service.paymentDuration)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5" />
+                          {formatDate(service.createdAt)}
+                        </span>
                       </div>
                     </div>
-                  </ServiceWrapper>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      {service.rating > 0 ? (
+                        <>
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            <span className="font-semibold text-base">{service.rating.toFixed(1)}</span>
+                          </div>
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`h-3 w-3 ${
+                                  star <= Math.round(service.rating)
+                                    ? "fill-yellow-400 text-yellow-400"
+                                    : "text-muted-foreground"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-xs text-muted-foreground">No rating</span>
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className="h-3 w-3 text-muted-foreground"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+
+                return isBlocked ? (
+                  <div
+                    key={service.id}
+                    className="block border rounded-lg p-4 opacity-60 cursor-not-allowed"
+                    title="This service is blocked and cannot be accessed"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      showToast.error("This service is blocked and cannot be accessed")
+                    }}
+                  >
+                    {serviceContent}
+                  </div>
+                ) : (
+                  <Link
+                    key={service.id}
+                    to={`/services/${service.id}`}
+                    className="block border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                  >
+                    {serviceContent}
+                  </Link>
                 )
               })}
             </div>
