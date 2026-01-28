@@ -4,7 +4,8 @@ import { useAppSelector, useAppDispatch } from '../store/hooks'
 import { logout, updateUser } from '../store/slices/authSlice'
 import { showToast } from '../utils/toast'
 import { getSocket, disconnectSocket } from '../services/socket'
-import { Message, paymentApi, Balance, Notification, authApi } from '../services/api'
+import { Message, paymentApi, Balance, Notification, authApi, conversationApi, Conversation } from '../services/api'
+import { notificationService } from '../services/notificationService'
 import { Socket } from 'socket.io-client'
 import Footer from './Footer'
 import NotificationDropdown from './NotificationDropdown'
@@ -39,6 +40,7 @@ function Layout({ children }: LayoutProps) {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState<boolean | null>(null)
   const socketRef = useRef<Socket | null>(null)
   const [profileHydrated, setProfileHydrated] = useState(false)
+  const [totalUnreadMessages, setTotalUnreadMessages] = useState(0)
 
   const handleSignOut = () => {
     // Disconnect socket before logout
@@ -142,6 +144,22 @@ function Layout({ children }: LayoutProps) {
     if (!socket) return
     socketRef.current = socket
 
+    const fetchUnreadCount = async () => {
+      try {
+        const conversations = await conversationApi.getAll()
+        const total = conversations.reduce((sum: number, conv: Conversation) => {
+          const unread = typeof conv.unreadCount === 'number' ? conv.unreadCount : 0
+          return sum + unread
+        }, 0)
+        setTotalUnreadMessages(total)
+      } catch (error) {
+        console.error('Failed to fetch unread messages count:', error)
+      }
+    }
+
+    // Fetch initial unread count
+    fetchUnreadCount()
+
     const handleNewMessage = (message: Message) => {
       if (message.senderId === user.id) return
       const isOnChatPage = location.pathname.startsWith('/chat/')
@@ -152,12 +170,21 @@ function Layout({ children }: LayoutProps) {
           ? `${message.sender.firstName || ''} ${message.sender.lastName || ''}`.trim() || message.sender.userName || 'Someone'
           : 'Someone'
 
-        showToast.info(
-          <div onClick={() => navigate(`/chat/${message.conversationId}`)} className="cursor-pointer">
-            <p className="font-semibold">{senderName}</p>
-            <p className="text-sm truncate">{message.message}</p>
-          </div>
-        )
+        // Show toast notification if user is actively viewing
+        if (!document.hidden && document.hasFocus()) {
+          showToast.info(
+            <div onClick={() => navigate(`/chat/${message.conversationId}`)} className="cursor-pointer">
+              <p className="font-semibold">{senderName}</p>
+              <p className="text-sm truncate">{message.message}</p>
+            </div>
+          )
+        }
+
+        // Show browser/push notification if tab is hidden or window is unfocused
+        notificationService.handleChatMessage(message)
+        
+        // Update unread count
+        setTotalUnreadMessages((prev) => prev + 1)
       }
     }
 
@@ -220,6 +247,7 @@ function Layout({ children }: LayoutProps) {
         socketRef.current.off('new_notification', handleNewNotification)
         socketRef.current.off('account_blocked', handleAccountBlocked)
       }
+      window.removeEventListener('conversation-viewed', handleConversationViewed)
     }
   }, [isAuthenticated, user, location.pathname, navigate, dispatch])
 
@@ -314,6 +342,7 @@ function Layout({ children }: LayoutProps) {
           avatar: (user as any).avatar || "",
         }}
         onLogout={handleSignOut}
+        unreadMessagesCount={totalUnreadMessages}
       />
       <SidebarInset>
         <SiteHeader title={title} right={headerRight} />

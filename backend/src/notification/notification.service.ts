@@ -4,6 +4,8 @@ import { Repository, In, IsNull } from 'typeorm';
 import { Notification, NotificationType } from '../entities/notification.entity';
 import { User } from '../entities/user.entity';
 import { ChatGateway } from '../chat/chat.gateway';
+import * as webpush from 'web-push';
+import { PushSubscriptionDto } from './dto/push-subscription.dto';
 
 @Injectable()
 export class NotificationService {
@@ -204,6 +206,66 @@ export class NotificationService {
     this.chatGateway.server.to(`user:${userId}`).emit('notification_deleted', {
       notificationId: notification.id,
     });
+  }
+
+  async savePushSubscription(userId: string, subscription: PushSubscriptionDto): Promise<void> {
+    await this.userRepository.update(
+      { id: userId },
+      { pushSubscription: subscription },
+    );
+  }
+
+  async removePushSubscription(userId: string): Promise<void> {
+    await this.userRepository.update(
+      { id: userId },
+      { pushSubscription: null },
+    );
+  }
+
+  async sendPushNotification(
+    userId: string,
+    title: string,
+    body: string,
+    data?: Record<string, any>,
+  ): Promise<void> {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+      });
+
+      if (!user || !user.pushSubscription) {
+        return; // User has no push subscription
+      }
+
+      // Initialize web-push with VAPID keys (should be in environment variables)
+      const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+      const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+      const vapidEmail = process.env.VAPID_EMAIL || 'mailto:admin@omnimart.com';
+
+      if (!vapidPublicKey || !vapidPrivateKey) {
+        console.warn('VAPID keys not configured, skipping push notification');
+        return;
+      }
+
+      webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
+
+      const payload = JSON.stringify({
+        title,
+        body,
+        icon: user.avatar || '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: data?.conversationId ? `chat-${data.conversationId}` : 'chat-message',
+        data: data || {},
+      });
+
+      await webpush.sendNotification(user.pushSubscription as any, payload);
+    } catch (error: any) {
+      // If subscription is invalid, remove it
+      if (error.statusCode === 410 || error.statusCode === 404) {
+        await this.removePushSubscription(userId);
+      }
+      console.error('Error sending push notification:', error);
+    }
   }
 }
 

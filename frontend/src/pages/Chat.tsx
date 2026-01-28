@@ -39,7 +39,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { showToast } from '../utils/toast'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Loader2 } from "lucide-react"
+import { Loader2, ChevronDown } from "lucide-react"
 
 function Chat() {
   const { id } = useParams<{ id: string }>()
@@ -95,6 +95,8 @@ function Chat() {
   const lastRangeAnchorRef = useRef<number | null>(null)
   const [showDeleteSelectedDialog, setShowDeleteSelectedDialog] = useState(false)
   const [deleteSubmitting, setDeleteSubmitting] = useState(false)
+  const [isOtherUserOnline, setIsOtherUserOnline] = useState(false)
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false)
 
   const isBlocked = Boolean(conversation?.isBlocked)
   const reactivationPending = Boolean(conversation?.reactivationRequestPending) || reactivationRequested
@@ -278,6 +280,8 @@ function Chat() {
       fetchMessages(50) // Load latest 50 messages
       fetchMilestones()
       setHasMoreMessages(true) // Reset hasMore when conversation changes
+      setIsOtherUserOnline(false) // Reset online status when conversation changes
+      setShowScrollToBottom(false) // Reset scroll button visibility
     }
   }, [id])
 
@@ -562,6 +566,42 @@ function Chat() {
     socket.on('user_stopped_typing', handleStopTyping)
     socket.on('messages_read', handleMessagesRead)
     socket.on('message_deleted', handleMessageDeleted)
+
+    // Listen for user status changes
+    const handleUserStatusChange = (data: { userId: string; isOnline: boolean; conversationId: string }) => {
+      if (data.conversationId === id) {
+        const otherUserId = conversation?.clientId === user?.id ? conversation?.providerId : conversation?.clientId
+        if (data.userId === otherUserId) {
+          setIsOtherUserOnline(data.isOnline)
+        }
+      }
+    }
+
+    socket.on('user_status_change', handleUserStatusChange)
+
+    // Request online status for the other user
+    const requestOnlineStatus = () => {
+      if (conversation && socket.connected) {
+        const otherUserId = conversation.clientId === user?.id ? conversation.providerId : conversation.clientId
+        if (otherUserId) {
+          socket.emit('get_online_status', { userIds: [otherUserId] })
+        }
+      }
+    }
+
+    const handleOnlineStatusResponse = (statusMap: Record<string, boolean>) => {
+      const otherUserId = conversation?.clientId === user?.id ? conversation?.providerId : conversation?.clientId
+      if (otherUserId && statusMap[otherUserId] !== undefined) {
+        setIsOtherUserOnline(statusMap[otherUserId])
+      }
+    }
+
+    socket.on('online_status_response', handleOnlineStatusResponse)
+
+    // Request status when conversation is loaded
+    if (conversation) {
+      requestOnlineStatus()
+    }
     socket.on('joined_conversation', (data: { conversationId?: string }) => {
       const joinedId = data?.conversationId || id
       console.log('✅ Joined conversation room:', joinedId, 'Current id:', id)
@@ -618,6 +658,8 @@ function Chat() {
         socket.off('user_stopped_typing', handleStopTyping)
         socket.off('messages_read', handleMessagesRead)
         socket.off('message_deleted', handleMessageDeleted)
+        socket.off('user_status_change', handleUserStatusChange)
+        socket.off('online_status_response', handleOnlineStatusResponse)
         socket.off('joined_conversation')
         socket.off('error')
         socket.off('connect_error')
@@ -639,6 +681,10 @@ function Chat() {
     }
     // Mark messages as read when new messages arrive or when viewing
     markMessagesAsRead()
+    // Check scroll position after messages update
+    if (messagesAreaRef.current) {
+      checkScrollPosition(messagesAreaRef.current)
+    }
   }, [messages, milestones, pendingPayments, successfulPayments])
 
   // Mark messages as read when user is actively viewing (scroll or focus)
@@ -885,6 +931,17 @@ function Chat() {
         messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
       }
     }
+  }
+
+  const handleScrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
+  const checkScrollPosition = (container: HTMLElement) => {
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100
+    setShowScrollToBottom(!isAtBottom)
   }
 
   const fetchConversation = async () => {
@@ -1388,7 +1445,7 @@ function Chat() {
     <div className="h-full flex flex-col bg-background text-foreground">
       <div className="flex-1 flex min-h-0 overflow-hidden">
           {/* Main Chat Area */}
-          <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          <div className="flex-1 flex flex-col min-w-0 min-h-0 relative">
             <Dialog open={showDeleteSelectedDialog} onOpenChange={setShowDeleteSelectedDialog}>
               <DialogContent>
                 <DialogHeader>
@@ -1470,12 +1527,17 @@ function Chat() {
                     >
                       <FontAwesomeIcon icon={faArrowLeft} />
                     </button> */}
-                    <Avatar className="h-10 w-10 flex-shrink-0">
-                      <AvatarImage src={(otherUser as any)?.avatar || undefined} alt={otherUserName} />
-                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                        {otherUser?.firstName?.[0] || otherUser?.userName?.[0] || "U"}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="h-10 w-10 flex-shrink-0">
+                        <AvatarImage src={(otherUser as any)?.avatar || undefined} alt={otherUserName} />
+                        <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                          {otherUser?.firstName?.[0] || otherUser?.userName?.[0] || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      {isOtherUserOnline && (
+                        <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background bg-green-500" />
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <h2 className="text-base font-semibold text-foreground truncate">
                         {otherUserName}
@@ -1513,6 +1575,8 @@ function Chat() {
               onDrop={handleDrop}
               onScroll={(e) => {
                 const target = e.currentTarget
+                // Check scroll position for scroll-to-bottom button
+                checkScrollPosition(target)
                 // Load more when scrolled to top (within 100px)
                 if (target.scrollTop < 100 && hasMoreMessages && !loadingMoreMessages) {
                   loadMoreMessages()
@@ -2190,6 +2254,20 @@ function Chat() {
                 <div ref={messagesEndRef} />
               </div>
             </div>
+
+            {/* Scroll to bottom button */}
+            {showScrollToBottom && (
+              <div className="absolute bottom-[85px] right-[21px] z-10">
+                <Button
+                  onClick={handleScrollToBottom}
+                  className="h-10 w-10 rounded-full shadow-lg p-0 bg-primary hover:bg-primary/90"
+                  size="icon"
+                  variant="default"
+                >
+                  <ChevronDown className="h-5 w-5" />
+                </Button>
+              </div>
+            )}
 
             {/* Input Area */}
             <div className="glass-card border-t border-border px-4 py-3 flex-shrink-0 relative">

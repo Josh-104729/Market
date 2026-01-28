@@ -26,6 +26,9 @@ import { EmailService } from './email.service';
 import { TwoFactorService } from './two-factor.service';
 import { ReferralService } from '../referral/referral.service';
 import { StorageService } from '../storage/storage.service';
+import { PaymentService } from '../payment/payment.service';
+import { ServiceService } from '../service/service.service';
+import { forwardRef, Inject } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
@@ -42,6 +45,10 @@ export class AuthService {
     private twoFactorService: TwoFactorService,
     private referralService: ReferralService,
     private storageService: StorageService,
+    @Inject(forwardRef(() => PaymentService))
+    private paymentService: PaymentService,
+    @Inject(forwardRef(() => ServiceService))
+    private serviceService: ServiceService,
   ) {}
 
   async signUpStep1(dto: SignUpStep1Dto) {
@@ -497,6 +504,53 @@ export class AuthService {
       twoFactorEnabled: user.twoFactorEnabled,
       twoFactorMethod: user.twoFactorMethod,
       status: user.status,
+    };
+  }
+
+  async getUserProfile(userId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Get user statistics (totalEarned - money earned from providing services)
+    const statistics = await this.paymentService.getUserStatistics(userId);
+
+    // Get user's services
+    const servicesResult = await this.serviceService.findAll(
+      undefined, // status
+      undefined, // categoryId
+      undefined, // search
+      1, // page
+      100, // limit - get all services
+      userId, // userId filter
+    );
+
+    return {
+      id: user.id,
+      userName: user.userName,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      middleName: user.middleName,
+      bio: user.bio,
+      avatar: user.avatar,
+      emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
+      status: user.status,
+      createdAt: user.createdAt,
+      totalEarned: statistics.totalEarned,
+      services: servicesResult.data.map((service: any) => ({
+        id: service.id,
+        title: service.title,
+        status: service.status,
+        balance: service.balance,
+        paymentDuration: service.paymentDuration,
+        rating: service.averageRating || 0,
+        createdAt: service.createdAt,
+      })),
     };
   }
 

@@ -811,22 +811,27 @@ function ServiceDetail() {
                 <CardTitle className="text-base">Seller</CardTitle>
                 <CardDescription>Service provider</CardDescription>
               </CardHeader>
-              <CardContent className="flex items-center gap-3">
-                <Avatar className="h-10 w-10 rounded-lg">
-                  <AvatarFallback className="rounded-lg">
-                    {(service.user.firstName?.[0] || service.user.userName?.[0] || "U").toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <p className="font-semibold truncate">
-                    {service.user.firstName && service.user.lastName
-                      ? `${service.user.firstName} ${service.user.lastName}`
-                      : service.user.userName || "Anonymous"}
-                  </p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <User className="h-3.5 w-3.5" /> Provider
-                  </p>
-                </div>
+              <CardContent>
+                <Link
+                  to={`/profile/${service.userId}`}
+                  className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+                >
+                  <Avatar className="h-10 w-10 rounded-lg">
+                    <AvatarFallback className="rounded-lg">
+                      {(service.user.firstName?.[0] || service.user.userName?.[0] || "U").toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="font-semibold truncate">
+                      {service.user.firstName && service.user.lastName
+                        ? `${service.user.firstName} ${service.user.lastName}`
+                        : service.user.userName || "Anonymous"}
+                    </p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <User className="h-3.5 w-3.5" /> Provider
+                    </p>
+                  </div>
+                </Link>
               </CardContent>
             </Card>
           )}

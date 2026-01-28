@@ -244,6 +244,11 @@ export const authApi = {
     return response.data;
   },
 
+  getUserProfile: async (userId: string) => {
+    const response = await api.get(`/auth/profile/${userId}`);
+    return response.data;
+  },
+
   updateProfile: async (data: {
     userName?: string;
     firstName?: string;

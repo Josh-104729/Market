@@ -94,5 +94,14 @@ export class User extends BaseEntity {
 
   @Column({ name: 'reset_password_expires', type: 'datetime', nullable: true })
   resetPasswordExpires?: Date | null;
+
+  @Column({ name: 'push_subscription', type: 'json', nullable: true })
+  pushSubscription?: {
+    endpoint: string;
+    keys: {
+      p256dh: string;
+      auth: string;
+    };
+  } | null;
 }
 
