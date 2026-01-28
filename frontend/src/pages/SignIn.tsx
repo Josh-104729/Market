@@ -235,7 +235,7 @@ function SignIn() {
             {error && (
               <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md border border-destructive/20 flex items-center justify-between gap-2">
                 <span>{error}</span>
-                {isBlocked && (
+                {isBlocked && !requestSubmitted && (
                   <Button
                     type="button"
                     variant="outline"

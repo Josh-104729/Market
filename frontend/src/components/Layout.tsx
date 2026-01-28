@@ -215,13 +215,13 @@ function Layout({ children }: LayoutProps) {
 
     return () => {
       if (socketRef.current) {
-      socketRef.current.off('new_message', handleNewMessage)
-      socketRef.current.off('balance_updated', handleBalanceUpdate)
-      socketRef.current.off('new_notification', handleNewNotification)
-      socketRef.current.off('account_blocked', handleAccountBlocked)
+        socketRef.current.off('new_message', handleNewMessage)
+        socketRef.current.off('balance_updated', handleBalanceUpdate)
+        socketRef.current.off('new_notification', handleNewNotification)
+        socketRef.current.off('account_blocked', handleAccountBlocked)
       }
     }
-  }, [isAuthenticated, user, location.pathname, navigate])
+  }, [isAuthenticated, user, location.pathname, navigate, dispatch])
 
   const title = useMemo(() => {
     const path = location.pathname

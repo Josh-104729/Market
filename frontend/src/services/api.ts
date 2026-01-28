@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { showToast } from '../utils/toast';
+import { User } from '../store/slices/authSlice';
 
 // Use environment variable for API URL
 // Set VITE_API_URL in .env file (e.g., http://localhost:3000/api or https://your-backend.railway.app/api)
