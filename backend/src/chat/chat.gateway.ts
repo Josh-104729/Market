@@ -31,6 +31,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  // Track online users: userId -> Set of socket IDs
+  private onlineUsers = new Map<string, Set<string>>();
+
   constructor(
     private jwtService: JwtService,
     @InjectRepository(User)
@@ -96,6 +99,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Join user's personal room for notifications
       client.join(`user:${user.id}`);
 
+      // Track online status
+      if (!this.onlineUsers.has(user.id)) {
+        this.onlineUsers.set(user.id, new Set());
+      }
+      this.onlineUsers.get(user.id)!.add(client.id);
+
+      // If this is the first connection for this user, notify their conversation partners
+      if (this.onlineUsers.get(user.id)!.size === 1) {
+        await this.notifyUserOnlineStatus(user.id, true);
+      }
+
       console.log(`✅ User ${user.id} (${user.email}) connected to chat`);
     } catch (error) {
       // Unexpected errors only.
@@ -104,8 +118,59 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  handleDisconnect(client: Socket) {
-    console.log(`User ${client.data.userId} disconnected from chat`);
+  async handleDisconnect(client: Socket) {
+    const userId = client.data.userId;
+    console.log(`User ${userId} disconnected from chat`);
+
+    if (userId) {
+      // Remove this socket from online users
+      const userSockets = this.onlineUsers.get(userId);
+      if (userSockets) {
+        userSockets.delete(client.id);
+        
+        // If no more sockets for this user, they're offline
+        if (userSockets.size === 0) {
+          this.onlineUsers.delete(userId);
+          await this.notifyUserOnlineStatus(userId, false);
+        }
+      }
+    }
+  }
+
+  // Helper method to notify conversation partners about online status
+  private async notifyUserOnlineStatus(userId: string, isOnline: boolean) {
+    try {
+      // Find all conversations where this user is a participant
+      const conversations = await this.conversationRepository.find({
+        where: [
+          { clientId: userId },
+          { providerId: userId },
+        ],
+      });
+
+      // Notify all conversation partners
+      for (const conversation of conversations) {
+        const partnerId = conversation.clientId === userId 
+          ? conversation.providerId 
+          : conversation.clientId;
+
+        if (partnerId) {
+          // Emit to partner's personal room
+          this.server.to(`user:${partnerId}`).emit('user_status_change', {
+            userId,
+            isOnline,
+            conversationId: conversation.id,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error notifying user online status:', error);
+    }
+  }
+
+  // Method to check if a user is online
+  isUserOnline(userId: string): boolean {
+    return this.onlineUsers.has(userId) && this.onlineUsers.get(userId)!.size > 0;
   }
 
   // Helper method to verify authentication for socket operations
@@ -280,6 +345,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
     } catch (error) {
       console.error('Error handling stop typing:', error);
+    }
+  }
+
+  @SubscribeMessage('get_online_status')
+  async handleGetOnlineStatus(@ConnectedSocket() client: Socket, @MessageBody() data: { userIds: string[] }) {
+    try {
+      const auth = await this.verifyAuthentication(client);
+      if (!auth) {
+        client.emit('error', { message: 'Not authenticated' });
+        return;
+      }
+
+      const statusMap: Record<string, boolean> = {};
+      for (const userId of data.userIds) {
+        statusMap[userId] = this.isUserOnline(userId);
+      }
+
+      client.emit('online_status_response', statusMap);
+    } catch (error) {
+      console.error('Error getting online status:', error);
+      client.emit('error', { message: 'Failed to get online status' });
     }
   }
 

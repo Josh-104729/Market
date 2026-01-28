@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
+import { PushSubscriptionDto } from './dto/push-subscription.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('notifications')
@@ -59,6 +60,23 @@ export class NotificationController {
     const userId = req.user.id;
     await this.notificationService.deleteNotification(id, userId);
     return { message: 'Notification deleted' };
+  }
+
+  @Post('push/subscribe')
+  async subscribeToPush(
+    @Request() req: any,
+    @Body() dto: { subscription: PushSubscriptionDto },
+  ) {
+    const userId = req.user.id;
+    await this.notificationService.savePushSubscription(userId, dto.subscription);
+    return { message: 'Push subscription saved' };
+  }
+
+  @Post('push/unsubscribe')
+  async unsubscribeFromPush(@Request() req: any) {
+    const userId = req.user.id;
+    await this.notificationService.removePushSubscription(userId);
+    return { message: 'Push subscription removed' };
   }
 }
 

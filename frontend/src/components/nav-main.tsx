@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom"
 import { MailIcon, PlusCircleIcon, type LucideIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -14,6 +15,7 @@ export function NavMain({
   items,
   quickCreateTo = "/services/new",
   inboxTo = "/notifications",
+  unreadMessagesCount = 0,
 }: {
   items: {
     title: string
@@ -22,6 +24,7 @@ export function NavMain({
   }[]
   quickCreateTo?: string
   inboxTo?: string
+  unreadMessagesCount?: number
 }) {
   const location = useLocation()
 
@@ -65,9 +68,14 @@ export function NavMain({
                     : location.pathname.startsWith(item.to)
                 }
               >
-                <Link to={item.to}>
-                {item.icon && <item.icon />}
-                <span>{item.title}</span>
+                <Link to={item.to} className="relative">
+                  {item.icon && <item.icon />}
+                  <span>{item.title}</span>
+                  {item.to === "/chat" && unreadMessagesCount > 0 && (
+                    <Badge className="ml-auto h-5 min-w-5 px-1.5 flex items-center justify-center text-[10px] font-semibold bg-primary text-primary-foreground">
+                      {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                    </Badge>
+                  )}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

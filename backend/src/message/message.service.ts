@@ -152,10 +152,28 @@ export class MessageService {
         await this.notificationService.createNotification(
           recipientId,
           NotificationType.MESSAGE,
-          'New Message',
-          `${senderName}: ${messagePreview}`,
+          'New message from ' + senderName,
+          messagePreview,
           { conversationId, messageId: savedMessage.id },
         );
+
+        // Check if user is online (has active socket connection)
+        const isUserOnline = this.chatGateway.isUserOnline(recipientId);
+
+        // Send push notification only if user is offline (site closed)
+        // If user is online but not in room, browser notification will be handled by frontend
+        if (!isUserOnline) {
+          await this.notificationService.sendPushNotification(
+            recipientId,
+            senderName,
+            messagePreview,
+            {
+              url: `/chat/${conversationId}`,
+              conversationId,
+              messageId: savedMessage.id,
+            },
+          );
+        }
       }
     }
 

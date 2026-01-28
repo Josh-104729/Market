@@ -4,6 +4,12 @@ import { Provider } from 'react-redux'
 import { store } from './store/store'
 import App from './App.tsx'
 import './index.css'
+import { notificationService } from './services/notificationService'
+
+// Initialize notification service
+if ('serviceWorker' in navigator && 'Notification' in window) {
+  notificationService.initialize().catch(console.error);
+}
 
 // Apply persisted theme ASAP to avoid UI flash.
 try {

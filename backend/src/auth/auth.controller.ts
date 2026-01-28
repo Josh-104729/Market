@@ -119,6 +119,11 @@ export class AuthController {
     return this.authService.getProfile(req.user.id);
   }
 
+  @Get('profile/:userId')
+  async getUserProfile(@Param('userId', ParseUUIDPipe) userId: string) {
+    return this.authService.getUserProfile(userId);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Post('2fa/enable')
   async enableTwoFactor(@Request() req, @Body() dto: EnableTwoFactorDto) {

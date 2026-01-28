@@ -29,10 +29,12 @@ import {
 export function AppSidebar({
   user,
   onLogout,
+  unreadMessagesCount = 0,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   user: { name: string; email: string; avatar: string }
   onLogout?: () => void
+  unreadMessagesCount?: number
 }) {
   const navMain = [
     { title: "Dashboard", to: "/", icon: LayoutDashboardIcon },
@@ -68,7 +70,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} quickCreateTo="/services/new" inboxTo="/notifications" />
+        <NavMain items={navMain} quickCreateTo="/services/new" inboxTo="/notifications" unreadMessagesCount={unreadMessagesCount} />
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

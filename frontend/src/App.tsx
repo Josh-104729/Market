@@ -19,6 +19,7 @@ import ChatList from './pages/ChatList'
 import Feed from './pages/Feed'
 import FeedDetail from './pages/FeedDetail'
 import Profile from './pages/Profile'
+import UserProfile from './pages/UserProfile'
 import Charge from './pages/Charge'
 import ChargeDetail from './pages/ChargeDetail'
 import Withdraw from './pages/Withdraw'
@@ -88,6 +89,7 @@ function AppContent() {
                 <Route path="/chat" element={<ChatList />} />
                 <Route path="/chat/:id" element={<ChatList />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/profile/:userId" element={<UserProfile />} />
                 <Route path="/settings/security" element={<SecuritySettings />} />
                 <Route path="/charge" element={<Charge />} />
                 <Route path="/charge/:walletAddress" element={<ChargeDetail />} />

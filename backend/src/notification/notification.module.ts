@@ -12,7 +12,7 @@ import { AuthModule } from '../auth/auth.module';
   imports: [
     TypeOrmModule.forFeature([Notification, User]),
     forwardRef(() => ChatModule),
-    AuthModule,
+    forwardRef(() => AuthModule),
   ],
   controllers: [NotificationController],
   providers: [NotificationService, NotificationReminderService],
