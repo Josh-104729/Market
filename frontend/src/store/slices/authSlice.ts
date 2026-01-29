@@ -28,20 +28,8 @@ interface AuthState {
 const initialState: AuthState = {
   user: null,
   accessToken: localStorage.getItem('accessToken'),
-  isAuthenticated: !!localStorage.getItem('accessToken'),
+  isAuthenticated: false, // Will be set after verifying token with server
 };
-
-// Load user from localStorage if token exists
-if (initialState.accessToken) {
-  const storedUser = localStorage.getItem('user');
-  if (storedUser) {
-    try {
-      initialState.user = JSON.parse(storedUser);
-    } catch (e) {
-      console.error('Failed to parse stored user data');
-    }
-  }
-}
 
 const authSlice = createSlice({
   name: 'auth',
@@ -52,24 +40,28 @@ const authSlice = createSlice({
       state.accessToken = action.payload.accessToken;
       state.isAuthenticated = true;
       localStorage.setItem('accessToken', action.payload.accessToken);
-      localStorage.setItem('user', JSON.stringify(action.payload.user));
+      // Don't save user to localStorage - fetch from server instead
     },
     updateUser: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
-        localStorage.setItem('user', JSON.stringify(state.user));
+        // Don't save user to localStorage - fetch from server instead
       }
+    },
+    setUser: (state, action: PayloadAction<User | null>) => {
+      state.user = action.payload;
+      state.isAuthenticated = !!action.payload;
     },
     logout: (state) => {
       state.user = null;
       state.accessToken = null;
       state.isAuthenticated = false;
       localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
+      // user is not stored in localStorage, so no need to remove it
     },
   },
 });
 
-export const { setCredentials, updateUser, logout } = authSlice.actions;
+export const { setCredentials, updateUser, logout, setUser } = authSlice.actions;
 export default authSlice.reducer;
 

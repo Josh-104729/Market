@@ -45,7 +45,7 @@ api.interceptors.response.use(
         if (authHeader && hasToken && !isAuthRoute && !isHandlingAuthExpiry) {
           isHandlingAuthExpiry = true;
           localStorage.removeItem('accessToken');
-          localStorage.removeItem('user');
+          // user is not stored in localStorage, so no need to remove it
           window.dispatchEvent(new CustomEvent('auth-expired', { detail: { reason: 'http_401' } }));
           setTimeout(() => {
             isHandlingAuthExpiry = false;
@@ -713,29 +713,11 @@ export const conversationApi = {
       const response = await api.get(`/conversations/service/${serviceId}/provider`);
       return Array.isArray(response.data) ? response.data : [];
     } catch (error: any) {
-      // If 404, try fallback: get all conversations and filter by service
+      // If 404, endpoint doesn't exist - return empty array
+      // User data is not stored in localStorage anymore, so we can't use fallback
       if (error.response?.status === 404) {
-        console.warn('Provider endpoint not found (404). Backend may need restart. Using fallback...');
-        try {
-          const allConversations = await conversationApi.getAll();
-          const userStr = localStorage.getItem('user');
-          if (userStr) {
-            const user = JSON.parse(userStr);
-            // Filter conversations for this service where user is provider
-            const filtered = allConversations.filter(
-              (conv) => conv.serviceId === serviceId && conv.providerId === user.id
-            );
-            // Get last message for each (simplified - just get first message if available)
-            return filtered.map((conv) => ({
-              ...conv,
-              messages: conv.messages && conv.messages.length > 0 ? [conv.messages[conv.messages.length - 1]] : [],
-            }));
-          }
-          return [];
-        } catch (fallbackError) {
-          console.error('Fallback also failed:', fallbackError);
-          return [];
-        }
+        console.warn('Provider endpoint not found (404). Backend may need restart.');
+        return [];
       }
       // For other errors, return empty array instead of throwing
       console.error('Error fetching provider conversations:', error);

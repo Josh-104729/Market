@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
 import { Toaster } from "@/components/ui/toaster"
 import { useAppSelector, useAppDispatch } from "./store/hooks"
-import { logout } from "./store/slices/authSlice"
+import { logout, setUser } from "./store/slices/authSlice"
 import { disconnectSocket } from "./services/socket"
 import { showToast } from "./utils/toast"
+import { authApi } from "./services/api"
 import Home from './pages/Home'
 import SignIn from './pages/SignIn'
 import SignUp from './pages/SignUp'
@@ -37,8 +38,51 @@ import Support from "./pages/Support"
 
 function AppContent() {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated)
+  const accessToken = useAppSelector((state) => state.auth.accessToken)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const [isInitializing, setIsInitializing] = useState(true)
+
+  // Initialize auth: fetch user from server if token exists
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('accessToken')
+      
+      if (!token) {
+        setIsInitializing(false)
+        return
+      }
+
+      try {
+        // Fetch user profile from server
+        const user = await authApi.getProfile()
+        
+        // Check if user is blocked
+        if (user.status !== 'active') {
+          // User is blocked, log them out
+          dispatch(logout())
+          disconnectSocket()
+          showToast.error('Your account is blocked')
+          navigate('/signin', { replace: true })
+          setIsInitializing(false)
+          return
+        }
+
+        // User is active, set user data
+        dispatch(setUser(user))
+      } catch (error: any) {
+        // Token is invalid or expired
+        console.error('Failed to fetch user profile:', error)
+        dispatch(logout())
+        disconnectSocket()
+        // Don't show toast here - let the auth flow handle it
+      } finally {
+        setIsInitializing(false)
+      }
+    }
+
+    initializeAuth()
+  }, [dispatch, navigate])
 
   // Global handler for session expiration - works everywhere, including auth pages
   useEffect(() => {
@@ -65,6 +109,18 @@ function AppContent() {
       window.removeEventListener('auth-expired', handleAuthExpired as EventListener)
     }
   }, [dispatch, navigate])
+
+  // Show loading state while initializing auth
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+          <p className="mt-4 text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>

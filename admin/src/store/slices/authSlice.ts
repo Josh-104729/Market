@@ -42,7 +42,6 @@ const authSlice = createSlice({
       state.accessToken = action.payload.accessToken;
       state.isAuthenticated = true;
       localStorage.setItem('adminAccessToken', action.payload.accessToken);
-      localStorage.setItem('adminUser', JSON.stringify(action.payload.user));
     },
     updateUser: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
