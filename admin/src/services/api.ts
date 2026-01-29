@@ -325,22 +325,23 @@ export const adminApi = {
     return response.data;
   },
 
-  getUnblockRequests: async (params?: {
+  getChatHistory: async (params?: {
     page?: number;
     limit?: number;
-    status?: 'pending' | 'approved' | 'rejected';
+    search?: string;
   }) => {
-    const response = await api.get('/unblock-requests', { params });
+    const response = await api.get('/admin/chat-history', { params });
     return response.data;
   },
 
-  approveUnblockRequest: async (requestId: string, adminNote?: string) => {
-    const response = await api.post(`/unblock-requests/${requestId}/approve`, { adminNote });
-    return response.data;
-  },
-
-  rejectUnblockRequest: async (requestId: string, adminNote?: string) => {
-    const response = await api.post(`/unblock-requests/${requestId}/reject`, { adminNote });
+  getConversationMessages: async (
+    conversationId: string,
+    params?: {
+      page?: number;
+      limit?: number;
+    }
+  ) => {
+    const response = await api.get(`/admin/chat-history/${conversationId}/messages`, { params });
     return response.data;
   },
 };

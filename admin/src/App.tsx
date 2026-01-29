@@ -17,7 +17,7 @@ import Helps from './pages/Helps'
 import HelpDetail from './pages/HelpDetail'
 import Fraud from './pages/Fraud'
 import Users from './pages/Users'
-import Requests from './pages/Requests'
+import ChatHistory from './pages/ChatHistory'
 import SignIn from './pages/SignIn'
 import Layout from './components/Layout'
 
@@ -160,10 +160,10 @@ function App() {
             </Layout>
           </PrivateRoute>
         } />
-        <Route path="/requests" element={
+        <Route path="/chat-history" element={
           <PrivateRoute>
             <Layout>
-              <Requests />
+              <ChatHistory />
             </Layout>
           </PrivateRoute>
         } />

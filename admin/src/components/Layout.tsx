@@ -63,7 +63,7 @@ function Layout({ children }: LayoutProps) {
     { path: '/master-wallet', label: 'Master Wallet', icon: ArrowLeftRight },
     { path: '/disputes', label: 'Disputes', icon: Gavel },
     { path: '/fraud', label: 'Fraud', icon: ShieldAlert },
-    { path: '/requests', label: 'Requests', icon: MessageSquare },
+    { path: '/chat-history', label: 'Chat History', icon: MessageSquare },
     { path: '/broadcast', label: 'Broadcast', icon: Megaphone },
     { path: '/helps', label: 'Helps', icon: LifeBuoy },
   ]

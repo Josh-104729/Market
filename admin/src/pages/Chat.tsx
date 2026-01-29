@@ -303,7 +303,7 @@ function Chat() {
       <div className="glass-card p-6 mb-4">
         <div className="flex items-center gap-4 mb-4">
           <button
-            onClick={() => navigate('/disputes')}
+            onClick={() => navigate(-1)}
             className="text-white hover:text-primary transition-colors"
           >
             <FontAwesomeIcon icon={faArrowLeft} className="text-xl" />

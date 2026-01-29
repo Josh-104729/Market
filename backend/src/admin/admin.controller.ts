@@ -116,5 +116,29 @@ export class AdminController {
   ) {
     return this.adminService.updateUserStatus(userId, body.status);
   }
+
+  @UseGuards(AdminGuard)
+  @Get('chat-history')
+  async getChatHistory(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 50;
+    return this.adminService.getAllChatHistory(pageNum, limitNum, search);
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('chat-history/:conversationId/messages')
+  async getConversationMessages(
+    @Param('conversationId') conversationId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 100;
+    return this.adminService.getConversationMessages(conversationId, pageNum, limitNum);
+  }
 }
 

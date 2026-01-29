@@ -22,6 +22,8 @@ import { MilestoneStatus } from '../entities/milestone.entity';
 import { WalletService } from '../wallet/wallet.service';
 import { PolygonWalletService } from '../polygon-wallet/polygon-wallet.service';
 import { ChatGateway } from '../chat/chat.gateway';
+import { Conversation } from '../entities/conversation.entity';
+import { Message } from '../entities/message.entity';
 
 @Injectable()
 export class AdminService {
@@ -70,6 +72,10 @@ export class AdminService {
     private transactionRepository: Repository<Transaction>,
     @InjectRepository(TempWallet)
     private tempWalletRepository: Repository<TempWallet>,
+    @InjectRepository(Conversation)
+    private conversationRepository: Repository<Conversation>,
+    @InjectRepository(Message)
+    private messageRepository: Repository<Message>,
     private jwtService: JwtService,
     private dataSource: DataSource,
     @Inject(forwardRef(() => PaymentService))
@@ -539,6 +545,167 @@ export class AdminService {
     }
 
     return user;
+  }
+
+  async getAllChatHistory(
+    page: number = 1,
+    limit: number = 50,
+    search?: string,
+  ): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number }> {
+    const skip = (page - 1) * limit;
+    const queryBuilder = this.conversationRepository
+      .createQueryBuilder('conversation')
+      .leftJoinAndSelect('conversation.service', 'service')
+      .leftJoinAndSelect('conversation.client', 'client')
+      .leftJoinAndSelect('conversation.provider', 'provider')
+      .where('conversation.deletedAt IS NULL')
+      .orderBy('conversation.updatedAt', 'DESC');
+
+    // Search by service title, client name, or provider name
+    if (search) {
+      queryBuilder.andWhere(
+        '(service.title LIKE :search OR client.firstName LIKE :search OR client.lastName LIKE :search OR client.userName LIKE :search OR client.email LIKE :search OR provider.firstName LIKE :search OR provider.lastName LIKE :search OR provider.userName LIKE :search OR provider.email LIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    const [conversations, total] = await queryBuilder.skip(skip).take(limit).getManyAndCount();
+
+    // Get message counts and last messages for each conversation
+    const conversationIds = conversations.map((conv) => conv.id);
+    const messageCounts = await this.messageRepository
+      .createQueryBuilder('message')
+      .select('message.conversationId', 'conversationId')
+      .addSelect('COUNT(message.id)', 'count')
+      .where('message.conversationId IN (:...ids)', { ids: conversationIds })
+      .groupBy('message.conversationId')
+      .getRawMany();
+
+    const countMap = new Map<string, number>();
+    messageCounts.forEach((item) => {
+      countMap.set(item.conversationId, parseInt(item.count, 10));
+    });
+
+    // Get last message for each conversation
+    const lastMessages = await Promise.all(
+      conversationIds.map(async (convId) => {
+        const lastMsg = await this.messageRepository.findOne({
+          where: { conversationId: convId },
+          relations: ['sender'],
+          order: { createdAt: 'DESC' },
+        });
+        return { conversationId: convId, message: lastMsg };
+      }),
+    );
+
+    const lastMessageMap = new Map<string, any>();
+    lastMessages.forEach((item) => {
+      if (item.message) {
+        lastMessageMap.set(item.conversationId, item.message);
+      }
+    });
+
+    // Format the data with message counts
+    const formattedData = conversations.map((conv) => {
+      const messageCount = countMap.get(conv.id) || 0;
+      const lastMessage = lastMessageMap.get(conv.id);
+
+      return {
+        id: conv.id,
+        serviceId: conv.serviceId,
+        service: conv.service ? {
+          id: conv.service.id,
+          title: conv.service.title,
+        } : null,
+        clientId: conv.clientId,
+        client: conv.client ? {
+          id: conv.client.id,
+          email: conv.client.email,
+          userName: conv.client.userName,
+          firstName: conv.client.firstName,
+          lastName: conv.client.lastName,
+          avatar: conv.client.avatar,
+        } : null,
+        providerId: conv.providerId,
+        provider: conv.provider ? {
+          id: conv.provider.id,
+          email: conv.provider.email,
+          userName: conv.provider.userName,
+          firstName: conv.provider.firstName,
+          lastName: conv.provider.lastName,
+          avatar: conv.provider.avatar,
+        } : null,
+        isBlocked: conv.isBlocked,
+        blockedAt: conv.blockedAt,
+        blockedReason: conv.blockedReason,
+        messageCount,
+        lastMessage: lastMessage ? {
+          id: lastMessage.id,
+          message: lastMessage.message,
+          senderId: lastMessage.senderId,
+          sender: lastMessage.sender ? {
+            id: lastMessage.sender.id,
+            email: lastMessage.sender.email,
+            userName: lastMessage.sender.userName,
+            firstName: lastMessage.sender.firstName,
+            lastName: lastMessage.sender.lastName,
+          } : null,
+          createdAt: lastMessage.createdAt,
+        } : null,
+        createdAt: conv.createdAt,
+        updatedAt: conv.updatedAt,
+      };
+    });
+
+    return {
+      data: formattedData,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getConversationMessages(
+    conversationId: string,
+    page: number = 1,
+    limit: number = 100,
+  ): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number }> {
+    const skip = (page - 1) * limit;
+    const [messages, total] = await this.messageRepository.findAndCount({
+      where: { conversationId },
+      relations: ['sender'],
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    const formattedMessages = messages.map((msg) => ({
+      id: msg.id,
+      conversationId: msg.conversationId,
+      senderId: msg.senderId,
+      sender: msg.sender ? {
+        id: msg.sender.id,
+        email: msg.sender.email,
+        userName: msg.sender.userName,
+        firstName: msg.sender.firstName,
+        lastName: msg.sender.lastName,
+        avatar: msg.sender.avatar,
+      } : null,
+      message: msg.message,
+      attachmentFiles: msg.attachmentFiles,
+      readAt: msg.readAt,
+      createdAt: msg.createdAt,
+      updatedAt: msg.updatedAt,
+    }));
+
+    return {
+      data: formattedMessages.reverse(), // Reverse to show oldest first
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 }
 
