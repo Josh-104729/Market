@@ -17,7 +17,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Shield, Search, Mail, Calendar, User, Monitor, Globe, CheckCircle, XCircle, Filter } from "lucide-react"
+import { Shield, Search, Mail, Calendar, Monitor, Globe, CheckCircle, XCircle, Filter } from "lucide-react"
 
 function formatDate(d?: string | null) {
   if (!d) return "—"

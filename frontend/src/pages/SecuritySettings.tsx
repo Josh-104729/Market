@@ -474,7 +474,10 @@ function SecuritySettings() {
                 Login Device History
               </CardTitle>
               <CardDescription>
-                View your recent login attempts and device information.
+                {historyTotal > 0 
+                  ? `Showing ${(historyPage - 1) * historyItemsPerPage + 1} to ${Math.min(historyPage * historyItemsPerPage, historyTotal)} of ${historyTotal} login attempts`
+                  : "View your recent login attempts and device information."
+                }
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={fetchLoginHistory} disabled={loadingHistory}>
