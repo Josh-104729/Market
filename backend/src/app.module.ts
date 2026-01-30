@@ -42,6 +42,7 @@ import { FraudDetection } from './entities/fraud-detection.entity';
 import { ConversationReactivationRequest } from './entities/conversation-reactivation-request.entity';
 import { UnblockRequestModule } from './unblock-request/unblock-request.module';
 import { UnblockRequest } from './entities/unblock-request.entity';
+import { LoginHistory } from './entities/login-history.entity';
 
 @Module({
   imports: [
@@ -82,6 +83,7 @@ import { UnblockRequest } from './entities/unblock-request.entity';
           FraudDetection,
           ConversationReactivationRequest,
           UnblockRequest,
+          LoginHistory,
         ],
         synchronize: configService.get<boolean>('DB_SYNCHRONIZE', true), // Set to false in production
         logging: configService.get<boolean>('DB_LOGGING', false),

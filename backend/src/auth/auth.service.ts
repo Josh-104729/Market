@@ -29,6 +29,8 @@ import { StorageService } from '../storage/storage.service';
 import { PaymentService } from '../payment/payment.service';
 import { ServiceService } from '../service/service.service';
 import { forwardRef, Inject } from '@nestjs/common';
+import { LoginHistory } from '../entities/login-history.entity';
+import { parseUserAgent } from '../utils/user-agent-parser';
 
 @Injectable()
 export class AuthService {
@@ -39,6 +41,8 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(LoginHistory)
+    private loginHistoryRepository: Repository<LoginHistory>,
     private jwtService: JwtService,
     private emailService: EmailService,
     // private smsService: SmsService, // SMS phone verification disabled
@@ -312,23 +316,27 @@ export class AuthService {
     };
   }
 
-  async signIn(dto: SignInDto) {
+  async signIn(dto: SignInDto, ipAddress?: string, userAgent?: string) {
     const user = await this.userRepository.findOne({
       where: { email: dto.email },
     });
 
     if (!user) {
+      // Track failed login attempt
+      await this.trackLoginAttempt(null, false, 'User not found', ipAddress, userAgent);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Only allow users with active status to sign in
     if (user.status !== 'active') {
+      await this.trackLoginAttempt(user.id, false, 'Account blocked', ipAddress, userAgent);
       throw new UnauthorizedException('Your account is blocked');
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isPasswordValid) {
+      await this.trackLoginAttempt(user.id, false, 'Invalid password', ipAddress, userAgent);
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -345,6 +353,9 @@ export class AuthService {
         { expiresIn: '5m' }
       );
 
+      // Track 2FA required (not a full login yet)
+      await this.trackLoginAttempt(user.id, true, undefined, ipAddress, userAgent, '2fa_pending');
+
       return {
         requires2FA: true,
         tempToken,
@@ -352,6 +363,9 @@ export class AuthService {
         message: '2FA verification required',
       };
     }
+
+    // Track successful login
+    await this.trackLoginAttempt(user.id, true, undefined, ipAddress, userAgent, 'password');
 
     // Normal login flow
     const payload = { sub: user.id, email: user.email };
@@ -371,7 +385,7 @@ export class AuthService {
     };
   }
 
-  async verifyTwoFactorLogin(tempToken: string, code: string) {
+  async verifyTwoFactorLogin(tempToken: string, code: string, ipAddress?: string, userAgent?: string) {
     try {
       // Verify temporary token
       const payload = this.jwtService.verify(tempToken);
@@ -385,15 +399,18 @@ export class AuthService {
       });
 
       if (!user) {
+        await this.trackLoginAttempt(null, false, 'User not found', ipAddress, userAgent, '2fa');
         throw new BadRequestException('User not found');
       }
 
       // Prevent login for non-active users even if 2FA is enabled
       if (user.status !== 'active') {
+        await this.trackLoginAttempt(user.id, false, 'Account blocked', ipAddress, userAgent, '2fa');
         throw new UnauthorizedException('Your account is blocked');
       }
 
       if (!user.twoFactorEnabled) {
+        await this.trackLoginAttempt(user.id, false, '2FA not enabled', ipAddress, userAgent, '2fa');
         throw new BadRequestException('2FA not enabled');
       }
 
@@ -401,8 +418,12 @@ export class AuthService {
       const isValid = await this.twoFactorService.verifyTotpCode(user.id, code);
 
       if (!isValid) {
+        await this.trackLoginAttempt(user.id, false, 'Invalid 2FA code', ipAddress, userAgent, '2fa');
         throw new UnauthorizedException('Invalid 2FA code');
       }
+
+      // Track successful 2FA login
+      await this.trackLoginAttempt(user.id, true, undefined, ipAddress, userAgent, '2fa');
 
       // Generate final access token
       const accessToken = this.jwtService.sign({
@@ -624,6 +645,77 @@ export class AuthService {
     } catch (error) {
       throw new BadRequestException('Failed to send unblock request email. Please try again later.');
     }
+  }
+
+  private async trackLoginAttempt(
+    userId: string | null,
+    success: boolean,
+    failureReason?: string,
+    ipAddress?: string,
+    userAgent?: string,
+    loginType: string = 'password',
+  ) {
+    try {
+      const parsed = parseUserAgent(userAgent);
+      
+      const loginHistory = this.loginHistoryRepository.create({
+        userId: userId || undefined,
+        ipAddress,
+        userAgent,
+        deviceType: parsed.deviceType,
+        browser: parsed.browser,
+        os: parsed.os,
+        deviceName: parsed.deviceName,
+        loginType,
+        success,
+        failureReason: success ? undefined : failureReason,
+      });
+
+      await this.loginHistoryRepository.save(loginHistory);
+    } catch (error) {
+      // Don't fail login if tracking fails
+      console.error('Failed to track login history:', error);
+    }
+  }
+
+  async getLoginHistory(
+    userId: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number }> {
+    const skip = (page - 1) * limit;
+    
+    const [loginHistory, total] = await this.loginHistoryRepository.findAndCount({
+      where: { userId },
+      relations: ['user'],
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    const formattedData = loginHistory.map((history) => ({
+      id: history.id,
+      userId: history.userId,
+      ipAddress: history.ipAddress,
+      userAgent: history.userAgent,
+      deviceType: history.deviceType,
+      browser: history.browser,
+      os: history.os,
+      deviceName: history.deviceName,
+      location: history.location,
+      loginType: history.loginType,
+      success: history.success,
+      failureReason: history.failureReason,
+      createdAt: history.createdAt,
+    }));
+
+    return {
+      data: formattedData,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 }
 

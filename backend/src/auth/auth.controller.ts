@@ -6,6 +6,7 @@ import {
   Patch,
   UseGuards,
   Request,
+  Req,
   Param,
   Query,
   ParseUUIDPipe,
@@ -15,6 +16,7 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AuthService } from './auth.service';
@@ -94,8 +96,13 @@ export class AuthController {
   }
 
   @Post('signin')
-  async signIn(@Body() dto: SignInDto) {
-    return this.authService.signIn(dto);
+  async signIn(@Body() dto: SignInDto, @Req() req: ExpressRequest) {
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || 
+                      (req.headers['x-real-ip'] as string) || 
+                      req.socket?.remoteAddress || 
+                      'unknown';
+    const userAgent = req.headers['user-agent'] || undefined;
+    return this.authService.signIn(dto, ipAddress, userAgent);
   }
 
   @Post('forgot-password')
@@ -109,8 +116,13 @@ export class AuthController {
   }
 
   @Post('verify-2fa')
-  async verifyTwoFactorLogin(@Body() dto: { tempToken: string; code: string }) {
-    return this.authService.verifyTwoFactorLogin(dto.tempToken, dto.code);
+  async verifyTwoFactorLogin(@Body() dto: { tempToken: string; code: string }, @Req() req: ExpressRequest) {
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || 
+                      (req.headers['x-real-ip'] as string) || 
+                      req.socket?.remoteAddress || 
+                      'unknown';
+    const userAgent = req.headers['user-agent'] || undefined;
+    return this.authService.verifyTwoFactorLogin(dto.tempToken, dto.code, ipAddress, userAgent);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -218,6 +230,18 @@ export class AuthController {
   @Post('unblock-request')
   async sendUnblockRequest(@Body() dto: { email: string; title: string; message: string }) {
     return this.authService.sendUnblockRequestEmail(dto.email, dto.title, dto.message);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('login-history')
+  async getLoginHistory(
+    @Request() req,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 50;
+    return this.authService.getLoginHistory(req.user.id, pageNum, limitNum);
   }
 }
 

@@ -30,6 +30,7 @@ import {
   ArrowLeftRight,
   Gavel,
   ShieldAlert,
+  Shield,
   Megaphone,
   LifeBuoy,
   Users,
@@ -64,6 +65,7 @@ function Layout({ children }: LayoutProps) {
     { path: '/disputes', label: 'Disputes', icon: Gavel },
     { path: '/fraud', label: 'Fraud', icon: ShieldAlert },
     { path: '/chat-history', label: 'Chat History', icon: MessageSquare },
+    { path: '/login-history', label: 'Login History', icon: Shield },
     { path: '/broadcast', label: 'Broadcast', icon: Megaphone },
     { path: '/helps', label: 'Helps', icon: LifeBuoy },
   ]

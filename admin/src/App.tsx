@@ -18,6 +18,7 @@ import HelpDetail from './pages/HelpDetail'
 import Fraud from './pages/Fraud'
 import Users from './pages/Users'
 import ChatHistory from './pages/ChatHistory'
+import LoginHistory from './pages/LoginHistory'
 import SignIn from './pages/SignIn'
 import Layout from './components/Layout'
 
@@ -164,6 +165,13 @@ function App() {
           <PrivateRoute>
             <Layout>
               <ChatHistory />
+            </Layout>
+          </PrivateRoute>
+        } />
+        <Route path="/login-history" element={
+          <PrivateRoute>
+            <Layout>
+              <LoginHistory />
             </Layout>
           </PrivateRoute>
         } />

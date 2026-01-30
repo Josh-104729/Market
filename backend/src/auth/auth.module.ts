@@ -9,6 +9,7 @@ import { EmailService } from './email.service';
 import { TwoFactorService } from './two-factor.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { User } from '../entities/user.entity';
+import { LoginHistory } from '../entities/login-history.entity';
 import { ReferralModule } from '../referral/referral.module';
 import { StorageModule } from '../storage/storage.module';
 import { PaymentModule } from '../payment/payment.module';
@@ -17,7 +18,7 @@ import { forwardRef } from '@nestjs/common';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, LoginHistory]),
     PassportModule,
     ReferralModule,
     StorageModule,

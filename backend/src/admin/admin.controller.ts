@@ -140,5 +140,19 @@ export class AdminController {
     const limitNum = limit ? parseInt(limit, 10) : 100;
     return this.adminService.getConversationMessages(conversationId, pageNum, limitNum);
   }
+
+  @UseGuards(AdminGuard)
+  @Get('login-history')
+  async getLoginHistory(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('userId') userId?: string,
+    @Query('success') success?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 50;
+    const successFilter = success === 'true' ? true : success === 'false' ? false : undefined;
+    return this.adminService.getLoginHistory(pageNum, limitNum, userId, successFilter);
+  }
 }
 

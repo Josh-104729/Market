@@ -305,6 +305,14 @@ export const authApi = {
       return response.data;
     },
   },
+
+  getLoginHistory: async (params?: {
+    page?: number;
+    limit?: number;
+  }) => {
+    const response = await api.get('/auth/login-history', { params });
+    return response.data;
+  },
 };
 
 export const categoryApi = {

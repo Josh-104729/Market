@@ -11,7 +11,24 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import { CheckCircle2, Copy, KeyRound, Loader2, QrCode, Shield, XCircle } from "lucide-react"
+import { CheckCircle2, Copy, KeyRound, Loader2, QrCode, Shield, XCircle, Monitor, Globe, Calendar, CheckCircle } from "lucide-react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 
 function SecuritySettings() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
@@ -24,10 +41,23 @@ function SecuritySettings() {
   const [password, setPassword] = useState("")
   const [showBackupCodes, setShowBackupCodes] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
+  
+  // Login history state
+  const [loginHistory, setLoginHistory] = useState<any[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyTotalPages, setHistoryTotalPages] = useState(1)
+  const [historyTotal, setHistoryTotal] = useState(0)
+  const [historyItemsPerPage] = useState(10)
 
   useEffect(() => {
     load2FAStatus()
+    fetchLoginHistory()
   }, [])
+
+  useEffect(() => {
+    fetchLoginHistory()
+  }, [historyPage])
 
   const load2FAStatus = async () => {
     try {
@@ -129,6 +159,63 @@ function SecuritySettings() {
       showToast.error("Failed to copy backup codes")
     }
   }
+
+  const fetchLoginHistory = async () => {
+    try {
+      setLoadingHistory(true)
+      const response = await authApi.getLoginHistory({
+        page: historyPage,
+        limit: historyItemsPerPage,
+      })
+      setLoginHistory(response.data)
+      setHistoryTotal(response.total)
+      setHistoryTotalPages(response.totalPages)
+    } catch (error: any) {
+      console.error("Failed to fetch login history:", error)
+      showToast.error(error.response?.data?.message || "Failed to load login history")
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
+
+  const formatDate = (d?: string | null) => {
+    if (!d) return "—"
+    try {
+      return new Date(d).toLocaleString()
+    } catch {
+      return String(d)
+    }
+  }
+
+  const { historyPages } = (() => {
+    const pageCount = historyTotalPages
+    const current = historyPage
+    const delta = 2
+    const range = []
+    const rangeWithDots = []
+
+    for (let i = Math.max(2, current - delta); i <= Math.min(pageCount - 1, current + delta); i++) {
+      range.push(i)
+    }
+
+    if (current - delta > 2) {
+      rangeWithDots.push(1, "...")
+    } else {
+      rangeWithDots.push(1)
+    }
+
+    rangeWithDots.push(...range)
+
+    if (current + delta < pageCount - 1) {
+      rangeWithDots.push("...", pageCount)
+    } else {
+      rangeWithDots.push(pageCount)
+    }
+
+    return {
+      historyPages: rangeWithDots.filter((p) => p !== 1 || pageCount === 1 ? true : current !== 1),
+    }
+  })()
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 py-4">
@@ -376,6 +463,154 @@ function SecuritySettings() {
           </CardContent>
         </Card>
       )}
+
+      {/* Login History Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2">
+                <Monitor className="h-5 w-5" />
+                Login Device History
+              </CardTitle>
+              <CardDescription>
+                View your recent login attempts and device information.
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={fetchLoginHistory} disabled={loadingHistory}>
+              Refresh
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loadingHistory ? (
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : loginHistory.length === 0 ? (
+            <div className="rounded-lg border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+              No login history found.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Status</TableHead>
+                      <TableHead>IP Address</TableHead>
+                      <TableHead>Device</TableHead>
+                      <TableHead>Browser</TableHead>
+                      <TableHead>OS</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Login Type</TableHead>
+                      <TableHead>Date & Time</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loginHistory.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          {item.success ? (
+                            <Badge variant="default" className="gap-1">
+                              <CheckCircle className="h-3 w-3" />
+                              Success
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive" className="gap-1">
+                              <XCircle className="h-3 w-3" />
+                              Failed
+                            </Badge>
+                          )}
+                          {item.failureReason && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {item.failureReason}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Globe className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-mono text-sm">{item.ipAddress || "—"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Monitor className="h-4 w-4 text-muted-foreground" />
+                            <div className="flex flex-col">
+                              <span className="text-sm capitalize">{item.deviceType || "—"}</span>
+                              {item.deviceName && (
+                                <span className="text-xs text-muted-foreground">
+                                  {item.deviceName}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{item.browser || "—"}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{item.os || "—"}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{item.location || "—"}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="capitalize">
+                            {item.loginType || "password"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(item.createdAt)}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {historyTotalPages > 1 && (
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setHistoryPage((prev) => Math.max(1, prev - 1))}
+                        className={historyPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    {historyPages.map((page, index) => (
+                      <PaginationItem key={index}>
+                        {page === "..." ? (
+                          <PaginationEllipsis />
+                        ) : (
+                          <PaginationLink
+                            onClick={() => setHistoryPage(page as number)}
+                            isActive={historyPage === page}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        )}
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setHistoryPage((prev) => Math.min(historyTotalPages, prev + 1))}
+                        className={historyPage === historyTotalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -10,6 +10,7 @@ import { Balance } from '../entities/balance.entity';
 import { Transaction } from '../entities/transaction.entity';
 import { Conversation } from '../entities/conversation.entity';
 import { Message } from '../entities/message.entity';
+import { LoginHistory } from '../entities/login-history.entity';
 import { WalletModule } from '../wallet/wallet.module';
 import { PaymentModule } from '../payment/payment.module';
 import { NotificationModule } from '../notification/notification.module';
@@ -20,7 +21,7 @@ import { ChatModule } from '../chat/chat.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, TempWallet, Balance, Transaction, Conversation, Message]),
+    TypeOrmModule.forFeature([User, TempWallet, Balance, Transaction, Conversation, Message, LoginHistory]),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
       signOptions: { expiresIn: '7d' },

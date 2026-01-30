@@ -344,6 +344,16 @@ export const adminApi = {
     const response = await api.get(`/admin/chat-history/${conversationId}/messages`, { params });
     return response.data;
   },
+
+  getLoginHistory: async (params?: {
+    page?: number;
+    limit?: number;
+    userId?: string;
+    success?: boolean;
+  }) => {
+    const response = await api.get('/admin/login-history', { params });
+    return response.data;
+  },
 };
 
 export const categoryApi = {

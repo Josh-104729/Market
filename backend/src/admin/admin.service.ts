@@ -24,6 +24,7 @@ import { PolygonWalletService } from '../polygon-wallet/polygon-wallet.service';
 import { ChatGateway } from '../chat/chat.gateway';
 import { Conversation } from '../entities/conversation.entity';
 import { Message } from '../entities/message.entity';
+import { LoginHistory } from '../entities/login-history.entity';
 
 @Injectable()
 export class AdminService {
@@ -76,6 +77,8 @@ export class AdminService {
     private conversationRepository: Repository<Conversation>,
     @InjectRepository(Message)
     private messageRepository: Repository<Message>,
+    @InjectRepository(LoginHistory)
+    private loginHistoryRepository: Repository<LoginHistory>,
     private jwtService: JwtService,
     private dataSource: DataSource,
     @Inject(forwardRef(() => PaymentService))
@@ -701,6 +704,63 @@ export class AdminService {
 
     return {
       data: formattedMessages.reverse(), // Reverse to show oldest first
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getLoginHistory(
+    page: number = 1,
+    limit: number = 50,
+    userId?: string,
+    success?: boolean,
+  ): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number }> {
+    const skip = (page - 1) * limit;
+    
+    const queryBuilder = this.loginHistoryRepository
+      .createQueryBuilder('loginHistory')
+      .leftJoinAndSelect('loginHistory.user', 'user')
+      .orderBy('loginHistory.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    if (userId) {
+      queryBuilder.andWhere('loginHistory.userId = :userId', { userId });
+    }
+
+    if (success !== undefined) {
+      queryBuilder.andWhere('loginHistory.success = :success', { success });
+    }
+
+    const [loginHistory, total] = await queryBuilder.getManyAndCount();
+
+    const formattedData = loginHistory.map((history) => ({
+      id: history.id,
+      userId: history.userId,
+      user: history.user ? {
+        id: history.user.id,
+        email: history.user.email,
+        userName: history.user.userName,
+        firstName: history.user.firstName,
+        lastName: history.user.lastName,
+      } : null,
+      ipAddress: history.ipAddress,
+      userAgent: history.userAgent,
+      deviceType: history.deviceType,
+      browser: history.browser,
+      os: history.os,
+      deviceName: history.deviceName,
+      location: history.location,
+      loginType: history.loginType,
+      success: history.success,
+      failureReason: history.failureReason,
+      createdAt: history.createdAt,
+    }));
+
+    return {
+      data: formattedData,
       total,
       page,
       limit,
