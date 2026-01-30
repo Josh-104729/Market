@@ -25,6 +25,8 @@ import { ChatGateway } from '../chat/chat.gateway';
 import { Conversation } from '../entities/conversation.entity';
 import { Message } from '../entities/message.entity';
 import { LoginHistory } from '../entities/login-history.entity';
+import { parseUserAgent } from '../utils/user-agent-parser';
+import { getLocationFromIP } from '../utils/ip-geolocation';
 
 @Injectable()
 export class AdminService {
@@ -96,28 +98,33 @@ export class AdminService {
     private chatGateway: ChatGateway,
   ) {}
 
-  async signIn(dto: AdminSignInDto) {
+  async signIn(dto: AdminSignInDto, ipAddress?: string, userAgent?: string) {
     const user = await this.userRepository.findOne({
       where: { email: dto.email },
     });
 
     if (!user) {
+      await this.trackLoginAttempt(null, false, 'Invalid credentials', ipAddress, userAgent, 'password');
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Check if user is an admin
     if (user.role !== 'admin') {
+      await this.trackLoginAttempt(user.id, false, 'Access denied. Admin privileges required.', ipAddress, userAgent, 'password');
       throw new UnauthorizedException('Access denied. Admin privileges required.');
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isPasswordValid) {
+      await this.trackLoginAttempt(user.id, false, 'Invalid credentials', ipAddress, userAgent, 'password');
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = this.jwtService.sign(payload);
+
+    await this.trackLoginAttempt(user.id, true, undefined, ipAddress, userAgent, 'password');
 
     return {
       accessToken,
@@ -766,6 +773,41 @@ export class AdminService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  private async trackLoginAttempt(
+    userId: string | null,
+    success: boolean,
+    failureReason?: string,
+    ipAddress?: string,
+    userAgent?: string,
+    loginType: string = 'password',
+  ) {
+    try {
+      const parsed = parseUserAgent(userAgent);
+      
+      // Fetch location from IP address (non-blocking)
+      const locationInfo = await getLocationFromIP(ipAddress);
+      
+      const loginHistory = this.loginHistoryRepository.create({
+        userId: userId || undefined,
+        ipAddress,
+        userAgent,
+        deviceType: parsed.deviceType,
+        browser: parsed.browser,
+        os: parsed.os,
+        deviceName: parsed.deviceName,
+        location: locationInfo.location,
+        loginType,
+        success,
+        failureReason: success ? undefined : failureReason,
+      });
+
+      await this.loginHistoryRepository.save(loginHistory);
+    } catch (error) {
+      // Don't fail login if tracking fails
+      console.error('Failed to track login history:', error);
+    }
   }
 }
 

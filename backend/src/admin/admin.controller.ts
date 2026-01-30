@@ -1,4 +1,5 @@
-import { Controller, Post, Body, Get, UseGuards, Request, Param, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Request, Param, Query, Req } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import { AdminService } from './admin.service';
 import { AdminSignInDto } from './dto/admin-signin.dto';
 import { AdminGuard } from './guards/admin.guard';
@@ -10,8 +11,13 @@ export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   @Post('signin')
-  async signIn(@Body() dto: AdminSignInDto) {
-    return this.adminService.signIn(dto);
+  async signIn(@Body() dto: AdminSignInDto, @Req() req: ExpressRequest) {
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
+                      (req.headers['x-real-ip'] as string) ||
+                      req.socket?.remoteAddress ||
+                      'unknown';
+    const userAgent = req.headers['user-agent'];
+    return this.adminService.signIn(dto, ipAddress, userAgent);
   }
 
   @UseGuards(AdminGuard)

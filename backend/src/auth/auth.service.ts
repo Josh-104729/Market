@@ -31,6 +31,7 @@ import { ServiceService } from '../service/service.service';
 import { forwardRef, Inject } from '@nestjs/common';
 import { LoginHistory } from '../entities/login-history.entity';
 import { parseUserAgent } from '../utils/user-agent-parser';
+import { getLocationFromIP } from '../utils/ip-geolocation';
 
 @Injectable()
 export class AuthService {
@@ -658,6 +659,9 @@ export class AuthService {
     try {
       const parsed = parseUserAgent(userAgent);
       
+      // Fetch location from IP address (non-blocking)
+      const locationInfo = await getLocationFromIP(ipAddress);
+      
       const loginHistory = this.loginHistoryRepository.create({
         userId: userId || undefined,
         ipAddress,
@@ -666,6 +670,7 @@ export class AuthService {
         browser: parsed.browser,
         os: parsed.os,
         deviceName: parsed.deviceName,
+        location: locationInfo.location,
         loginType,
         success,
         failureReason: success ? undefined : failureReason,
