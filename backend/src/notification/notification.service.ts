@@ -50,6 +50,7 @@ export class NotificationService {
     title: string,
     message: string,
     metadata?: Record<string, any>,
+    excludeUserIds?: string[],
   ): Promise<{ count: number }> {
     // Get all users and create individual notifications for each
     const users = await this.userRepository.find({
@@ -60,7 +61,16 @@ export class NotificationService {
       return { count: 0 };
     }
 
-    const userNotifications = users.map((user) =>
+    // Filter out excluded users
+    const usersToNotify = excludeUserIds && excludeUserIds.length > 0
+      ? users.filter((user) => !excludeUserIds.includes(user.id))
+      : users;
+
+    if (usersToNotify.length === 0) {
+      return { count: 0 };
+    }
+
+    const userNotifications = usersToNotify.map((user) =>
       this.notificationRepository.create({
         userId: user.id,
         type: NotificationType.BROADCAST,

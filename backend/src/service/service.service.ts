@@ -332,12 +332,21 @@ export class ServiceService {
     if (isAdmin && updateServiceDto.status && oldStatus !== updateServiceDto.status) {
       if (oldStatus === ServiceStatus.DRAFT && updateServiceDto.status === ServiceStatus.ACTIVE) {
         // Service was approved
+        // Notify the service owner
         await this.notificationService.createNotification(
           service.userId,
           NotificationType.SERVICE_APPROVED,
           'Service Approved',
           `Your service "${service.title}" has been approved and is now active.`,
           { serviceId: service.id, serviceTitle: service.title },
+        );
+        
+        // Broadcast to all users about the new approved service (excluding the service owner)
+        await this.notificationService.broadcastNotification(
+          'New Service Available',
+          `New service - "${service.title}" is approved`,
+          { serviceId: service.id, serviceTitle: service.title },
+          [service.userId], // Exclude the service owner from broadcast
         );
       } else if (oldStatus === ServiceStatus.BLOCKED && updateServiceDto.status === ServiceStatus.ACTIVE) {
         // Service was unblocked

@@ -63,8 +63,8 @@ export class ServiceController {
   ) {
     let adImageUrl: string | null = null;
     if (file) {
-      // Upload to Backblaze B2
-      adImageUrl = await this.storageService.uploadFile(file, 'services');
+      // Upload to Backblaze B2 with compression for service images
+      adImageUrl = await this.storageService.uploadFile(file, 'services', true);
     }
     return this.serviceService.create(req.user.id, createServiceDto, adImageUrl);
   }
@@ -133,8 +133,8 @@ export class ServiceController {
   ) {
     let adImageUrl: string | undefined;
     if (file) {
-      // Upload to Backblaze B2
-      adImageUrl = await this.storageService.uploadFile(file, 'services');
+      // Upload to Backblaze B2 with compression for service images
+      adImageUrl = await this.storageService.uploadFile(file, 'services', true);
     }
     return this.serviceService.update(id, req.user.id, updateServiceDto, adImageUrl);
   }

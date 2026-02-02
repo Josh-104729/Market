@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as sharp from 'sharp';
 
 const B2 = require('backblaze-b2');
 
@@ -39,19 +40,55 @@ export class StorageService {
   }
 
   /**
+   * Compress and resize image for service cards
+   * Service card size: h-48 (192px height), maintaining aspect ratio
+   * Max width: 400px (typical card width)
+   */
+  private async compressServiceImage(buffer: Buffer, mimetype: string): Promise<Buffer> {
+    try {
+      const compressed = await sharp(buffer)
+        .resize(400, 192, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: 85, mozjpeg: true })
+        .toBuffer();
+      
+      return compressed;
+    } catch (error) {
+      this.logger.warn(`Failed to compress image, using original: ${error.message}`);
+      return buffer; // Return original if compression fails
+    }
+  }
+
+  /**
    * Upload a file to Backblaze B2
    * @param file - Multer file object (with buffer)
    * @param folder - Folder path in bucket (e.g., 'services', 'posts', 'categories')
+   * @param compress - Whether to compress the image (for service images)
    * @returns Public URL of the uploaded file
    */
-  async uploadFile(file: Express.Multer.File, folder: string): Promise<string> {
+  async uploadFile(file: Express.Multer.File, folder: string, compress: boolean = false): Promise<string> {
     try {
       // Ensure we're authorized
       await this.authorize();
 
       // Generate unique filename
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      const fileName = `${folder}/${uniqueSuffix}-${file.originalname}`;
+      let fileName = `${folder}/${uniqueSuffix}-${file.originalname}`;
+      let fileBuffer = file.buffer;
+      let contentType = file.mimetype;
+      let contentLength = file.size;
+
+      // Compress service images
+      if (compress && folder === 'services' && file.mimetype.startsWith('image/')) {
+        fileBuffer = await this.compressServiceImage(file.buffer, file.mimetype);
+        // Change extension to .jpg for compressed images
+        const baseName = file.originalname.replace(/\.[^/.]+$/, '');
+        fileName = `${folder}/${uniqueSuffix}-${baseName}.jpg`;
+        contentType = 'image/jpeg';
+        contentLength = fileBuffer.length;
+      }
 
       // Get upload URL
       const { data: uploadUrlData } = await this.b2.getUploadUrl({
@@ -63,16 +100,16 @@ export class StorageService {
         uploadUrl: uploadUrlData.uploadUrl,
         uploadAuthToken: uploadUrlData.authorizationToken,
         fileName: fileName,
-        data: file.buffer,
-        contentLength: file.size,
-        contentType: file.mimetype,
+        data: fileBuffer,
+        contentLength: contentLength,
+        contentType: contentType,
       });
 
       // Construct public URL (ensure publicUrl ends with /)
       const baseUrl = this.publicUrl.endsWith('/') ? this.publicUrl : `${this.publicUrl}/`;
       const publicUrl = `${baseUrl}${fileName}`;
       
-      this.logger.log(`File uploaded successfully: ${fileName}`);
+      this.logger.log(`File uploaded successfully: ${fileName}${compress ? ' (compressed)' : ''}`);
       return publicUrl;
     } catch (error) {
       this.logger.error(`Failed to upload file: ${error.message}`, error.stack);

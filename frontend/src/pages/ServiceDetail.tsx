@@ -73,6 +73,7 @@ function ServiceDetail() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const defaultServiceImageSrc = useDefaultServiceImageSrc()
+  const [imageModalOpen, setImageModalOpen] = useState(false)
   const { user, isAuthenticated } = useAppSelector((state) => state.auth)
   const [service, setService] = useState<Service | null>(null)
   const [loading, setLoading] = useState(true)
@@ -451,11 +452,14 @@ function ServiceDetail() {
         {/* Image */}
         <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <div className="relative min-h-[360px] bg-muted/20 flex items-center justify-center">
+            <div 
+              className="relative min-h-[360px] bg-muted/20 flex items-center justify-center cursor-pointer group"
+              onClick={() => setImageModalOpen(true)}
+            >
               <ImageWithLoader
                 src={service.adImage?.trim() ? service.adImage : defaultServiceImageSrc}
                 alt={service.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover group-hover:opacity-90 transition-opacity"
                 containerClassName="w-full h-full"
                 showBlurBackground={true}
               />
@@ -463,6 +467,11 @@ function ServiceDetail() {
                 <Badge className="text-base font-bold px-3 py-1">
                   ${priceValue.toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
                 </Badge>
+              </div>
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 text-white px-4 py-2 rounded-lg text-sm">
+                  Click to view full size
+                </div>
               </div>
             </div>
           </CardContent>
@@ -1031,6 +1040,29 @@ function ServiceDetail() {
               {deleting ? 'Deleting...' : 'Delete service'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Modal */}
+      <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
+        <DialogContent className="max-w-6xl w-full p-0">
+          <div className="relative w-full h-[80vh] bg-muted/20 flex items-center justify-center">
+            <ImageWithLoader
+              src={service.adImage?.trim() ? service.adImage : defaultServiceImageSrc}
+              alt={service.title}
+              className="max-w-full max-h-full object-contain"
+              containerClassName="w-full h-full"
+              showBlurBackground={true}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4"
+              onClick={() => setImageModalOpen(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
