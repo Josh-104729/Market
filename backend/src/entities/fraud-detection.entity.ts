@@ -46,6 +46,16 @@ export class FraudDetection extends BaseEntity {
 
   @Column({ type: 'json', nullable: true })
   signals?: string[];
+
+  @Column({ name: 'reviewed_at', type: 'timestamp', nullable: true })
+  reviewedAt?: Date;
+
+  @Column({ name: 'reviewed_by_id', nullable: true })
+  reviewedById?: string;
+
+  @ManyToOne(() => User, { createForeignKeyConstraints: false })
+  @JoinColumn({ name: 'reviewed_by_id' })
+  reviewedBy?: User;
 }
 
 

@@ -14,11 +14,22 @@ import {
   faFileExcel,
   faFileArchive,
   faTimes,
+  faExclamationTriangle,
+  faBan,
 } from '@fortawesome/free-solid-svg-icons'
 import { conversationApi, messageApi, milestoneApi, adminApi, Conversation, Message, Milestone } from '../services/api'
 import { getSocket } from '../services/socket'
 import { Socket } from 'socket.io-client'
 import { showToast } from '../utils/toast'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 function Chat() {
   const { id } = useParams<{ id: string }>()
@@ -34,6 +45,8 @@ function Chat() {
   const [previewFile, setPreviewFile] = useState<{ url: string; name: string; type: string } | null>(null)
   const [hasMoreMessages, setHasMoreMessages] = useState(true)
   const [loadingMoreMessages, setLoadingMoreMessages] = useState(false)
+  const [unreviewedFraudCount, setUnreviewedFraudCount] = useState(0)
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const socketRef = useRef<Socket | null>(null)
@@ -43,6 +56,7 @@ function Chat() {
       fetchConversation()
       fetchMessages(50) // Load latest 50 messages
       fetchMilestones()
+      fetchUnreviewedFraudCount()
       setHasMoreMessages(true) // Reset hasMore when conversation changes
     }
   }, [id])
@@ -107,6 +121,56 @@ function Chat() {
     } catch (error: any) {
       console.error('Failed to fetch conversation:', error)
       showToast.error('Failed to load conversation')
+    }
+  }
+
+  const fetchUnreviewedFraudCount = async () => {
+    if (!id) return
+    try {
+      const fraudConversations = await adminApi.getFraudConversations({ blocked: 'all' })
+      const fraudConv = fraudConversations.find((fc) => fc.conversation.id === id)
+      if (fraudConv) {
+        setUnreviewedFraudCount(fraudConv.unreviewedCount || 0)
+      } else {
+        setUnreviewedFraudCount(0)
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch unreviewed fraud count:', error)
+    }
+  }
+
+  const handleMarkAsReviewed = async () => {
+    if (!id) return
+    try {
+      await adminApi.markFraudAsReviewed(id)
+      showToast.success('Fraud marked as reviewed')
+      setUnreviewedFraudCount(0)
+      // Refresh messages to update indicators
+      await fetchMessages(50)
+    } catch (error: any) {
+      console.error('Failed to mark fraud as reviewed:', error)
+      showToast.error(error.response?.data?.message || 'Failed to mark as reviewed')
+    }
+  }
+
+  const handleBlockConversation = () => {
+    if (!id) return
+    setBlockDialogOpen(true)
+  }
+
+  const confirmBlockConversation = async () => {
+    if (!id) return
+    try {
+      await adminApi.blockConversation(id)
+      showToast.success('Conversation blocked and fraud marked as reviewed')
+      setUnreviewedFraudCount(0)
+      setBlockDialogOpen(false)
+      // Refresh conversation and messages to update indicators
+      await fetchConversation()
+      await fetchMessages(50)
+    } catch (error: any) {
+      console.error('Failed to block conversation:', error)
+      showToast.error(error.response?.data?.message || 'Failed to block conversation')
     }
   }
 
@@ -314,6 +378,24 @@ function Chat() {
               {getUserName(conversation.client)} ↔ {getUserName(conversation.provider)}
             </p>
           </div>
+          {unreviewedFraudCount > 0 && (
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={handleMarkAsReviewed}
+                className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors flex items-center gap-2"
+              >
+                <FontAwesomeIcon icon={faCheckCircle} />
+                Mark {unreviewedFraudCount} fraud as reviewed
+              </button>
+              <button
+                onClick={handleBlockConversation}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center gap-2"
+              >
+                <FontAwesomeIcon icon={faBan} />
+                Block Conversation
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -348,16 +430,48 @@ function Chat() {
                     className={`flex ${isClient ? 'justify-start' : isProvider ? 'justify-end' : 'justify-center'}`}
                   >
                     <div
-                      className={`max-w-[70%] rounded-lg p-3 ${
-                        isClient
+                      className={`max-w-[70%] rounded-lg p-3 relative ${
+                        isAdmin
+                          ? 'bg-gradient-to-r from-purple-600/30 to-blue-600/30 text-white border-2 border-purple-500/50 shadow-lg'
+                          : isClient
                           ? 'bg-primary/20 text-white'
                           : isProvider
                           ? 'bg-white/10 text-white'
                           : 'bg-yellow-600/20 text-white border border-yellow-500/30'
+                      } ${
+                        !isAdmin && message.isFraud && !message.fraud?.reviewedAt
+                          ? 'border-l-4 border-l-yellow-500'
+                          : ''
+                      } ${
+                        !isAdmin && message.isFraud && message.fraud?.confidence === 'high'
+                          ? 'border-r-4 border-r-red-500'
+                          : ''
                       }`}
                     >
-                      <div className="text-xs text-neutral-300 mb-1">
-                        {isAdmin ? '👤 Admin' : getUserName(message.sender)}
+                      {/* Indicators for messages requiring review and blocked messages */}
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className={`text-xs flex-1 ${isAdmin ? 'text-purple-200 font-semibold' : 'text-neutral-300'}`}>
+                          {isAdmin ? (
+                            <span className="flex items-center gap-1">
+                              <span className="text-base">👤</span>
+                              <span>Admin</span>
+                            </span>
+                          ) : (
+                            getUserName(message.sender)
+                          )}
+                        </div>
+                        {!isAdmin && message.isFraud && !message.fraud?.reviewedAt && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-500/20 rounded text-yellow-400 text-xs">
+                            <FontAwesomeIcon icon={faExclamationTriangle} className="text-xs" />
+                            <span>Needs Review</span>
+                          </div>
+                        )}
+                        {!isAdmin && message.isFraud && message.fraud?.confidence === 'high' && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 bg-red-500/20 rounded text-red-400 text-xs">
+                            <FontAwesomeIcon icon={faBan} className="text-xs" />
+                            <span>Blocked</span>
+                          </div>
+                        )}
                       </div>
                       {message.message && (
                         <div className="whitespace-pre-wrap mb-2">{message.message}</div>
@@ -766,6 +880,32 @@ function Chat() {
           </div>
         </div>
       )}
+
+      {/* Block Conversation Confirmation Dialog */}
+      <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Block Conversation</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to block this conversation? This will mark all unreviewed fraud messages as reviewed and block the conversation. Users will not be able to send messages until the conversation is reactivated.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBlockDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmBlockConversation}
+            >
+              Block Conversation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

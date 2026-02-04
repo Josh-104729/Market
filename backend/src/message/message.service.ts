@@ -80,7 +80,10 @@ export class MessageService {
     this.chatGateway.server.to(`conversation:${conversationId}`).emit('new_message', messageWithSender);
 
     // Evaluate fraud AFTER message has been delivered (post-send check requirement)
-    const fraudResult = await this.fraudService.evaluateMessage(conversationId, savedMessage);
+    // Skip fraud detection for admin messages
+    const fraudResult = isAdmin
+      ? { isFraud: false, conversationBlocked: Boolean(conversation.isBlocked) }
+      : await this.fraudService.evaluateMessage(conversationId, savedMessage);
 
     const recipients = [conversation.clientId, conversation.providerId].filter((id) => id && id !== userId);
     const allParticipants = Array.from(new Set([conversation.clientId, conversation.providerId].filter(Boolean))) as string[];
@@ -246,6 +249,7 @@ export class MessageService {
               category: fd.category || null,
               reason: fd.reason || null,
               confidence: fd.confidence || null,
+              reviewedAt: isAdmin ? (fd.reviewedAt ? fd.reviewedAt.toISOString() : null) : undefined,
             }
           : undefined,
         contentHiddenForViewer: shouldHideContent,

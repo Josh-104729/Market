@@ -145,6 +145,11 @@ export default function Fraud() {
                         {row.conversation.isBlocked ? "Blocked" : "Unblocked"}
                       </Badge>
                       <Badge variant="outline">{row.fraudCount} fraud(s)</Badge>
+                      {row.unreviewedCount > 0 && (
+                        <Badge variant="default" className="bg-yellow-500 hover:bg-yellow-600">
+                          {row.unreviewedCount} needs review
+                        </Badge>
+                      )}
                       <Badge variant="outline">latest: {formatDate(row.latestFraudAt)}</Badge>
                     </div>
                   </div>

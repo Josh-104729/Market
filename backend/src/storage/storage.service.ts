@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as sharp from 'sharp';
+const sharp = require('sharp');
 
 const B2 = require('backblaze-b2');
 

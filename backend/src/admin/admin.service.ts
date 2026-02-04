@@ -22,6 +22,7 @@ import { MilestoneStatus } from '../entities/milestone.entity';
 import { WalletService } from '../wallet/wallet.service';
 import { PolygonWalletService } from '../polygon-wallet/polygon-wallet.service';
 import { ChatGateway } from '../chat/chat.gateway';
+import { FraudService } from '../fraud/fraud.service';
 import { Conversation } from '../entities/conversation.entity';
 import { Message } from '../entities/message.entity';
 import { LoginHistory } from '../entities/login-history.entity';
@@ -96,6 +97,7 @@ export class AdminService {
     private polygonWalletService: PolygonWalletService,
     @Inject(forwardRef(() => ChatGateway))
     private chatGateway: ChatGateway,
+    private fraudService: FraudService,
   ) {}
 
   async signIn(dto: AdminSignInDto, ipAddress?: string, userAgent?: string) {
@@ -615,6 +617,13 @@ export class AdminService {
       }
     });
 
+    // Get unreviewed fraud counts for each conversation
+    const fraudConversations = await this.fraudService.listFraudConversations({ blocked: 'all' });
+    const unreviewedCountMap = new Map<string, number>();
+    fraudConversations.forEach((fc) => {
+      unreviewedCountMap.set(fc.conversation.id, fc.unreviewedCount || 0);
+    });
+
     // Format the data with message counts
     const formattedData = conversations.map((conv) => {
       const messageCount = countMap.get(conv.id) || 0;
@@ -664,6 +673,7 @@ export class AdminService {
         } : null,
         createdAt: conv.createdAt,
         updatedAt: conv.updatedAt,
+        unreviewedFraudCount: unreviewedCountMap.get(conv.id) || 0,
       };
     });
 

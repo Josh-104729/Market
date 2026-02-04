@@ -1639,6 +1639,9 @@ function Chat() {
                     if (item.type === 'message') {
                       const message = item.data as Message
                       const isOwn = message.senderId === user?.id
+                      const isAdmin = conversation && 
+                        message.senderId !== conversation.clientId && 
+                        message.senderId !== conversation.providerId
                       const hideContentForViewer =
                         Boolean((message as any).contentHiddenForViewer) ||
                         ((!isOwn && user?.role !== 'admin') && Boolean((message as any).isFraud || (message as any).fraud))
@@ -1659,7 +1662,7 @@ function Chat() {
                           <div
                             className={[
                               `flex items-end gap-2 mb-1 w-full rounded-lg px-1 py-0.5 transition-colors duration-150 ease-out`,
-                              isOwn ? 'flex-row-reverse' : 'flex-row',
+                              isAdmin ? 'justify-center' : (isOwn ? 'flex-row-reverse' : 'flex-row'),
                               isSelected ? 'bg-primary/5' : 'bg-transparent',
                               selectionMode ? 'select-none' : '',
                             ].join(' ')}
@@ -1714,7 +1717,7 @@ function Chat() {
                             </div>
 
                             {/* Avatar for incoming messages */}
-                            {!isOwn && (
+                            {!isOwn && !isAdmin && (
                               <Avatar className="h-8 w-8 flex-shrink-0 mb-1">
                                 <AvatarImage
                                   src={sender?.avatar || undefined}
@@ -1733,14 +1736,21 @@ function Chat() {
                               </Avatar>
                             )}
 
-                            <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[65%] ${isOwn ? 'mr-0' : 'ml-0'}`}>
+                            <div className={`flex flex-col ${isAdmin ? 'items-center' : (isOwn ? 'items-end' : 'items-start')} ${isAdmin ? 'max-w-[80%]' : 'max-w-[65%]'} ${isOwn ? 'mr-0' : 'ml-0'}`}>
                               {/* Sender name for incoming messages */}
                               {!isOwn && sender && (
                                 <span className="text-muted-foreground text-xs px-2 mb-0.5">
-                                  {sender.userName 
-                                    || (sender.firstName && sender.lastName
-                                      ? `${sender.firstName} ${sender.lastName}`
-                                      : 'User')}
+                                  {isAdmin ? (
+                                    <span className="flex items-center gap-1">
+                                      <span>👤</span>
+                                      <span>Admin</span>
+                                    </span>
+                                  ) : (
+                                    sender.userName 
+                                      || (sender.firstName && sender.lastName
+                                        ? `${sender.firstName} ${sender.lastName}`
+                                        : 'User')
+                                  )}
                                 </span>
                               )}
 

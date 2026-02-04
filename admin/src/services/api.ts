@@ -320,6 +320,16 @@ export const adminApi = {
     return response.data;
   },
 
+  markFraudAsReviewed: async (conversationId: string) => {
+    const response = await api.post(`/admin/fraud/conversations/${conversationId}/mark-reviewed`, {});
+    return response.data;
+  },
+
+  blockConversation: async (conversationId: string) => {
+    const response = await api.post(`/admin/fraud/conversations/${conversationId}/block`, {});
+    return response.data;
+  },
+
   updateUserStatus: async (userId: string, status: 'active' | 'blocked') => {
     const response = await api.post(`/admin/users/${userId}/status`, { status });
     return response.data;
@@ -709,6 +719,7 @@ export interface FraudConversationRow {
   frauds: FraudDetection[]
   reactivationRequests: ReactivationRequest[]
   pendingRequestCount: number
+  unreviewedCount: number
 }
 
 export interface Message {
@@ -723,6 +734,7 @@ export interface Message {
     category?: string | null
     reason?: string | null
     confidence?: 'low' | 'medium' | 'high' | null
+    reviewedAt?: string | null
   }
   sender?: {
     id: string

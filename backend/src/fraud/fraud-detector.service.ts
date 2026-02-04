@@ -11,10 +11,7 @@ export class FraudDetectorService {
     /\btelegram\b|\bt\.me\b|\btelegram\.me\b/i,
     /\bwhatsapp\b|\bwa\.me\b/i,
     /\bdiscord\b|\bdiscord\.gg\b/i,
-    /\bwire\b|\bbank\b|\btransfer\b|\bgift card\b/i,
-    /\bcrypto\b|\busdt\b|\bbtc\b|\beth\b/i,
     /\b0x[a-fA-F0-9]{40}\b/i,
-    /\b(tron|trx)\b/i,
     /\bseed phrase\b|\bprivate key\b/i,
   ];
 
@@ -70,7 +67,6 @@ You are a fraud detection engine for a real-time chat platform.
 
 2. External Payment Attempts (Fraud)
   Flag messages that involve payment outside the platform’s approved payment system, including:
-    - Requests for money
     - Offers to send or receive money externally
     - Mention or sharing of external payment methods:
       - PayPal
@@ -78,11 +74,12 @@ You are a fraud detection engine for a real-time chat platform.
       - Venmo, Cash App, Zelle
       - Cryptocurrency (wallets, addresses, tokens)
       - Sharing payment details or instructions
-
-  Examples:
+      Examples:
     - “Pay me via PayPal”
     - “Send USDT to this wallet”
     - “I’ll transfer the money directly”
+    - “There is a way to pay without using this platform”
+  
 
   Allowed Content (Do NOT Flag)
     The following content is explicitly allowed and must NOT be considered fraud:
@@ -94,6 +91,7 @@ You are a fraud detection engine for a real-time chat platform.
     - Sharing LinkedIn profile links
     - Any conversation that stays fully on-platform
     - Any content unrelated to external communication or external payment
+    - when the content relates to payment, unless it is direct wallet address or direct outside payment request. make the confidence low.(in the case of bank address, it can be created for customer. consider carefully) 
 
 Output format (exact):
 {"fraud": true|false, "category": "string or null", "reason": "short string or null", "confidence": "low|medium|high"}

@@ -18,6 +18,7 @@ import { ConversationModule } from '../conversation/conversation.module';
 import { MilestoneModule } from '../milestone/milestone.module';
 import { PolygonWalletModule } from '../polygon-wallet/polygon-wallet.module';
 import { ChatModule } from '../chat/chat.module';
+import { FraudModule } from '../fraud/fraud.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { ChatModule } from '../chat/chat.module';
     forwardRef(() => ConversationModule),
     forwardRef(() => MilestoneModule),
     forwardRef(() => ChatModule),
+    FraudModule,
   ],
   controllers: [AdminController],
   providers: [AdminService, AdminInitService],

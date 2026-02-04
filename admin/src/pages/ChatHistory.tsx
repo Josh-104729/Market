@@ -11,6 +11,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -25,7 +26,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { MessageSquare, Search, Mail, Calendar, User, Eye, Ban } from "lucide-react"
+import { MessageSquare, Search, Mail, Calendar, User, Eye, Ban, CheckCircle2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
 function formatDate(d?: string | null) {
@@ -72,6 +73,7 @@ interface ChatHistoryItem {
   blockedAt?: string
   blockedReason?: string
   messageCount: number
+  unreviewedFraudCount?: number
   lastMessage?: {
     id: string
     message: string
@@ -102,6 +104,8 @@ export default function ChatHistory() {
   const [messages, setMessages] = useState<any[]>([])
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [messagesDialogOpen, setMessagesDialogOpen] = useState(false)
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false)
+  const [conversationToBlock, setConversationToBlock] = useState<string | null>(null)
 
   useEffect(() => {
     setCurrentPage(1) // Reset to first page when filters change
@@ -158,6 +162,38 @@ export default function ChatHistory() {
 
   const handleViewChat = (conversationId: string) => {
     navigate(`/chat/${conversationId}`)
+  }
+
+  const handleMarkAsReviewed = async (conversationId: string) => {
+    try {
+      await adminApi.markFraudAsReviewed(conversationId)
+      showToast.success('Fraud marked as reviewed')
+      // Refresh the data to update the badge
+      await fetchChatHistory()
+    } catch (error: any) {
+      console.error('Failed to mark fraud as reviewed:', error)
+      showToast.error(error.response?.data?.message || 'Failed to mark as reviewed')
+    }
+  }
+
+  const handleBlockConversation = (conversationId: string) => {
+    setConversationToBlock(conversationId)
+    setBlockDialogOpen(true)
+  }
+
+  const confirmBlockConversation = async () => {
+    if (!conversationToBlock) return
+    try {
+      await adminApi.blockConversation(conversationToBlock)
+      showToast.success('Conversation blocked and fraud marked as reviewed')
+      setBlockDialogOpen(false)
+      setConversationToBlock(null)
+      // Refresh the data to update the badge
+      await fetchChatHistory()
+    } catch (error: any) {
+      console.error('Failed to block conversation:', error)
+      showToast.error(error.response?.data?.message || 'Failed to block conversation')
+    }
   }
 
   const { pages } = (() => {
@@ -309,14 +345,41 @@ export default function ChatHistory() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {conv.isBlocked ? (
-                          <Badge variant="destructive" className="gap-1">
-                            <Ban className="h-3 w-3" />
-                            Blocked
-                          </Badge>
-                        ) : (
-                          <Badge variant="default">Active</Badge>
-                        )}
+                        <div className="flex flex-col gap-1">
+                          {conv.isBlocked ? (
+                            <Badge variant="destructive" className="gap-1">
+                              <Ban className="h-3 w-3" />
+                              Blocked
+                            </Badge>
+                          ) : (
+                            <Badge variant="default">Active</Badge>
+                          )}
+                          {conv.unreviewedFraudCount && conv.unreviewedFraudCount > 0 && (
+                            <div className="flex items-center gap-1">
+                              <Badge variant="default" className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                                {conv.unreviewedFraudCount} needs review
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0"
+                                onClick={() => handleMarkAsReviewed(conv.id)}
+                                title="Mark as reviewed"
+                              >
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0"
+                                onClick={() => handleBlockConversation(conv.id)}
+                                title="Block conversation and mark as reviewed"
+                              >
+                                <Ban className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="text-sm text-muted-foreground flex items-center gap-1">
@@ -411,44 +474,92 @@ export default function ChatHistory() {
               </div>
             ) : (
               <div className="space-y-4">
-                {messages.map((message, index) => (
-                  <div key={message.id}>
-                    <div className="rounded-lg border bg-muted/30 p-4">
-                      <div className="flex items-start justify-between gap-4 mb-2">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{getUserName(message.sender)}</span>
-                          {message.sender?.email && (
-                            <span className="text-xs text-muted-foreground">
-                              ({message.sender.email})
+                {messages.map((message, index) => {
+                  const isAdmin = selectedConversation && 
+                    message.senderId !== selectedConversation.clientId && 
+                    message.senderId !== selectedConversation.providerId
+                  
+                  return (
+                    <div key={message.id}>
+                      <div className={`rounded-lg border p-4 ${
+                        isAdmin 
+                          ? 'bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-purple-300 dark:border-purple-700 shadow-md' 
+                          : 'bg-muted/30'
+                      }`}>
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <div className="flex items-center gap-2">
+                            <User className={`h-4 w-4 ${isAdmin ? 'text-purple-600 dark:text-purple-400' : 'text-muted-foreground'}`} />
+                            <span className={`font-medium ${isAdmin ? 'text-purple-700 dark:text-purple-300' : ''}`}>
+                              {isAdmin ? (
+                                <span className="flex items-center gap-1">
+                                  <span>👤</span>
+                                  <span>Admin</span>
+                                </span>
+                              ) : (
+                                getUserName(message.sender)
+                              )}
                             </span>
-                          )}
+                            {!isAdmin && message.sender?.email && (
+                              <span className="text-xs text-muted-foreground">
+                                ({message.sender.email})
+                              </span>
+                            )}
+                          </div>
+                          <div className={`text-xs flex items-center gap-1 ${isAdmin ? 'text-purple-600 dark:text-purple-400' : 'text-muted-foreground'}`}>
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(message.createdAt)}
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {formatDate(message.createdAt)}
+                        <div className={`text-sm whitespace-pre-wrap break-words ${isAdmin ? 'text-purple-900 dark:text-purple-100' : ''}`}>
+                          {message.message}
                         </div>
+                        {message.attachmentFiles && message.attachmentFiles.length > 0 && (
+                          <div className={`mt-2 text-xs ${isAdmin ? 'text-purple-600 dark:text-purple-400' : 'text-muted-foreground'}`}>
+                            Attachments: {message.attachmentFiles.length}
+                          </div>
+                        )}
+                        {message.readAt && (
+                          <div className={`mt-2 text-xs ${isAdmin ? 'text-purple-600 dark:text-purple-400' : 'text-muted-foreground'}`}>
+                            Read at: {formatDate(message.readAt)}
+                          </div>
+                        )}
                       </div>
-                      <div className="text-sm whitespace-pre-wrap break-words">
-                        {message.message}
-                      </div>
-                      {message.attachmentFiles && message.attachmentFiles.length > 0 && (
-                        <div className="mt-2 text-xs text-muted-foreground">
-                          Attachments: {message.attachmentFiles.length}
-                        </div>
-                      )}
-                      {message.readAt && (
-                        <div className="mt-2 text-xs text-muted-foreground">
-                          Read at: {formatDate(message.readAt)}
-                        </div>
-                      )}
+                      {index < messages.length - 1 && <Separator className="my-2" />}
                     </div>
-                    {index < messages.length - 1 && <Separator className="my-2" />}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Block Conversation Confirmation Dialog */}
+      <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Block Conversation</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to block this conversation? This will mark all unreviewed fraud messages as reviewed and block the conversation. Users will not be able to send messages until the conversation is reactivated.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setBlockDialogOpen(false)
+                setConversationToBlock(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmBlockConversation}
+            >
+              Block Conversation
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -28,6 +28,18 @@ export class FraudAdminController {
   async reject(@Param('id') id: string, @Request() req, @Body() body: { note?: string }) {
     return this.fraudService.rejectReactivationRequest(id, req.user.id, body?.note);
   }
+
+  @Post('conversations/:id/mark-reviewed')
+  async markReviewed(@Param('id') conversationId: string, @Request() req) {
+    await this.fraudService.markFraudAsReviewed(conversationId, req.user.id);
+    return { success: true };
+  }
+
+  @Post('conversations/:id/block')
+  async blockConversation(@Param('id') conversationId: string, @Request() req) {
+    await this.fraudService.blockConversationAndMarkReviewed(conversationId, req.user.id);
+    return { success: true };
+  }
 }
 
 
