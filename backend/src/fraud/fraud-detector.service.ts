@@ -55,6 +55,7 @@ You are a fraud detection engine for a real-time chat platform.
     - External messaging apps or platforms (e.g., WhatsApp, Telegram, WeChat, Signal, Discord)
     - Requests to continue the conversation off-platform(e.g., “Let’s talk elsewhere”, “Contact me directly”)
     - Social media links or handles EXCEPT for LinkedIn
+    - If there is a "@" symbol that is used in telegram id, gmail, and etc, make it fraud but make confidence low.
 
   Explicit Exception (Allowed)
   The following must NOT be flagged as fraud:
@@ -212,6 +213,118 @@ Output format (exact):
     const d = await this.openaiClassify(normalized);
     d.signals = signals;
     return d;
+  }
+
+  /**
+   * Analyze an image for fraud detection using OpenAI Vision API
+   * @param imageUrl - URL of the image to analyze
+   * @returns FraudDecision indicating if the image contains fraudulent content
+   */
+  async decideImage(imageUrl: string): Promise<FraudDecision> {
+    const apiKey = process.env.OPENAI_API_KEY;
+    const model = process.env.OPENAI_MODEL_VISION || 'gpt-4o';
+    const conservative = (process.env.CONSERVATIVE_IF_UNCERTAIN || 'true').toLowerCase() === 'true';
+
+    if (!apiKey) {
+      return {
+        fraud: false,
+        category: null,
+        reason: null,
+        confidence: 'low',
+        signals: ['openai_key_missing'],
+      };
+    }
+
+    try {
+      // Build system prompt for image analysis
+      const systemPrompt = `
+You are a fraud detection engine for a real-time chat platform analyzing images.
+
+Task: Analyze images to determine if they contain fraudulent behavior according to platform rules.
+
+A image is considered fraudulent ONLY IF it contains:
+1. External Communication Attempts:
+   - Phone numbers (calls or SMS)
+   - Email addresses
+   - External messaging app QR codes or links (WhatsApp, Telegram, WeChat, Signal, Discord)
+   - Social media links or handles EXCEPT LinkedIn
+   - Requests to continue conversation off-platform
+
+2. External Payment Attempts:
+   - Payment QR codes (PayPal, Venmo, Cash App, Zelle, etc.)
+   - Cryptocurrency wallet addresses or QR codes
+   - Bank account details
+   - Instructions for external payment
+
+Allowed Content (Do NOT Flag):
+   - Personal identification documents (Driver's License, SSN, etc.)
+   - LinkedIn profile information
+   - On-platform content
+   - General images unrelated to external communication or payment
+
+Output format (exact JSON):
+{"fraud": true|false, "category": "string or null", "reason": "short string or null", "confidence": "low|medium|high"}
+`.trim();
+
+      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Analyze this image for fraudulent content according to the rules. Look for external communication attempts, payment methods, QR codes, phone numbers, email addresses, or any off-platform redirection.',
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: imageUrl,
+                  },
+                },
+              ],
+            },
+          ],
+          max_tokens: 500,
+        }),
+      });
+
+      if (!resp.ok) {
+        const body = await resp.text().catch(() => '');
+        this.logger.warn(`OpenAI image classify failed: ${resp.status} ${resp.statusText} ${body}`);
+        return conservative
+          ? { fraud: true, category: 'uncertain', reason: 'Unable to validate image safely.', confidence: 'low', signals: ['openai_http_error'] }
+          : { fraud: false, category: null, reason: null, confidence: 'low', signals: ['openai_http_error'] };
+      }
+
+      const data: any = await resp.json();
+      const text = (data?.choices?.[0]?.message?.content || '').trim();
+      const obj = JSON.parse(text);
+
+      const confidence = obj?.confidence === 'low' || obj?.confidence === 'medium' || obj?.confidence === 'high'
+        ? obj.confidence
+        : (conservative ? 'low' : 'medium');
+
+      return {
+        fraud: Boolean(obj?.fraud),
+        category: obj?.category ?? null,
+        reason: obj?.reason ?? null,
+        confidence,
+        signals: ['image_analysis'],
+      };
+    } catch (e: any) {
+      this.logger.warn(`OpenAI image classify exception: ${e?.message || e}`);
+      return (process.env.CONSERVATIVE_IF_UNCERTAIN || 'true').toLowerCase() === 'true'
+        ? { fraud: true, category: 'uncertain', reason: 'Unable to validate image safely.', confidence: 'low', signals: ['image_parse_failed'] }
+        : { fraud: false, category: null, reason: null, confidence: 'low', signals: ['image_parse_failed'] };
+    }
   }
 }
 

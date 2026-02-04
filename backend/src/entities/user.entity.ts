@@ -103,5 +103,8 @@ export class User extends BaseEntity {
       auth: string;
     };
   } | null;
+
+  @Column({ name: 'terms_accepted_at', type: 'datetime', nullable: true })
+  termsAcceptedAt?: Date | null;
 }
 

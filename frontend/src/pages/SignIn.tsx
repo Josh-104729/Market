@@ -81,6 +81,7 @@ function SignIn() {
       } else {
         dispatch(setCredentials({ user: response.user, accessToken: response.accessToken }));
         showToast.success('Welcome back!');
+        // Terms modal will be shown in App.tsx after user is set
         navigate(redirectTo);
       }
     } catch (err: any) {

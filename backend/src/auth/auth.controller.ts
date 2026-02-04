@@ -243,5 +243,11 @@ export class AuthController {
     const limitNum = limit ? parseInt(limit, 10) : 50;
     return this.authService.getLoginHistory(req.user.id, pageNum, limitNum);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('accept-terms')
+  async acceptTerms(@Request() req) {
+    return this.authService.acceptTerms(req.user.id);
+  }
 }
 

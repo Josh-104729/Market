@@ -8,6 +8,8 @@ import { ChatGateway } from '../chat/chat.gateway';
 import { NotificationService } from '../notification/notification.service';
 import { NotificationType } from '../entities/notification.entity';
 import { FraudService } from '../fraud/fraud.service';
+import { StorageService } from '../storage/storage.service';
+import { FraudDetectorService } from '../fraud/fraud-detector.service';
 
 @Injectable()
 export class MessageService {
@@ -21,12 +23,74 @@ export class MessageService {
     @Inject(forwardRef(() => NotificationService))
     private notificationService: NotificationService,
     private fraudService: FraudService,
+    private storageService: StorageService,
+    private fraudDetector: FraudDetectorService,
   ) {}
+
 
   private readonly publicUserFields = ['id', 'firstName', 'lastName', 'userName', 'avatar'];
 
   private publicUserSelect(alias: string): string[] {
     return this.publicUserFields.map((field) => `${alias}.${field}`);
+  }
+
+  /**
+   * Check if a file URL is an image based on its extension
+   */
+  private isImageUrl(url: string): boolean {
+    if (!url) return false;
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
+    const lowerUrl = url.toLowerCase();
+    return imageExtensions.some(ext => lowerUrl.includes(ext));
+  }
+
+  /**
+   * Check images for fraud and delete fraudulent ones
+   * Returns filtered list of valid image URLs and fraud detection results
+   */
+  private async checkImagesForFraud(imageUrls: string[]): Promise<{
+    validUrls: string[];
+    fraudDetected: boolean;
+    fraudResults: Array<{ url: string; decision: any }>;
+  }> {
+    const validUrls: string[] = [];
+    const fraudResults: Array<{ url: string; decision: any }> = [];
+    let fraudDetected = false;
+
+    for (const url of imageUrls) {
+      if (!this.isImageUrl(url)) {
+        // Not an image, keep it
+        validUrls.push(url);
+        continue;
+      }
+
+      try {
+        // Check image for fraud
+        const decision = await this.fraudDetector.decideImage(url);
+        fraudResults.push({ url, decision });
+
+        if (decision.fraud) {
+          fraudDetected = true;
+          // Delete fraudulent image from cloud storage
+          try {
+            await this.storageService.deleteFile(url);
+          } catch (deleteError) {
+            // Log but don't fail - image might already be deleted or URL might be invalid
+            console.error(`Failed to delete fraudulent image: ${url}`, deleteError);
+          }
+        } else {
+          // Image is valid, keep it
+          validUrls.push(url);
+        }
+      } catch (error) {
+        // If fraud check fails, be conservative and keep the image
+        // (or you could delete it - depends on your policy)
+        console.error(`Failed to check image for fraud: ${url}`, error);
+        validUrls.push(url);
+      }
+    }
+
+    return { validUrls, fraudDetected, fraudResults };
   }
 
   async create(conversationId: string, userId: string, createMessageDto: CreateMessageDto, isAdmin: boolean = false): Promise<Message> {
@@ -49,14 +113,109 @@ export class MessageService {
       throw new ForbiddenException('This conversation is blocked due to fraud detection. You can request reactivation.');
     }
 
+    // Check images for fraud before saving message (skip for admin)
+    // Images are uploaded first, then checked here before message is saved
+    let finalAttachmentFiles = createMessageDto.attachmentFiles || [];
+    let imageFraudDetected = false;
+    let imageFraudResults: Array<{ url: string; decision: any }> = [];
+
+    if (!isAdmin && createMessageDto.attachmentFiles && createMessageDto.attachmentFiles.length > 0) {
+      const imageCheckResult = await this.checkImagesForFraud(createMessageDto.attachmentFiles);
+      finalAttachmentFiles = imageCheckResult.validUrls;
+      imageFraudDetected = imageCheckResult.fraudDetected;
+      imageFraudResults = imageCheckResult.fraudResults;
+
+      // If all images were fraudulent and removed, and there's no text message, handle blocking
+      if (imageFraudDetected && finalAttachmentFiles.length === 0 && (!createMessageDto.message || !createMessageDto.message.trim())) {
+        // All attachments were fraudulent images and no text - block the message
+        // Find the highest confidence fraud result
+        const highestConfidenceFraud = imageFraudResults
+          .filter(r => r.decision.fraud)
+          .sort((a, b) => {
+            const confOrder = { high: 3, medium: 2, low: 1 };
+            return (confOrder[b.decision.confidence as keyof typeof confOrder] || 0) - 
+                   (confOrder[a.decision.confidence as keyof typeof confOrder] || 0);
+          })[0];
+
+        if (highestConfidenceFraud) {
+          // Create a temporary message to evaluate fraud (will be deleted if high confidence)
+          const tempMessage = this.messageRepository.create({
+            conversationId,
+            senderId: userId,
+            message: '[Image blocked - fraudulent content detected]',
+            attachmentFiles: [],
+          });
+          const savedTempMessage = await this.messageRepository.save(tempMessage);
+
+          // Create fraud record for the blocked image message
+          await this.fraudService.createFraudRecord(
+            conversationId,
+            savedTempMessage.id,
+            userId,
+            '[Image blocked - fraudulent content detected]',
+            highestConfidenceFraud.decision.category || 'fraudulent_image',
+            highestConfidenceFraud.decision.reason || 'Fraudulent image detected and blocked',
+            highestConfidenceFraud.decision.confidence || 'medium',
+          );
+
+          // If high confidence, delete the message and block conversation
+          if (highestConfidenceFraud.decision.confidence === 'high') {
+            await this.messageRepository.remove(savedTempMessage);
+            // Block conversation if threshold reached
+            const fraudCount = await this.fraudService.getFraudCount(conversationId);
+            if (fraudCount >= 5 && !conversation.isBlocked) {
+              await this.conversationRepository.update(conversationId, {
+                isBlocked: true,
+                blockedAt: new Date(),
+                blockedReason: 'fraud_threshold_reached',
+                updatedAt: new Date(),
+              } as any);
+            }
+            throw new ForbiddenException('Message blocked: fraudulent image detected');
+          }
+
+          // For low/medium confidence, keep the message but mark for review
+          // Load message with sender info for WebSocket emission
+          const messageWithSender = await this.findOne(savedTempMessage.id);
+          const participantIds = Array.from(
+            new Set([conversation.clientId, conversation.providerId, userId].filter(Boolean)),
+          ) as string[];
+          
+          for (const pid of participantIds) {
+            this.chatGateway.server.to(`user:${pid}`).emit('new_message', messageWithSender);
+          }
+          this.chatGateway.server.to(`conversation:${conversationId}`).emit('new_message', messageWithSender);
+
+          return savedTempMessage;
+        }
+      }
+    }
+
     const message = this.messageRepository.create({
       conversationId,
       senderId: userId,
       message: createMessageDto.message,
-      attachmentFiles: createMessageDto.attachmentFiles,
+      attachmentFiles: finalAttachmentFiles,
     });
 
     const savedMessage = await this.messageRepository.save(message);
+
+    // If image fraud was detected (but message wasn't fully blocked), create fraud records
+    if (!isAdmin && imageFraudDetected && imageFraudResults.length > 0) {
+      for (const result of imageFraudResults) {
+        if (result.decision.fraud) {
+          await this.fraudService.createFraudRecord(
+            conversationId,
+            savedMessage.id,
+            userId,
+            `[Image blocked: ${result.url}]`,
+            result.decision.category || 'fraudulent_image',
+            result.decision.reason || 'Fraudulent image detected and blocked',
+            result.decision.confidence || 'medium',
+          );
+        }
+      }
+    }
 
     // Update conversation's updatedAt
     await this.conversationRepository.update(conversationId, { updatedAt: new Date() });

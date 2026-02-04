@@ -1,36 +1,67 @@
-import { useEffect } from "react"
-import { useLocation } from "react-router-dom"
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { authApi } from "../services/api"
+import { useAppDispatch } from "../store/hooks"
+import { updateUser } from "../store/slices/authSlice"
+import { showToast } from "../utils/toast"
 
-function scrollToHash(hash: string) {
-  const id = hash.replace("#", "").trim()
-  if (!id) return
-  const el = document.getElementById(id)
-  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
+interface TermsModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onAccept?: () => void
 }
 
-export default function TermsOfService() {
-  const location = useLocation()
-
-  useEffect(() => {
-    if (location.hash) scrollToHash(location.hash)
-  }, [location.hash])
+export function TermsModal({ open, onOpenChange, onAccept }: TermsModalProps) {
+  const navigate = useNavigate()
+  const dispatch = useAppDispatch()
+  const [accepting, setAccepting] = useState(false)
 
   const effectiveDate = "2025-12-22"
   const lastUpdated = "2026-02-04"
 
+  const handleAccept = async () => {
+    try {
+      setAccepting(true)
+      await authApi.acceptTerms()
+      dispatch(updateUser({ termsAcceptedAt: new Date().toISOString() }))
+      showToast.success("Terms of Service accepted")
+      onOpenChange(false)
+      if (onAccept) {
+        onAccept()
+      }
+    } catch (error: any) {
+      console.error("Failed to accept terms:", error)
+      showToast.error(error.response?.data?.message || "Failed to accept terms")
+    } finally {
+      setAccepting(false)
+    }
+  }
+
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-10">
-      <Card className="border-border">
-        <CardHeader>
-          <CardTitle className="text-2xl">Terms of Service</CardTitle>
-          <div className="text-sm text-muted-foreground">
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent 
+        className="max-w-4xl max-h-[90vh] flex flex-col [&>button]:hidden" 
+        onInteractOutside={(e) => e.preventDefault()} 
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle className="text-2xl">Terms of Service</DialogTitle>
+          <DialogDescription>
             Effective: {effectiveDate} • Last updated: {lastUpdated}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-8">
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="flex-1 overflow-y-auto pr-2 space-y-8">
           <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm">
             These Terms govern your use of OmniMart (the "Service"). Our goal is to make OmniMart a safe, trusted, and easy‑to‑use place for everyone. By accessing or using the Service, you agree to these Terms. If you do not agree, please do not use the Service.
           </div>
@@ -172,10 +203,23 @@ export default function TermsOfService() {
               <p>The Service is provided "as is" and "as available", without warranties of any kind, to the maximum extent permitted by law. OmniMart does not guarantee uninterrupted availability, error‑free operation, or suitability for a particular purpose.</p>
             </div>
           </section>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+
+        <DialogFooter className="flex-shrink-0 pt-4 border-t">
+          <Button
+            variant="outline"
+            onClick={() => {
+              navigate("/terms")
+            }}
+          >
+            View Full Terms
+          </Button>
+          <Button onClick={handleAccept} disabled={accepting}>
+            {accepting ? "Accepting..." : "I Accept"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
-
 

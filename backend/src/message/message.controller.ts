@@ -75,6 +75,7 @@ export class MessageController {
 
     try {
       // Upload all files to Backblaze B2 in 'chat' folder
+      // Images will be checked for fraud when message is created
       const fileUrls = await this.storageService.uploadFiles(files, 'chat');
       
       return {

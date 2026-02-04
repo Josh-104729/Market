@@ -6,6 +6,7 @@ import { logout, setUser } from "./store/slices/authSlice"
 import { disconnectSocket } from "./services/socket"
 import { showToast } from "./utils/toast"
 import { authApi } from "./services/api"
+import { TermsModal } from "./components/TermsModal"
 import Home from './pages/Home'
 import SignIn from './pages/SignIn'
 import SignUp from './pages/SignUp'
@@ -38,9 +39,11 @@ import Support from "./pages/Support"
 
 function AppContent() {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated)
+  const user = useAppSelector((state) => state.auth.user)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const [isInitializing, setIsInitializing] = useState(true)
+  const [showTermsModal, setShowTermsModal] = useState(false)
 
   // Initialize auth: fetch user from server if token exists
   useEffect(() => {
@@ -82,6 +85,17 @@ function AppContent() {
 
     initializeAuth()
   }, [dispatch, navigate])
+
+  // Show terms modal when user logs in and hasn't accepted terms
+  // Modal stays open until terms are accepted
+  useEffect(() => {
+    if (isAuthenticated && user && !user.termsAcceptedAt) {
+      setShowTermsModal(true)
+    } else if (user?.termsAcceptedAt) {
+      // Close modal only when terms are accepted
+      setShowTermsModal(false)
+    }
+  }, [isAuthenticated, user])
 
   // Global handler for session expiration - works everywhere, including auth pages
   useEffect(() => {
@@ -163,6 +177,12 @@ function AppContent() {
         />
       </Routes>
       <Toaster />
+      {isAuthenticated && (
+        <TermsModal
+          open={showTermsModal}
+          onOpenChange={setShowTermsModal}
+        />
+      )}
     </>
   )
 }

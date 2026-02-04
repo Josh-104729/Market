@@ -17,6 +17,7 @@ export interface User {
   twoFactorEnabled?: boolean;
   twoFactorMethod?: string | null;
   status?: string;
+  termsAcceptedAt?: string | null;
 }
 
 interface AuthState {

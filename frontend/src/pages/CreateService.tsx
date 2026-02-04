@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { useAppSelector } from "../store/hooks"
 import { categoryApi, serviceApi, Category } from "../services/api"
 import { showToast } from "../utils/toast"
+import { TermsModal } from "../components/TermsModal"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -20,10 +21,11 @@ import { ArrowLeft, Loader2, Plus, UploadCloud, X } from "lucide-react"
 
 function CreateService() {
   const navigate = useNavigate()
-  const { isAuthenticated } = useAppSelector((state) => state.auth)
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth)
   const [categories, setCategories] = useState<Category[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [isDraggingImage, setIsDraggingImage] = useState(false)
+  const [showTermsModal, setShowTermsModal] = useState(false)
   const dragCounterRef = useRef(0)
 
   const [formData, setFormData] = useState({
@@ -181,7 +183,13 @@ function CreateService() {
         imageFile,
       )
       showToast.success('Service created successfully. Please wait until your service is approved.')
-      navigate('/services')
+      
+      // Show terms modal after service creation if terms not accepted
+      if (!user?.termsAcceptedAt) {
+        setShowTermsModal(true)
+      } else {
+        navigate('/services')
+      }
     } catch (error: any) {
       console.error('Failed to create service:', error)
       const errorMessage = error.response?.data?.message || 'Failed to create service'
@@ -481,6 +489,15 @@ function CreateService() {
           </form>
         </CardContent>
       </Card>
+      
+      <TermsModal
+        open={showTermsModal}
+        onOpenChange={setShowTermsModal}
+        onAccept={() => {
+          // After accepting terms, navigate to services page
+          navigate('/services')
+        }}
+      />
     </div>
   )
 }

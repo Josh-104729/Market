@@ -110,7 +110,7 @@ export class FraudService {
       return { isFraud: false, conversationBlocked: Boolean(conversation.isBlocked) };
     }
 
-    const fraudCount = await this.fraudRepository.count({ where: { conversationId } });
+    const fraudCount = await this.getFraudCount(conversationId);
     let conversationBlocked = Boolean(conversation.isBlocked);
 
     if (fraudCount >= 5 && !conversation.isBlocked) {
@@ -124,6 +124,38 @@ export class FraudService {
     }
 
     return { isFraud: true, conversationBlocked };
+  }
+
+  /**
+   * Get fraud count for a conversation
+   */
+  async getFraudCount(conversationId: string): Promise<number> {
+    return this.fraudRepository.count({ where: { conversationId } } as any);
+  }
+
+  /**
+   * Create a fraud record for a message
+   */
+  async createFraudRecord(
+    conversationId: string,
+    messageId: string,
+    senderId: string,
+    messageText: string,
+    category?: string,
+    reason?: string,
+    confidence?: 'low' | 'medium' | 'high',
+  ): Promise<FraudDetection> {
+    const fraud = this.fraudRepository.create({
+      conversationId,
+      messageId,
+      senderId,
+      messageText,
+      category: category || undefined,
+      reason: reason || undefined,
+      confidence: confidence || undefined,
+      signals: [],
+    });
+    return this.fraudRepository.save(fraud);
   }
 
   async getFraudsByMessageIds(messageIds: string[]): Promise<Map<string, FraudDetection>> {

@@ -382,6 +382,7 @@ export class AuthService {
         lastName: user.lastName,
         avatar: user.avatar,
         role: user.role,
+        termsAcceptedAt: user.termsAcceptedAt ? user.termsAcceptedAt.toISOString() : null,
       },
     };
   }
@@ -442,6 +443,7 @@ export class AuthService {
           lastName: user.lastName,
           avatar: user.avatar,
           role: user.role,
+          termsAcceptedAt: user.termsAcceptedAt ? user.termsAcceptedAt.toISOString() : null,
         },
       };
     } catch (error) {
@@ -526,6 +528,7 @@ export class AuthService {
       twoFactorEnabled: user.twoFactorEnabled,
       twoFactorMethod: user.twoFactorMethod,
       status: user.status,
+      termsAcceptedAt: user.termsAcceptedAt ? user.termsAcceptedAt.toISOString() : null,
     };
   }
 
@@ -720,6 +723,21 @@ export class AuthService {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async acceptTerms(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    user.termsAcceptedAt = new Date();
+    await this.userRepository.save(user);
+
+    return {
+      message: 'Terms of Service accepted successfully',
+      termsAcceptedAt: user.termsAcceptedAt,
     };
   }
 }

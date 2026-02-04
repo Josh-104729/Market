@@ -244,6 +244,11 @@ export const authApi = {
     return response.data;
   },
 
+  acceptTerms: async () => {
+    const response = await api.post('/auth/accept-terms');
+    return response.data;
+  },
+
   getUserProfile: async (userId: string) => {
     const response = await api.get(`/auth/profile/${userId}`);
     return response.data;
