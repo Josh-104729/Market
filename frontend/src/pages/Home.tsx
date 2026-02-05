@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAppSelector } from "../store/hooks"
-import { categoryApi, Category, Service, serviceApi } from "../services/api"
+import { categoryApi, Category, Service, serviceApi, statisticsApi } from "../services/api"
 import { renderIcon } from "../utils/iconHelper"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Badge } from "@/components/ui/badge"
@@ -33,26 +33,46 @@ function Home() {
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [loadingFeatured, setLoadingFeatured] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [statistics, setStatistics] = useState<{
+    activeUsers: number | null;
+    listings: number | null;
+    verifiedSellers: number | null;
+    satisfaction: number | null;
+  }>({
+    activeUsers: null,
+    listings: null,
+    verifiedSellers: null,
+    satisfaction: null,
+  })
+  const [loadingStats, setLoadingStats] = useState(true)
 
   useEffect(() => {
     let cancelled = false
 
     const fetchData = async () => {
       try {
-        const [cats, featured] = await Promise.all([
+        const [cats, featured, stats] = await Promise.all([
           categoryApi.getAll(),
           serviceApi.getAllPaginated({ page: 1, limit: 6, status: "active" }),
+          statisticsApi.getStatistics().catch((err) => {
+            console.error("Failed to load statistics:", err)
+            return null
+          }),
         ])
 
         if (cancelled) return
         setCategories(cats || [])
         setFeaturedServices(featured.data || [])
+        if (stats) {
+          setStatistics(stats)
+        }
       } catch (error) {
         console.error("Failed to load landing data:", error)
       } finally {
         if (!cancelled) {
           setLoadingCategories(false)
           setLoadingFeatured(false)
+          setLoadingStats(false)
         }
       }
     }
@@ -288,10 +308,38 @@ function Home() {
         <div className="container mx-auto px-4 py-10">
           <div className="grid gap-4 md:grid-cols-4">
             {[
-              { label: "Active users", value: "50K+" },
-              { label: "Listings", value: "10K+" },
-              { label: "Verified sellers", value: "2K+" },
-              { label: "Satisfaction", value: "98%" },
+              { 
+                label: "Active users", 
+                value: loadingStats 
+                  ? "..." 
+                  : statistics.activeUsers !== null 
+                    ? statistics.activeUsers.toLocaleString() 
+                    : "0" 
+              },
+              { 
+                label: "Listings", 
+                value: loadingStats 
+                  ? "..." 
+                  : statistics.listings !== null 
+                    ? statistics.listings.toLocaleString() 
+                    : "0" 
+              },
+              { 
+                label: "Verified sellers", 
+                value: loadingStats 
+                  ? "..." 
+                  : statistics.verifiedSellers !== null 
+                    ? statistics.verifiedSellers.toLocaleString() 
+                    : "0" 
+              },
+              { 
+                label: "Satisfaction", 
+                value: loadingStats 
+                  ? "..." 
+                  : statistics.satisfaction !== null 
+                    ? `${statistics.satisfaction}%` 
+                    : "0%" 
+              },
             ].map((stat) => (
               <Card key={stat.label}>
                 <CardHeader className="py-5">

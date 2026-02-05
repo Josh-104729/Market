@@ -106,6 +106,7 @@ import { LoginHistory } from './entities/login-history.entity';
     HelpModule,
     FraudModule,
     UnblockRequestModule,
+    TypeOrmModule.forFeature([User, Service, Milestone]),
   ],
   controllers: [AppController],
   providers: [AppService],

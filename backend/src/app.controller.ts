@@ -17,5 +17,10 @@ export class AppController {
       timestamp: new Date().toISOString(),
     };
   }
+
+  @Get('statistics')
+  async getStatistics() {
+    return this.appService.getStatistics();
+  }
 }
 

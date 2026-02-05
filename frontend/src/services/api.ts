@@ -1177,6 +1177,18 @@ export interface UnblockRequest {
   updatedAt: string;
 }
 
+export const statisticsApi = {
+  async getStatistics(): Promise<{
+    activeUsers: number;
+    listings: number;
+    verifiedSellers: number;
+    satisfaction: number;
+  }> {
+    const response = await api.get('/statistics');
+    return response.data;
+  },
+};
+
 export const unblockRequestApi = {
   sendEmail: async (email: string, title: string, message: string): Promise<{ message: string }> => {
     // Public endpoint - no auth required
