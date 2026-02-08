@@ -40,12 +40,33 @@ function Layout({ children }: LayoutProps) {
   const socketRef = useRef<Socket | null>(null)
   const [profileHydrated, setProfileHydrated] = useState(false)
 
+  // Redirect unauthenticated users to signin with redirect parameter
+  // This must run before rendering to prevent blank pages
+  useEffect(() => {
+    if (!isAuthenticated) {
+      const currentPath = location.pathname + location.search
+      // Public pages that don't require authentication
+      const publicPages = ['/signin', '/signup', '/verify-email', '/forgot-password', '/reset-password', 
+                           '/privacy', '/terms', '/cookies', '/support', '/']
+      
+      // Check if current path is a public page
+      const isPublicPage = publicPages.some(page => currentPath === page || currentPath.startsWith(page + '/'))
+      
+      // Only redirect if not on a public page
+      if (!isPublicPage) {
+        navigate(`/signin?redirect=${encodeURIComponent(currentPath)}`, { replace: true })
+      }
+    }
+  }, [isAuthenticated, location.pathname, location.search, navigate])
+
   const handleSignOut = () => {
     // Disconnect socket before logout
     disconnectSocket()
     dispatch(logout())
     showToast.info('You have been logged out')
-    navigate('/signin')
+    // Preserve current path as redirect parameter
+    const currentPath = location.pathname + location.search
+    navigate(`/signin?redirect=${encodeURIComponent(currentPath)}`)
   }
 
   // If the websocket reports auth expiry/invalid token, force logout so the app can recover cleanly.
@@ -54,13 +75,15 @@ function Layout({ children }: LayoutProps) {
     const onAuthExpired = () => {
       // Disconnect socket before logout
       disconnectSocket()
+      // Preserve current path as redirect parameter before logout
+      const currentPath = location.pathname + location.search
       dispatch(logout())
       showToast.info('Your session expired. Please sign in again.')
-      navigate('/signin')
+      navigate(`/signin?redirect=${encodeURIComponent(currentPath)}`)
     }
     window.addEventListener('auth-expired', onAuthExpired as any)
     return () => window.removeEventListener('auth-expired', onAuthExpired as any)
-  }, [dispatch, navigate])
+  }, [dispatch, navigate, location.pathname, location.search])
 
   const refreshBalance = useCallback(() => {
     if (isAuthenticated && user) {

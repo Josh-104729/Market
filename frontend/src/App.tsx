@@ -106,14 +106,24 @@ function AppContent() {
       // Disconnect socket
       disconnectSocket()
       
+      // Preserve current path as redirect parameter before logout
+      const currentPath = window.location.pathname + window.location.search
+      
       // Clear auth state
       dispatch(logout())
       
       // Show notification
       showToast.info('Your session has expired. Please sign in again.')
       
-      // Navigate to sign in page
-      navigate('/signin', { replace: true })
+      // Navigate to sign in page with redirect parameter
+      // Only add redirect if not already on an auth page
+      if (!currentPath.startsWith('/signin') && !currentPath.startsWith('/signup') && 
+          !currentPath.startsWith('/verify-email') && !currentPath.startsWith('/forgot-password') && 
+          !currentPath.startsWith('/reset-password')) {
+        navigate(`/signin?redirect=${encodeURIComponent(currentPath)}`, { replace: true })
+      } else {
+        navigate('/signin', { replace: true })
+      }
     }
 
     window.addEventListener('auth-expired', handleAuthExpired as EventListener)
