@@ -61,12 +61,13 @@ export class FraudService {
     const isLowOrMediumConfidenceFraud = decision.fraud && (decision.confidence === 'low' || decision.confidence === 'medium');
 
     // If high confidence fraud detected before count becomes 10, reset count to 0
+    // This ensures the sliding window starts fresh after automatic blocking
     if (isHighConfidenceFraud && count < 10) {
-      this.conversationCounts.set(conversationId, 0);
+      this.resetFraudDetectionCount(conversationId);
     }
     // If count becomes 10 without high confidence fraud, reset count to 0
     else if (!isHighConfidenceFraud && count >= 10) {
-      this.conversationCounts.set(conversationId, 0);
+      this.resetFraudDetectionCount(conversationId);
     }
 
     // If no fraud detected, return early
@@ -131,6 +132,17 @@ export class FraudService {
    */
   async getFraudCount(conversationId: string): Promise<number> {
     return this.fraudRepository.count({ where: { conversationId } } as any);
+  }
+
+  /**
+   * Reset the fraud detection count (sliding window) to 0 for a conversation.
+   * This is called when:
+   * - Admin reviews messages
+   * - Admin blocks messages
+   * - A message is automatically blocked (high confidence fraud)
+   */
+  resetFraudDetectionCount(conversationId: string): void {
+    this.conversationCounts.set(conversationId, 0);
   }
 
   /**
@@ -210,9 +222,9 @@ export class FraudService {
 
   /**
    * Mark fraud detections as reviewed.
-   * NOTE: This only updates the review status for admin tracking purposes.
-   * It does NOT affect the fraud detection count or logic - reviewed messages
-   * are still included in the sliding window for future fraud detection.
+   * This updates the review status for admin tracking purposes.
+   * Also resets the fraud detection count to 0 for this conversation,
+   * so the sliding window starts fresh after admin review.
    */
   async markFraudAsReviewed(conversationId: string, adminId: string): Promise<void> {
     await this.fraudRepository.update(
@@ -226,6 +238,10 @@ export class FraudService {
         reviewedById: adminId,
       },
     );
+
+    // Reset the fraud detection count to 0 when admin reviews messages
+    // This ensures the sliding window starts fresh after review
+    this.resetFraudDetectionCount(conversationId);
   }
 
   /**
@@ -259,7 +275,7 @@ export class FraudService {
 
     // Reset the fraud detection count to 0 when admin blocks from review
     // This ensures the sliding window starts fresh after blocking
-    this.conversationCounts.set(conversationId, 0);
+    this.resetFraudDetectionCount(conversationId);
   }
 
   async listFraudConversations(filters?: { blocked?: 'blocked' | 'unblocked' | 'all'; hasPendingRequest?: boolean }) {

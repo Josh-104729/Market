@@ -160,9 +160,26 @@ function ChatList() {
 
     socket.on('online_status_response', handleOnlineStatusResponse)
 
-    // Request status when conversations are loaded
-    if (conversations.length > 0) {
+    // Request status when socket connects and conversations are loaded
+    const requestStatusWhenReady = () => {
+      if (conversations.length > 0 && socket.connected) {
+        requestOnlineStatus()
+      }
+    }
+
+    // Request status immediately if socket is already connected and conversations are loaded
+    if (conversations.length > 0 && socket.connected) {
       requestOnlineStatus()
+    }
+
+    // Request status when socket connects
+    socket.on('connect', () => {
+      requestStatusWhenReady()
+    })
+
+    // Request status when conversations are loaded (in case socket was already connected)
+    if (conversations.length > 0) {
+      requestStatusWhenReady()
     }
 
     return () => {
@@ -170,9 +187,27 @@ function ChatList() {
         socketRef.current.off('new_message', handleNewMessage)
         socketRef.current.off('user_status_change', handleUserStatusChange)
         socketRef.current.off('online_status_response', handleOnlineStatusResponse)
+        socketRef.current.off('connect', requestStatusWhenReady)
       }
     }
   }
+
+  // Request online status when conversations are loaded
+  useEffect(() => {
+    const socket = socketRef.current
+    if (socket && socket.connected && conversations.length > 0) {
+      const userIds = conversations
+        .map((conv) => {
+          const otherUserId = conv.clientId === user?.id ? conv.providerId : conv.clientId
+          return otherUserId
+        })
+        .filter((id): id is string => Boolean(id))
+      
+      if (userIds.length > 0) {
+        socket.emit('get_online_status', { userIds })
+      }
+    }
+  }, [conversations, user?.id])
 
   const fetchConversations = async () => {
     try {
@@ -480,4 +515,5 @@ function ChatList() {
 }
 
 export default ChatList
+
 

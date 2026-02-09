@@ -296,6 +296,17 @@ function Chat() {
     }
   }, [id])
 
+  // Request online status when conversation is loaded and socket is ready
+  useEffect(() => {
+    const socket = socketRef.current
+    if (socket && socket.connected && conversation && user?.id) {
+      const otherUserId = conversation.clientId === user.id ? conversation.providerId : conversation.clientId
+      if (otherUserId) {
+        socket.emit('get_online_status', { userIds: [otherUserId] })
+      }
+    }
+  }, [conversation, user?.id])
+
   // Set up WebSocket connection
   useEffect(() => {
     if (!id) return
@@ -609,10 +620,23 @@ function Chat() {
 
     socket.on('online_status_response', handleOnlineStatusResponse)
 
-    // Request status when conversation is loaded
-    if (conversation) {
+    // Request status when socket connects and conversation is loaded
+    const requestStatusWhenReady = () => {
+      if (conversation && socket.connected) {
+        requestOnlineStatus()
+      }
+    }
+
+    // Request status immediately if socket is already connected and conversation is loaded
+    if (conversation && socket.connected) {
       requestOnlineStatus()
     }
+
+    // Request status when socket connects
+    socket.on('connect', () => {
+      requestStatusWhenReady()
+    })
+
     socket.on('joined_conversation', (data: { conversationId?: string }) => {
       const joinedId = data?.conversationId || id
       console.log('✅ Joined conversation room:', joinedId, 'Current id:', id)
@@ -624,6 +648,9 @@ function Chat() {
       }
       
       hasJoined = true
+      
+      // Request online status after joining conversation
+      requestStatusWhenReady()
       
       // Mark messages as read when joining
       markMessagesAsRead()
@@ -671,6 +698,7 @@ function Chat() {
         socket.off('message_deleted', handleMessageDeleted)
         socket.off('user_status_change', handleUserStatusChange)
         socket.off('online_status_response', handleOnlineStatusResponse)
+        socket.off('connect', requestStatusWhenReady)
         socket.off('joined_conversation')
         socket.off('error')
         socket.off('connect_error')

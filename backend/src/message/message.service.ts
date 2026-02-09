@@ -161,6 +161,8 @@ export class MessageService {
           // If high confidence, delete the message and block conversation
           if (highestConfidenceFraud.decision.confidence === 'high') {
             await this.messageRepository.remove(savedTempMessage);
+            // Reset fraud detection count to 0 when message is automatically blocked
+            this.fraudService.resetFraudDetectionCount(conversationId);
             // Block conversation if threshold reached
             const fraudCount = await this.fraudService.getFraudCount(conversationId);
             if (fraudCount >= 5 && !conversation.isBlocked) {
