@@ -282,18 +282,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      if (conversation.clientId !== userId && conversation.providerId !== userId) {
-        const user = await this.userRepository.findOne({ where: { id: userId } });
-        if (user?.role !== 'admin') {
-          client.emit('error', { message: 'Access denied' });
-          return;
-        }
+      // Check if user is admin - admins can send messages to any conversation
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      const isAdmin = user?.role === 'admin';
+      
+      if (!isAdmin && conversation.clientId !== userId && conversation.providerId !== userId) {
+        client.emit('error', { message: 'Access denied' });
+        return;
       }
-      const userRecord =
-        conversation.clientId !== userId && conversation.providerId !== userId
-          ? await this.userRepository.findOne({ where: { id: userId } })
-          : null;
-      const isAdmin = userRecord?.role === 'admin';
 
       // Delegate to MessageService so HTTP + WS paths behave the same (persistence + sender + notifications).
       await this.messageService.create(

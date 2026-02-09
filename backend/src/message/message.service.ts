@@ -113,12 +113,14 @@ export class MessageService {
       throw new ForbiddenException('This conversation is blocked due to fraud detection. You can request reactivation.');
     }
 
-    // Check images for fraud before saving message (skip for admin)
-    // Images are uploaded first, then checked here before message is saved
+    // Check images for fraud before saving message
+    // IMPORTANT: Admin messages completely bypass fraud detection - admins can send any content
+    // Images are uploaded first, then checked here before message is saved (only for non-admin users)
     let finalAttachmentFiles = createMessageDto.attachmentFiles || [];
     let imageFraudDetected = false;
     let imageFraudResults: Array<{ url: string; decision: any }> = [];
 
+    // Skip image fraud detection for admin messages
     if (!isAdmin && createMessageDto.attachmentFiles && createMessageDto.attachmentFiles.length > 0) {
       const imageCheckResult = await this.checkImagesForFraud(createMessageDto.attachmentFiles);
       finalAttachmentFiles = imageCheckResult.validUrls;
@@ -241,7 +243,8 @@ export class MessageService {
     this.chatGateway.server.to(`conversation:${conversationId}`).emit('new_message', messageWithSender);
 
     // Evaluate fraud AFTER message has been delivered (post-send check requirement)
-    // Skip fraud detection for admin messages
+    // IMPORTANT: Admin messages completely bypass fraud detection - admins can send any content
+    // Skip fraud detection for admin messages (both text and image fraud checks are skipped)
     const fraudResult = isAdmin
       ? { isFraud: false, conversationBlocked: Boolean(conversation.isBlocked) }
       : await this.fraudService.evaluateMessage(conversationId, savedMessage);
