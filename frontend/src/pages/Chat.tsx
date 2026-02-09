@@ -1182,18 +1182,22 @@ function Chat() {
   const handleCreateMilestone = async () => {
     if (!conversation || !milestoneForm.title || !milestoneForm.description || !milestoneForm.balance) return
     
-    // Prevent multiple submissions
+    // Prevent multiple submissions - check immediately and return early
     if (creatingMilestone) return
+    
+    // Set creating flag immediately to prevent any subsequent clicks from proceeding
+    setCreatingMilestone(true)
 
-    // Clear any existing timeout
+    // Clear any existing timeout (shouldn't happen, but safety check)
     if (createMilestoneTimeoutRef.current) {
       clearTimeout(createMilestoneTimeoutRef.current)
+      createMilestoneTimeoutRef.current = null
     }
 
-    // Set debounce timeout
+    // Debounce: wait 300ms before actually making the API call
+    // This prevents accidental double-clicks while still allowing the flag to block subsequent clicks
     createMilestoneTimeoutRef.current = setTimeout(async () => {
       try {
-        setCreatingMilestone(true)
         const amount = parseFloat(milestoneForm.balance)
 
         // Create milestone
@@ -1222,6 +1226,7 @@ function Chat() {
         console.error('Failed to create milestone:', error)
         showToast.error(error.message || 'Failed to create milestone. Please try again.')
       } finally {
+        // Reset flag only after API call completes (success or error)
         setCreatingMilestone(false)
         createMilestoneTimeoutRef.current = null
       }
