@@ -60,12 +60,14 @@ export class FraudService {
     const isHighConfidenceFraud = decision.fraud && decision.confidence === 'high';
     const isLowOrMediumConfidenceFraud = decision.fraud && (decision.confidence === 'low' || decision.confidence === 'medium');
 
-    // If high confidence fraud detected before count becomes 10, reset count to 0
+    // IMPORTANT: If high confidence fraud is auto-detected, ALWAYS reset count to 0
     // This ensures the sliding window starts fresh after automatic blocking
-    if (isHighConfidenceFraud && count < 10) {
+    // The count resets whenever fraud is auto-detected, regardless of current count value
+    if (isHighConfidenceFraud) {
       this.resetFraudDetectionCount(conversationId);
     }
     // If count becomes 10 without high confidence fraud, reset count to 0
+    // This allows the sliding window to cycle and start fresh
     else if (!isHighConfidenceFraud && count >= 10) {
       this.resetFraudDetectionCount(conversationId);
     }
@@ -137,9 +139,12 @@ export class FraudService {
   /**
    * Reset the fraud detection count (sliding window) to 0 for a conversation.
    * This is called when:
-   * - Admin reviews messages
-   * - Admin blocks messages
-   * - A message is automatically blocked (high confidence fraud)
+   * - Fraud is auto-detected (high confidence fraud - text or image)
+   * - Admin reviews fraud content
+   * - Admin blocks fraud content
+   * 
+   * After reset, the fraud detection count starts fresh from 0, allowing new messages
+   * to be evaluated in a new sliding window.
    */
   resetFraudDetectionCount(conversationId: string): void {
     this.conversationCounts.set(conversationId, 0);
@@ -225,6 +230,7 @@ export class FraudService {
    * This updates the review status for admin tracking purposes.
    * Also resets the fraud detection count to 0 for this conversation,
    * so the sliding window starts fresh after admin review.
+   * After reset, fraud detection count starts from 0 again.
    */
   async markFraudAsReviewed(conversationId: string, adminId: string): Promise<void> {
     await this.fraudRepository.update(
@@ -248,6 +254,7 @@ export class FraudService {
    * Block conversation and mark fraud detections as reviewed.
    * This marks all unreviewed fraud messages as reviewed and blocks the conversation.
    * Also resets the fraud detection count to 0 for this conversation.
+   * After reset, fraud detection count starts from 0 again.
    */
   async blockConversationAndMarkReviewed(conversationId: string, adminId: string): Promise<void> {
     // First, mark fraud as reviewed
