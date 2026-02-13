@@ -85,12 +85,13 @@ function Home() {
 
         if (cancelled) return
         setCategories(cats || [])
-        // Sort services by rating (higher to lower) for "Popular right now" card
+        // Sort services by rating from highest (5.0) to lowest (0.0) for "Popular right now" card
         const sortedServices = (featured.data || []).sort((a, b) => {
           // Use averageRating if available, otherwise fall back to rating field
           const ratingA = Number(a.averageRating ?? a.rating ?? 0)
           const ratingB = Number(b.averageRating ?? b.rating ?? 0)
-          return ratingB - ratingA // Higher rating first
+          // Sort from highest (5.0) to lowest (0.0)
+          return ratingB - ratingA
         })
         setFeaturedServices(sortedServices)
         if (stats) {
