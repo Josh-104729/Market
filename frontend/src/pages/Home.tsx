@@ -21,7 +21,6 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
-  StarHalf,
   TrendingUp,
   Users,
 } from "lucide-react"
