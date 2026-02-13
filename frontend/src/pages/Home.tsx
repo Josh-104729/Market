@@ -21,9 +21,33 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
+  StarHalf,
   TrendingUp,
   Users,
 } from "lucide-react"
+
+const StarRating = ({ rating, size = "h-3.5 w-3.5" }: { rating: number; size?: string }) => {
+  // Calculate fill percentage (rating is out of 5, so rating/5 gives the percentage)
+  const fillPercentage = Math.min(Math.max((rating / 5) * 100, 0), 100)
+  
+  return (
+    <div className="relative inline-flex items-center">
+      {/* Empty star (background) */}
+      <Star className={`${size} text-muted-foreground/30`} />
+      {/* Filled star (foreground, clipped based on percentage using mask) */}
+      <div 
+        className="absolute top-0 left-0"
+        style={{ 
+          width: `${fillPercentage}%`,
+          height: '100%',
+          overflow: 'hidden'
+        }}
+      >
+        <Star className={`${size} fill-yellow-400 text-yellow-400`} />
+      </div>
+    </div>
+  )
+}
 
 function Home() {
   const navigate = useNavigate()
@@ -62,7 +86,14 @@ function Home() {
 
         if (cancelled) return
         setCategories(cats || [])
-        setFeaturedServices(featured.data || [])
+        // Sort services by rating (higher to lower) for "Popular right now" card
+        const sortedServices = (featured.data || []).sort((a, b) => {
+          // Use averageRating if available, otherwise fall back to rating field
+          const ratingA = Number(a.averageRating ?? a.rating ?? 0)
+          const ratingB = Number(b.averageRating ?? b.rating ?? 0)
+          return ratingB - ratingA // Higher rating first
+        })
+        setFeaturedServices(sortedServices)
         if (stats) {
           setStatistics(stats)
         }
@@ -289,8 +320,8 @@ function Home() {
                       </div>
                       <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
-                          <Star className="h-3.5 w-3.5 text-primary" />
-                          {Number(svc.rating || 0).toFixed(1)}
+                          <StarRating rating={Number(svc.averageRating ?? svc.rating ?? 0)} />
+                          <span className="ml-0.5">{Number(svc.averageRating ?? svc.rating ?? 0).toFixed(1)}</span>
                         </span>
                         <span className="inline-flex items-center gap-2">
                           View <ArrowRight className="h-3.5 w-3.5" />
@@ -448,8 +479,8 @@ function Home() {
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
-                        <Star className="h-4 w-4 text-primary" />
-                        {Number(svc.rating || 0).toFixed(1)}
+                        <StarRating rating={Number(svc.averageRating ?? svc.rating ?? 0)} />
+                        <span className="ml-0.5">{Number(svc.averageRating ?? svc.rating ?? 0).toFixed(1)}</span>
                       </span>
                       {svc.category?.title ? (
                         <Badge variant="outline">{svc.category.title}</Badge>
