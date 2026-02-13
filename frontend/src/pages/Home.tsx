@@ -74,9 +74,10 @@ function Home() {
 
     const fetchData = async () => {
       try {
-        const [cats, featured, stats] = await Promise.all([
+        const [cats, allServices, stats] = await Promise.all([
           categoryApi.getAll(),
-          serviceApi.getAllPaginated({ page: 1, limit: 6, status: "active" }),
+          // Fetch all active services to find the top 3 highest-rated ones
+          serviceApi.getAllPaginated({ page: 1, limit: 1000, status: "active" }),
           statisticsApi.getStatistics().catch((err) => {
             console.error("Failed to load statistics:", err)
             return null
@@ -85,14 +86,16 @@ function Home() {
 
         if (cancelled) return
         setCategories(cats || [])
-        // Sort services by rating from highest (5.0) to lowest (0.0) for "Popular right now" card
-        const sortedServices = (featured.data || []).sort((a, b) => {
+        // Sort ALL services by rating from highest (5.0) to lowest (0.0)
+        const sortedServices = (allServices.data || []).sort((a, b) => {
           // Use averageRating if available, otherwise fall back to rating field
           const ratingA = Number(a.averageRating ?? a.rating ?? 0)
           const ratingB = Number(b.averageRating ?? b.rating ?? 0)
           // Sort from highest (5.0) to lowest (0.0)
           return ratingB - ratingA
         })
+        // Set all sorted services for "Featured services" section
+        // "Popular right now" card will use the top 3 from this list
         setFeaturedServices(sortedServices)
         if (stats) {
           setStatistics(stats)
