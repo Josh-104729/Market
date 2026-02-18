@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { adminApi } from "../services/api"
+import { getSocket } from "../services/socket"
 import { showToast } from "../utils/toast"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -119,6 +120,24 @@ export default function ChatHistory() {
     return () => clearTimeout(timeoutId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, searchTerm, itemsPerPage])
+
+  // Listen for fraud detection events to refresh chat history
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket) return
+
+    const handleMessageFraud = () => {
+      // Refresh chat history when fraud is detected
+      fetchChatHistory()
+    }
+
+    socket.on('message_fraud', handleMessageFraud)
+
+    return () => {
+      socket.off('message_fraud', handleMessageFraud)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const fetchChatHistory = async () => {
     try {

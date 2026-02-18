@@ -254,28 +254,40 @@ export class MessageService {
     const recipients = [conversation.clientId, conversation.providerId].filter((id) => id && id !== userId);
     const allParticipants = Array.from(new Set([conversation.clientId, conversation.providerId].filter(Boolean))) as string[];
 
-    if (fraudResult.isFraud) {
-      // Inform ALL participants that the message was flagged (receiver will hide content client-side)
-      const fraudByMessageId = await this.fraudService.getFraudsByMessageIds([savedMessage.id]);
-      const fd = fraudByMessageId.get(savedMessage.id);
+    // Always emit fraud information if fraud was detected (even if not blocked)
+    // This allows the frontend to show review requests for medium/low confidence fraud
+    // But only block/hide content for high confidence fraud
+    if (fraudResult.affectedMessageIds && fraudResult.affectedMessageIds.length > 0) {
+      // Get fraud information for ALL affected messages (entire sliding window)
+      const affectedMessageIds = fraudResult.affectedMessageIds;
+      const fraudByMessageId = await this.fraudService.getFraudsByMessageIds(affectedMessageIds);
 
-      const fraudPayload = {
-        conversationId,
-        messageId: savedMessage.id,
-        fraud: fd
-          ? {
-              category: fd.category || null,
-              reason: fd.reason || null,
-              confidence: fd.confidence || null,
-            }
-          : { category: null, reason: null, confidence: null },
-      };
+      // Emit fraud flag for ALL affected messages (not just the current one)
+      // This ensures that when fraud is detected on combined content (e.g., "te" "l" "e" "gram"),
+      // all messages in the window are marked appropriately in real-time
+      // Note: isFraud flag in payload indicates if message should be blocked (high confidence only)
+      for (const msgId of affectedMessageIds) {
+        const fd = fraudByMessageId.get(msgId);
+        const isHighConfidenceFraud = fd && fd.confidence === 'high';
+        const fraudPayload = {
+          conversationId,
+          messageId: msgId,
+          isFraud: isHighConfidenceFraud, // Only true if high confidence (should be blocked)
+          fraud: fd
+            ? {
+                category: fd.category || null,
+                reason: fd.reason || null,
+                confidence: fd.confidence || null,
+              }
+            : { category: null, reason: null, confidence: null },
+        };
 
-      // Emit fraud flag to both user rooms and conversation room
-      for (const pid of participantIds) {
-        this.chatGateway.server.to(`user:${pid}`).emit('message_fraud', fraudPayload);
+        // Emit fraud flag to both user rooms and conversation room for each affected message
+        for (const pid of participantIds) {
+          this.chatGateway.server.to(`user:${pid}`).emit('message_fraud', fraudPayload);
+        }
+        this.chatGateway.server.to(`conversation:${conversationId}`).emit('message_fraud', fraudPayload);
       }
-      this.chatGateway.server.to(`conversation:${conversationId}`).emit('message_fraud', fraudPayload);
     }
 
     if (fraudResult.conversationBlocked) {
@@ -384,6 +396,9 @@ export class MessageService {
       .orderBy('message.createdAt', 'DESC')
       .take(limit + 1); // Fetch one extra to check if there are more
 
+    // Don't filter out admin-blocked messages - show them with blocked indicator
+    // (Similar to fraud-detected messages)
+
     // If before is provided, fetch messages before that message
     if (before) {
       const beforeMessage = await this.messageRepository.findOne({
@@ -405,11 +420,20 @@ export class MessageService {
     const visibleMessages = resultMessages.map((m) => {
       const fd = fraudByMessageId.get(m.id);
       const isFraud = Boolean(fd);
-      const shouldHideContent = !isAdmin && isFraud && m.senderId !== userId;
+      // Only block/hide content if confidence is high OR if it was auto-blocked (count reached 10)
+      // Medium/low confidence fraud should NOT block - only request admin review
+      const isHighConfidenceFraud = fd && fd.confidence === 'high';
+      const isAdminBlocked = !isAdmin && m.adminBlockedAt && m.senderId !== userId;
+      // Only hide content if: (high confidence fraud AND not sender AND not admin) OR (admin blocked)
+      const shouldHideContent = (!isAdmin && isHighConfidenceFraud && m.senderId !== userId) || isAdminBlocked;
 
       const viewModel: any = {
         ...m,
-        isFraud,
+        // isFraud should be true only if it's actually blocked (high confidence or count reached 10)
+        // Medium/low confidence fraud exists but shouldn't be marked as blocked
+        isFraud: isHighConfidenceFraud || false,
+        isAdminBlocked: isAdminBlocked,
+        adminBlockedAt: m.adminBlockedAt,
         fraud: fd
           ? {
               category: fd.category || null,
@@ -424,6 +448,10 @@ export class MessageService {
       if (shouldHideContent) {
         viewModel.message = '';
         viewModel.attachmentFiles = [];
+        // Add admin block reason if admin-blocked
+        if (isAdminBlocked) {
+          viewModel.adminBlockReason = 'This message is blocked by admin';
+        }
       }
 
       return viewModel;
@@ -453,7 +481,9 @@ export class MessageService {
     const fraudByMessageId = await this.fraudService.getFraudsByMessageIds([message.id]);
     const fd = fraudByMessageId.get(message.id);
     if (fd) {
-      (message as any).isFraud = true;
+      // Only mark as blocked if confidence is high (medium/low should only request review)
+      const isHighConfidenceFraud = fd.confidence === 'high';
+      (message as any).isFraud = isHighConfidenceFraud;
       (message as any).fraud = {
         category: fd.category || null,
         reason: fd.reason || null,
@@ -461,6 +491,14 @@ export class MessageService {
       };
     } else {
       (message as any).isFraud = false;
+    }
+
+    // Add admin block information
+    if (message.adminBlockedAt) {
+      (message as any).isAdminBlocked = true;
+      (message as any).adminBlockReason = 'This message is blocked by admin';
+    } else {
+      (message as any).isAdminBlocked = false;
     }
 
     return message;

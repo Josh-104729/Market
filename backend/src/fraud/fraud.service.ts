@@ -8,6 +8,8 @@ import { Message } from '../entities/message.entity';
 import { FraudDetectorService } from './fraud-detector.service';
 import { NotificationService } from '../notification/notification.service';
 import { NotificationType } from '../entities/notification.entity';
+import { ChatGateway } from '../chat/chat.gateway';
+import { MessageService } from '../message/message.service';
 
 @Injectable()
 export class FraudService {
@@ -26,9 +28,13 @@ export class FraudService {
     private fraudDetector: FraudDetectorService,
     @Inject(forwardRef(() => NotificationService))
     private notificationService: NotificationService,
+    @Inject(forwardRef(() => ChatGateway))
+    private chatGateway: ChatGateway,
+    @Inject(forwardRef(() => MessageService))
+    private messageService: MessageService,
   ) {}
 
-  async evaluateMessage(conversationId: string, message: Message): Promise<{ isFraud: boolean; conversationBlocked: boolean }> {
+  async evaluateMessage(conversationId: string, message: Message): Promise<{ isFraud: boolean; conversationBlocked: boolean; affectedMessageIds?: string[] }> {
     const conversation = await this.conversationRepository.findOne({ where: { id: conversationId, deletedAt: null } });
     if (!conversation) throw new NotFoundException('Conversation not found');
 
@@ -55,26 +61,18 @@ export class FraudService {
 
     // Run fraud detection on the combined content (always run on new message)
     const decision = await this.fraudDetector.decideText(combinedContent);
-    console.log(decision.confidence)
-    // Only block messages when confidence is "high"
-    const isHighConfidenceFraud = decision.fraud && decision.confidence === 'high';
-    const isLowOrMediumConfidenceFraud = decision.fraud && (decision.confidence === 'low' || decision.confidence === 'medium');
-
-    // IMPORTANT: If high confidence fraud is auto-detected, ALWAYS reset count to 0
-    // This ensures the sliding window starts fresh after automatic blocking
-    // The count resets whenever fraud is auto-detected, regardless of current count value
-    if (isHighConfidenceFraud) {
-      this.resetFraudDetectionCount(conversationId);
-    }
-    // If count becomes 10 without high confidence fraud, reset count to 0
-    // This allows the sliding window to cycle and start fresh
-    else if (!isHighConfidenceFraud && count >= 10) {
-      this.resetFraudDetectionCount(conversationId);
-    }
+    console.log('Fraud detection result:', { fraud: decision.fraud, confidence: decision.confidence, count });
+    
+    // Get all affected message IDs (all messages in the sliding window)
+    const affectedMessageIds = messagesToCheck.map((m) => m.id);
 
     // If no fraud detected, return early
     if (!decision.fraud) {
-      return { isFraud: false, conversationBlocked: Boolean(conversation.isBlocked) };
+      // Reset count if it reaches 10 without fraud
+      if (count >= 10) {
+        this.resetFraudDetectionCount(conversationId);
+      }
+      return { isFraud: false, conversationBlocked: Boolean(conversation.isBlocked), affectedMessageIds: [] };
     }
 
     // Fraud detected - save fraud records for ALL messages in the count window
@@ -108,10 +106,42 @@ export class FraudService {
       await this.fraudRepository.save(fraudsToCreate);
     }
 
+    // Classify fraud confidence
+    const isHighConfidenceFraud = decision.confidence === 'high';
+    const isMediumConfidenceFraud = decision.confidence === 'medium';
+    const isLowConfidenceFraud = decision.confidence === 'low';
+    const isLowOrMediumConfidenceFraud = isLowConfidenceFraud || isMediumConfidenceFraud;
+
+    // IMPORTANT: Reset count to 0 if fraud is detected with medium or high confidence
+    // This ensures the sliding window starts fresh after fraud detection
+    if (isMediumConfidenceFraud || isHighConfidenceFraud) {
+      this.resetFraudDetectionCount(conversationId);
+      console.log(`Count reset to 0 after fraud detection (confidence: ${decision.confidence})`);
+    }
+
+    // Block when:
+    // 1. Confidence is high (regardless of count), OR
+    // 2. Count reaches 10 (even if confidence is not high yet)
+    const shouldBlock = isHighConfidenceFraud || count >= 10;
+
     // If low/medium confidence fraud, don't block - just mark for review
     if (isLowOrMediumConfidenceFraud) {
-      return { isFraud: false, conversationBlocked: Boolean(conversation.isBlocked) };
+      // Reset count if it reaches 10 (even for low confidence)
+      if (count >= 10) {
+        this.resetFraudDetectionCount(conversationId);
+        console.log('Count reset to 0 (reached 10 with low confidence)');
+      }
+      return { isFraud: false, conversationBlocked: Boolean(conversation.isBlocked), affectedMessageIds };
     }
+
+    if (!shouldBlock) {
+      // This should not happen since we filtered out low/medium confidence above
+      // But keep as safety check - don't block, just mark for review
+      return { isFraud: false, conversationBlocked: Boolean(conversation.isBlocked), affectedMessageIds };
+    }
+
+    // Block the messages (high confidence OR count reached 10)
+    // Note: Count is already reset above if shouldBlock is true
 
     const fraudCount = await this.getFraudCount(conversationId);
     let conversationBlocked = Boolean(conversation.isBlocked);
@@ -126,7 +156,7 @@ export class FraudService {
       });
     }
 
-    return { isFraud: true, conversationBlocked };
+    return { isFraud: true, conversationBlocked, affectedMessageIds };
   }
 
   /**
@@ -251,8 +281,9 @@ export class FraudService {
   }
 
   /**
-   * Block conversation and mark fraud detections as reviewed.
-   * This marks all unreviewed fraud messages as reviewed and blocks the conversation.
+   * Block messages (not conversation) and mark fraud detections as reviewed.
+   * This marks all unreviewed fraud messages as reviewed and blocks the specific messages.
+   * The conversation itself is NOT blocked - users can still chat.
    * Also resets the fraud detection count to 0 for this conversation.
    * After reset, fraud detection count starts from 0 again.
    */
@@ -260,29 +291,230 @@ export class FraudService {
     // First, mark fraud as reviewed
     await this.markFraudAsReviewed(conversationId, adminId);
 
-    // Then, block the conversation
-    const conversation = await this.conversationRepository.findOne({
-      where: { id: conversationId, deletedAt: null },
+    // Get all unreviewed fraud messages that need to be blocked
+    const frauds = await this.fraudRepository.find({
+      where: {
+        conversationId,
+        reviewedAt: IsNull(),
+        confidence: In(['low', 'medium']), // Only block low/medium confidence messages that were reviewed
+      } as any,
     });
 
-    if (!conversation) {
-      throw new NotFoundException('Conversation not found');
-    }
+    // Block the messages (not the conversation)
+    if (frauds.length > 0) {
+      const messageIds = frauds.map((f) => f.messageId);
+      
+      // Get messages before blocking to emit WebSocket events
+      const messages = await this.messageRepository.find({
+        where: { id: In(messageIds) } as any,
+      });
 
-    if (conversation.isBlocked) {
-      throw new ConflictException('Conversation is already blocked');
-    }
+      await this.messageRepository.update(
+        { id: In(messageIds) } as any,
+        {
+          adminBlockedAt: new Date(),
+          adminBlockedById: adminId,
+        },
+      );
 
-    await this.conversationRepository.update(conversationId, {
-      isBlocked: true,
-      blockedAt: new Date(),
-      blockedReason: 'admin_blocked_after_review',
-      updatedAt: new Date(),
-    } as any);
+      // Get conversation for participant IDs
+      const conversation = await this.conversationRepository.findOne({
+        where: { id: conversationId },
+      });
+
+      if (conversation) {
+        // Get participant IDs (client and provider)
+        const participantIds = Array.from(
+          new Set([conversation.clientId, conversation.providerId].filter(Boolean)),
+        ) as string[];
+
+        // Emit message_updated events to receivers (not senders) to show blocked indicator
+        for (const msg of messages) {
+          // Load message with sender info and format it like in message service
+          const messageWithSender = await this.messageService.findOne(msg.id);
+          
+          // Format message for receivers (hide content, show blocked indicator)
+          const updatedMessage: any = {
+            ...messageWithSender,
+            isAdminBlocked: true,
+            adminBlockedAt: new Date().toISOString(),
+            adminBlockReason: 'This message is blocked by admin',
+          };
+
+          // Emit to conversation room (all participants will receive, but frontend will handle display)
+          this.chatGateway.server.to(`conversation:${conversationId}`).emit('message_updated', updatedMessage);
+
+          // Emit to user rooms (for users not actively viewing the chat)
+          for (const pid of participantIds) {
+            // Format differently for receivers vs senders
+            const messageForUser = pid === msg.senderId 
+              ? updatedMessage // Sender sees their own message normally
+              : {
+                  ...updatedMessage,
+                  contentHiddenForViewer: true,
+                  message: '',
+                  attachmentFiles: [],
+                };
+            this.chatGateway.server.to(`user:${pid}`).emit('message_updated', messageForUser);
+          }
+        }
+      }
+    }
 
     // Reset the fraud detection count to 0 when admin blocks from review
     // This ensures the sliding window starts fresh after blocking
     this.resetFraudDetectionCount(conversationId);
+  }
+
+  /**
+   * Block specific messages by their IDs
+   */
+  async blockMessages(messageIds: string[], adminId: string): Promise<void> {
+    if (messageIds.length === 0) return;
+
+    // Get messages with conversation info before blocking
+    const messages = await this.messageRepository.find({
+      where: { id: In(messageIds) } as any,
+      relations: ['conversation'],
+    });
+
+    if (messages.length === 0) return;
+
+    // Block the messages
+    await this.messageRepository.update(
+      { id: In(messageIds) } as any,
+      {
+        adminBlockedAt: new Date(),
+        adminBlockedById: adminId,
+      },
+    );
+
+    // Emit WebSocket events to notify receivers that messages are blocked
+    // Group messages by conversation
+    const messagesByConversation = new Map<string, Message[]>();
+    for (const msg of messages) {
+      const convId = msg.conversationId;
+      if (!messagesByConversation.has(convId)) {
+        messagesByConversation.set(convId, []);
+      }
+      messagesByConversation.get(convId)!.push(msg);
+    }
+
+    // Emit message_deleted events for each conversation
+    for (const [conversationId, msgs] of messagesByConversation.entries()) {
+      const conversation = await this.conversationRepository.findOne({
+        where: { id: conversationId },
+      });
+
+      if (!conversation) continue;
+
+      // Get participant IDs (client and provider)
+      const participantIds = Array.from(
+        new Set([conversation.clientId, conversation.providerId].filter(Boolean)),
+      ) as string[];
+
+      // Emit message_updated events to receivers (not senders) to show blocked indicator
+      for (const msg of msgs) {
+        // Load message with sender info and format it like in message service
+        const messageWithSender = await this.messageService.findOne(msg.id);
+        
+        // Format message for receivers (hide content, show blocked indicator)
+        const updatedMessage: any = {
+          ...messageWithSender,
+          isAdminBlocked: true,
+          adminBlockedAt: new Date().toISOString(),
+          adminBlockReason: 'This message is blocked by admin',
+        };
+
+        // Emit to conversation room (all participants will receive, but frontend will handle display)
+        this.chatGateway.server.to(`conversation:${conversationId}`).emit('message_updated', updatedMessage);
+
+        // Emit to user rooms (for users not actively viewing the chat)
+        for (const pid of participantIds) {
+          // Format differently for receivers vs senders
+          const messageForUser = pid === msg.senderId 
+            ? updatedMessage // Sender sees their own message normally
+            : {
+                ...updatedMessage,
+                contentHiddenForViewer: true,
+                message: '',
+                attachmentFiles: [],
+              };
+          this.chatGateway.server.to(`user:${pid}`).emit('message_updated', messageForUser);
+        }
+      }
+    }
+  }
+
+  /**
+   * Unblock specific messages by their IDs
+   */
+  async unblockMessages(messageIds: string[]): Promise<void> {
+    if (messageIds.length === 0) return;
+
+    // Get messages with conversation info before unblocking
+    const messages = await this.messageRepository.find({
+      where: { id: In(messageIds) } as any,
+      relations: ['conversation'],
+    });
+
+    if (messages.length === 0) return;
+
+    // Unblock the messages
+    await this.messageRepository.update(
+      { id: In(messageIds) } as any,
+      {
+        adminBlockedAt: null,
+        adminBlockedById: null,
+      },
+    );
+
+    // Emit WebSocket events to notify receivers that messages are now visible
+    // Group messages by conversation
+    const messagesByConversation = new Map<string, Message[]>();
+    for (const msg of messages) {
+      const convId = msg.conversationId;
+      if (!messagesByConversation.has(convId)) {
+        messagesByConversation.set(convId, []);
+      }
+      messagesByConversation.get(convId)!.push(msg);
+    }
+
+    // Emit new_message events for each conversation
+    for (const [conversationId, msgs] of messagesByConversation.entries()) {
+      const conversation = await this.conversationRepository.findOne({
+        where: { id: conversationId },
+      });
+
+      if (!conversation) continue;
+
+      // Get participant IDs (client and provider)
+      const participantIds = Array.from(
+        new Set([conversation.clientId, conversation.providerId].filter(Boolean)),
+      ) as string[];
+
+      // Emit message_updated event to receivers to show unblocked message
+      for (const msg of msgs) {
+        // Load message with sender info for WebSocket emission
+        const messageWithSender = await this.messageService.findOne(msg.id);
+        
+        // Format message (remove blocked indicator)
+        const updatedMessage: any = {
+          ...messageWithSender,
+          isAdminBlocked: false,
+          adminBlockedAt: null,
+          adminBlockReason: undefined,
+        };
+
+        // Emit to conversation room (all participants will receive)
+        this.chatGateway.server.to(`conversation:${conversationId}`).emit('message_updated', updatedMessage);
+
+        // Emit to user rooms (for users not actively viewing the chat)
+        for (const pid of participantIds) {
+          this.chatGateway.server.to(`user:${pid}`).emit('message_updated', updatedMessage);
+        }
+      }
+    }
   }
 
   async listFraudConversations(filters?: { blocked?: 'blocked' | 'unblocked' | 'all'; hasPendingRequest?: boolean }) {

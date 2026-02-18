@@ -16,6 +16,8 @@ import {
   faTimes,
   faExclamationTriangle,
   faBan,
+  faSquare,
+  faCheckSquare,
 } from '@fortawesome/free-solid-svg-icons'
 import { conversationApi, messageApi, milestoneApi, adminApi, Conversation, Message, Milestone } from '../services/api'
 import { getSocket } from '../services/socket'
@@ -47,6 +49,8 @@ function Chat() {
   const [loadingMoreMessages, setLoadingMoreMessages] = useState(false)
   const [unreviewedFraudCount, setUnreviewedFraudCount] = useState(0)
   const [blockDialogOpen, setBlockDialogOpen] = useState(false)
+  const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set())
+  const [blockingMessages, setBlockingMessages] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const socketRef = useRef<Socket | null>(null)
@@ -99,15 +103,46 @@ function Chat() {
       }
     }
 
+    const handleMessageFraud = (data: { conversationId: string; messageId: string; fraud?: any }) => {
+      if (data.conversationId === id) {
+        // Update the message with fraud information
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === data.messageId
+              ? {
+                  ...m,
+                  isFraud: true,
+                  fraud: data.fraud || { category: null, reason: null, confidence: null },
+                }
+              : m,
+          ),
+        )
+        // Refresh messages to get updated fraud info
+        fetchMessages()
+      }
+    }
+
+    const handleMessageUpdated = (message: Message) => {
+      if (message.conversationId === id) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === message.id ? { ...m, ...message } : m)),
+        )
+      }
+    }
+
     const handleMilestoneUpdate = () => {
       fetchMilestones()
     }
 
     socket.on('new_message', handleNewMessage)
+    socket.on('message_fraud', handleMessageFraud)
+    socket.on('message_updated', handleMessageUpdated)
     socket.on('milestone_updated', handleMilestoneUpdate)
 
     return () => {
       socket.off('new_message', handleNewMessage)
+      socket.off('message_fraud', handleMessageFraud)
+      socket.off('message_updated', handleMessageUpdated)
       socket.off('milestone_updated', handleMilestoneUpdate)
       socket.emit('leave_conversation', { conversationId: id })
     }
@@ -162,15 +197,59 @@ function Chat() {
     if (!id) return
     try {
       await adminApi.blockConversation(id)
-      showToast.success('Conversation blocked and fraud marked as reviewed')
+      showToast.success('Review-requested messages blocked and marked as reviewed')
       setUnreviewedFraudCount(0)
       setBlockDialogOpen(false)
       // Refresh conversation and messages to update indicators
       await fetchConversation()
       await fetchMessages(50)
     } catch (error: any) {
-      console.error('Failed to block conversation:', error)
-      showToast.error(error.response?.data?.message || 'Failed to block conversation')
+      console.error('Failed to block messages:', error)
+      showToast.error(error.response?.data?.message || 'Failed to block messages')
+    }
+  }
+
+  const handleToggleMessageSelection = (messageId: string) => {
+    setSelectedMessages((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId)
+      } else {
+        newSet.add(messageId)
+      }
+      return newSet
+    })
+  }
+
+  const handleBlockSelectedMessages = async () => {
+    if (selectedMessages.size === 0) return
+    try {
+      setBlockingMessages(true)
+      await adminApi.blockMessages(Array.from(selectedMessages))
+      showToast.success(`${selectedMessages.size} message(s) blocked`)
+      setSelectedMessages(new Set())
+      await fetchMessages(50)
+    } catch (error: any) {
+      console.error('Failed to block messages:', error)
+      showToast.error(error.response?.data?.message || 'Failed to block messages')
+    } finally {
+      setBlockingMessages(false)
+    }
+  }
+
+  const handleUnblockSelectedMessages = async () => {
+    if (selectedMessages.size === 0) return
+    try {
+      setBlockingMessages(true)
+      await adminApi.unblockMessages(Array.from(selectedMessages))
+      showToast.success(`${selectedMessages.size} message(s) unblocked`)
+      setSelectedMessages(new Set())
+      await fetchMessages(50)
+    } catch (error: any) {
+      console.error('Failed to unblock messages:', error)
+      showToast.error(error.response?.data?.message || 'Failed to unblock messages')
+    } finally {
+      setBlockingMessages(false)
     }
   }
 
@@ -392,7 +471,30 @@ function Chat() {
                 className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center gap-2"
               >
                 <FontAwesomeIcon icon={faBan} />
-                Block Conversation
+                Block Review-Requested Messages
+              </button>
+            </div>
+          )}
+          {selectedMessages.size > 0 && (
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-white text-sm">
+                {selectedMessages.size} message(s) selected
+              </span>
+              <button
+                onClick={handleBlockSelectedMessages}
+                disabled={blockingMessages}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                <FontAwesomeIcon icon={faBan} />
+                Block Selected
+              </button>
+              <button
+                onClick={handleUnblockSelectedMessages}
+                disabled={blockingMessages}
+                className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                <FontAwesomeIcon icon={faCheckCircle} />
+                Unblock Selected
               </button>
             </div>
           )}
@@ -423,12 +525,26 @@ function Chat() {
                 const isClient = message.senderId === conversation.clientId
                 const isProvider = message.senderId === conversation.providerId
                 const isAdmin = !isClient && !isProvider
+                const isAdminBlocked = message.adminBlockedAt
+                const isSelected = selectedMessages.has(message.id)
                 
                 return (
                   <div
                     key={message.id}
-                    className={`flex ${isClient ? 'justify-start' : isProvider ? 'justify-end' : 'justify-center'}`}
+                    className={`flex items-start gap-2 ${isClient ? 'justify-start' : isProvider ? 'justify-end' : 'justify-center'}`}
                   >
+                    {/* Checkbox for message selection (only for non-admin messages) */}
+                    {!isAdmin && (
+                      <button
+                        onClick={() => handleToggleMessageSelection(message.id)}
+                        className="mt-3 text-white/60 hover:text-white transition-colors"
+                      >
+                        <FontAwesomeIcon
+                          icon={isSelected ? faCheckSquare : faSquare}
+                          className={isSelected ? 'text-primary' : ''}
+                        />
+                      </button>
+                    )}
                     <div
                       className={`max-w-[70%] rounded-lg p-3 relative ${
                         isAdmin
@@ -445,6 +561,10 @@ function Chat() {
                       } ${
                         !isAdmin && message.isFraud && message.fraud?.confidence === 'high'
                           ? 'border-r-4 border-r-red-500'
+                          : ''
+                      } ${
+                        isAdminBlocked
+                          ? 'border-2 border-red-500/50 bg-red-500/10'
                           : ''
                       }`}
                     >
@@ -469,7 +589,13 @@ function Chat() {
                         {!isAdmin && message.isFraud && message.fraud?.confidence === 'high' && (
                           <div className="flex items-center gap-1 px-2 py-0.5 bg-red-500/20 rounded text-red-400 text-xs">
                             <FontAwesomeIcon icon={faBan} className="text-xs" />
-                            <span>Blocked</span>
+                            <span>Auto-Blocked</span>
+                          </div>
+                        )}
+                        {isAdminBlocked && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 bg-red-600/30 rounded text-red-300 text-xs">
+                            <FontAwesomeIcon icon={faBan} className="text-xs" />
+                            <span>Admin Blocked</span>
                           </div>
                         )}
                       </div>
@@ -901,7 +1027,7 @@ function Chat() {
               variant="destructive"
               onClick={confirmBlockConversation}
             >
-              Block Conversation
+              Block Messages
             </Button>
           </DialogFooter>
         </DialogContent>

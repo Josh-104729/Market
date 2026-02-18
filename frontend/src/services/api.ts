@@ -500,6 +500,9 @@ export interface Message {
   attachmentFiles?: string[];
   readAt?: string;
   isFraud?: boolean;
+  isAdminBlocked?: boolean;
+  adminBlockedAt?: string | null;
+  adminBlockReason?: string;
   contentHiddenForViewer?: boolean;
   fraud?: {
     category?: string | null;

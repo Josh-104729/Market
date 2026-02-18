@@ -27,6 +27,16 @@ export class Message extends BaseEntity {
   @Column({ name: 'read_at', type: 'timestamp', nullable: true })
   readAt?: Date;
 
+  @Column({ name: 'admin_blocked_at', type: 'timestamp', nullable: true })
+  adminBlockedAt?: Date;
+
+  @Column({ name: 'admin_blocked_by_id', type: 'varchar', length: 36, nullable: true })
+  adminBlockedById?: string;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'admin_blocked_by_id' })
+  adminBlockedBy?: User;
+
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt?: Date;
 }

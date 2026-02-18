@@ -330,6 +330,16 @@ export const adminApi = {
     return response.data;
   },
 
+  blockMessages: async (messageIds: string[]) => {
+    const response = await api.post(`/admin/fraud/messages/block`, { messageIds });
+    return response.data;
+  },
+
+  unblockMessages: async (messageIds: string[]) => {
+    const response = await api.post(`/admin/fraud/messages/unblock`, { messageIds });
+    return response.data;
+  },
+
   updateUserStatus: async (userId: string, status: 'active' | 'blocked') => {
     const response = await api.post(`/admin/users/${userId}/status`, { status });
     return response.data;
@@ -730,6 +740,8 @@ export interface Message {
   attachmentFiles?: string[]
   isFraud?: boolean
   contentHiddenForViewer?: boolean
+  adminBlockedAt?: string | null
+  adminBlockedById?: string | null
   fraud?: {
     category?: string | null
     reason?: string | null

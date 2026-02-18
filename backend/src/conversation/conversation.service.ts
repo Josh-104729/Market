@@ -177,11 +177,48 @@ export class ConversationService {
       throw new ForbiddenException('You do not have access to this conversation');
     }
 
-    // Hide fraud-flagged messages from the OTHER participant (defense-in-depth)
+    // Mark fraud-flagged and admin-blocked messages for UI (but don't filter them out)
+    // Similar to message service, show them with blocked indicators
     if (userId && !isAdmin && Array.isArray((conversation as any).messages) && (conversation as any).messages.length > 0) {
       const msgs: any[] = (conversation as any).messages;
       const fraudByMessageId = await this.fraudService.getFraudsByMessageIds(msgs.map((m) => m.id));
-      (conversation as any).messages = msgs.filter((m) => !fraudByMessageId.has(m.id) || m.senderId === userId);
+      (conversation as any).messages = msgs.map((m) => {
+        const fd = fraudByMessageId.get(m.id);
+        const isFraud = Boolean(fd);
+        // Only block/hide content if confidence is high OR if it was auto-blocked (count reached 10)
+        // Medium/low confidence fraud should NOT block - only request admin review
+        const isHighConfidenceFraud = fd && fd.confidence === 'high';
+        const isAdminBlocked = m.adminBlockedAt && m.senderId !== userId;
+        // Only hide content if: (high confidence fraud AND not sender) OR (admin blocked)
+        const shouldHideContent = (isHighConfidenceFraud && m.senderId !== userId) || isAdminBlocked;
+
+        const viewModel: any = {
+          ...m,
+          // isFraud should be true only if it's actually blocked (high confidence or count reached 10)
+          // Medium/low confidence fraud exists but shouldn't be marked as blocked
+          isFraud: isHighConfidenceFraud || false,
+          isAdminBlocked: isAdminBlocked,
+          adminBlockedAt: m.adminBlockedAt,
+          fraud: fd
+            ? {
+                category: fd.category || null,
+                reason: fd.reason || null,
+                confidence: fd.confidence || null,
+              }
+            : undefined,
+          contentHiddenForViewer: shouldHideContent,
+        };
+
+        if (shouldHideContent) {
+          viewModel.message = '';
+          viewModel.attachmentFiles = [];
+          if (isAdminBlocked) {
+            viewModel.adminBlockReason = 'This message is blocked by admin';
+          }
+        }
+
+        return viewModel;
+      });
     }
 
     // Attach pending reactivation request summary for UI (disable button for both sides)
