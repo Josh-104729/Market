@@ -718,24 +718,40 @@ export class AdminService {
       take: limit,
     });
 
-    const formattedMessages = messages.map((msg) => ({
-      id: msg.id,
-      conversationId: msg.conversationId,
-      senderId: msg.senderId,
-      sender: msg.sender ? {
-        id: msg.sender.id,
-        email: msg.sender.email,
-        userName: msg.sender.userName,
-        firstName: msg.sender.firstName,
-        lastName: msg.sender.lastName,
-        avatar: msg.sender.avatar,
-      } : null,
-      message: msg.message,
-      attachmentFiles: msg.attachmentFiles,
-      readAt: msg.readAt,
-      createdAt: msg.createdAt,
-      updatedAt: msg.updatedAt,
-    }));
+    // Get fraud information for messages
+    const messageIds = messages.map((m) => m.id);
+    const fraudByMessageId = await this.fraudService.getFraudsByMessageIds(messageIds);
+
+    const formattedMessages = messages.map((msg) => {
+      const fraud = fraudByMessageId.get(msg.id);
+      return {
+        id: msg.id,
+        conversationId: msg.conversationId,
+        senderId: msg.senderId,
+        sender: msg.sender ? {
+          id: msg.sender.id,
+          email: msg.sender.email,
+          userName: msg.sender.userName,
+          firstName: msg.sender.firstName,
+          lastName: msg.sender.lastName,
+          avatar: msg.sender.avatar,
+        } : null,
+        message: msg.message,
+        attachmentFiles: msg.attachmentFiles,
+        readAt: msg.readAt,
+        adminBlockedAt: msg.adminBlockedAt,
+        adminBlockedById: msg.adminBlockedById,
+        isFraud: !!fraud,
+        fraud: fraud ? {
+          category: fraud.category || null,
+          reason: fraud.reason || null,
+          confidence: fraud.confidence || null,
+          reviewedAt: fraud.reviewedAt || null,
+        } : null,
+        createdAt: msg.createdAt,
+        updatedAt: msg.updatedAt,
+      };
+    });
 
     return {
       data: formattedMessages.reverse(), // Reverse to show oldest first

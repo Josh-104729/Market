@@ -40,6 +40,18 @@ export class FraudAdminController {
     await this.fraudService.blockConversationAndMarkReviewed(conversationId, req.user.id);
     return { success: true };
   }
+
+  @Post('messages/block')
+  async blockMessages(@Request() req, @Body() body: { messageIds: string[] }) {
+    await this.fraudService.blockMessages(body.messageIds, req.user.id);
+    return { success: true };
+  }
+
+  @Post('messages/unblock')
+  async unblockMessages(@Request() req, @Body() body: { messageIds: string[] }) {
+    await this.fraudService.unblockMessages(body.messageIds);
+    return { success: true };
+  }
 }
 
 

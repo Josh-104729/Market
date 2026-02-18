@@ -420,18 +420,21 @@ function Chat() {
     }
 
     // Follow-up fraud flag after message is sent
-    const handleMessageFraud = (data: { conversationId: string; messageId: string; fraud?: any }) => {
+    const handleMessageFraud = (data: { conversationId: string; messageId: string; isFraud?: boolean; fraud?: any }) => {
       if (data.conversationId !== id) return
+      // Only block/hide content if isFraud is true (high confidence) or if confidence is high
+      const shouldBlock = data.isFraud === true || (data.fraud?.confidence === 'high')
       setMessages((prev) =>
         prev.map((m) =>
           m.id === data.messageId
             ? {
                 ...m,
-                isFraud: true,
+                isFraud: shouldBlock,
                 fraud: data.fraud || { category: null, reason: null, confidence: null },
-                contentHiddenForViewer: m.senderId !== user?.id && user?.role !== 'admin' ? true : m.contentHiddenForViewer,
-                message: m.senderId !== user?.id && user?.role !== 'admin' ? '' : m.message,
-                attachmentFiles: m.senderId !== user?.id && user?.role !== 'admin' ? [] : m.attachmentFiles,
+                // Only hide content if it should be blocked (high confidence) AND user is receiver AND not admin
+                contentHiddenForViewer: shouldBlock && m.senderId !== user?.id && user?.role !== 'admin' ? true : m.contentHiddenForViewer,
+                message: shouldBlock && m.senderId !== user?.id && user?.role !== 'admin' ? '' : m.message,
+                attachmentFiles: shouldBlock && m.senderId !== user?.id && user?.role !== 'admin' ? [] : m.attachmentFiles,
               }
             : m,
         ),
@@ -567,6 +570,22 @@ function Chat() {
       }
     }
 
+    const handleMessageUpdated = (message: Message) => {
+      if (message.conversationId === id) {
+        setMessages((prev) => {
+          const existingIndex = prev.findIndex((m) => m.id === message.id)
+          if (existingIndex !== -1) {
+            // Update existing message
+            const newMessages = [...prev]
+            newMessages[existingIndex] = message
+            return newMessages
+          }
+          // If message doesn't exist, add it (for unblocked messages)
+          return [...prev, message]
+        })
+      }
+    }
+
     const handleMessageDeleted = (data: { conversationId: string; messageId: string }) => {
       if (data.conversationId !== id) return
       setMessages((prev) => prev.filter((m) => m.id !== data.messageId))
@@ -579,6 +598,7 @@ function Chat() {
     }
 
     socket.on('new_message', handleNewMessage)
+    socket.on('message_updated', handleMessageUpdated)
     socket.on('message_fraud', handleMessageFraud)
     socket.on('conversation_blocked', handleConversationBlocked)
     socket.on('milestone_updated', handleMilestoneUpdate)
@@ -687,6 +707,7 @@ function Chat() {
         
         // Remove all event listeners
         socket.off('new_message', handleNewMessage)
+        socket.off('message_updated', handleMessageUpdated)
         socket.off('message_fraud', handleMessageFraud)
         socket.off('conversation_blocked', handleConversationBlocked)
         socket.off('milestone_updated', handleMilestoneUpdate)
@@ -1703,8 +1724,10 @@ function Chat() {
                         message.senderId !== conversation.providerId
                       const hideContentForViewer =
                         Boolean((message as any).contentHiddenForViewer) ||
-                        ((!isOwn && user?.role !== 'admin') && Boolean((message as any).isFraud || (message as any).fraud))
+                        ((!isOwn && user?.role !== 'admin') && Boolean((message as any).isFraud || (message as any).fraud)) ||
+                        ((!isOwn && user?.role !== 'admin') && Boolean((message as any).isAdminBlocked))
                       const fraudReason = (message as any).fraud?.reason
+                      const adminBlockReason = (message as any).adminBlockReason || ((message as any).isAdminBlocked ? 'This message is blocked by admin' : null)
                       const sender = message.sender
                       const messageIndex = messageIndexById.get(message.id) ?? -1
                       const isSelected = selectedMessageIds.has(message.id)
@@ -2084,6 +2107,33 @@ function Chat() {
                                         {hideContentForViewer && (
                                           <AlertDescription className={`text-[11px] ${isOwn ? 'text-primary-foreground/75' : ''}`}>
                                             Message content is hidden for your safety.
+                                          </AlertDescription>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </Alert>
+                                )}
+
+                                {/* Admin blocked message (shadcn UI) */}
+                                {(message as any).isAdminBlocked && !isOwn && (
+                                  <Alert
+                                    variant="destructive"
+                                    className="mt-2 rounded-xl border border-destructive/25 bg-destructive/10"
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      <Badge
+                                        variant="destructive"
+                                        className="h-5 px-2 text-[10px] tracking-wide bg-destructive text-destructive-foreground"
+                                      >
+                                        BLOCKED
+                                      </Badge>
+                                      <div className="min-w-0">
+                                        <AlertTitle className="text-[11px]">
+                                          This message is blocked by admin
+                                        </AlertTitle>
+                                        {adminBlockReason && (
+                                          <AlertDescription className="text-[11px]">
+                                            {adminBlockReason}
                                           </AlertDescription>
                                         )}
                                       </div>
