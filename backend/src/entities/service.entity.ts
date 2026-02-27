@@ -64,6 +64,9 @@ export class Service extends BaseEntity {
   })
   status: ServiceStatus;
 
+  @Column({ name: 'approved_at', type: 'timestamp', nullable: true })
+  approvedAt?: Date | null;
+
   @OneToMany(() => Tag, (tag) => tag.service, { cascade: true })
   tags: Tag[];
 

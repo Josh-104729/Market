@@ -125,52 +125,91 @@ export class ServiceService {
     // Apply pagination
     const skip = (page - 1) * limit;
     const data = await queryBuilder
-      .orderBy('service.createdAt', 'DESC')
+      .addSelect(
+        `CASE
+          WHEN COALESCE(service.approvedAt, service.createdAt) >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+          THEN 0
+          ELSE 1
+        END`,
+        'newRank',
+      )
+      .addSelect(
+        `(SELECT COALESCE(AVG(m.rating), service.rating, 0)
+          FROM milestones m
+          WHERE m.service_id = service.id
+            AND m.deleted_at IS NULL
+            AND m.rating IS NOT NULL)`,
+        'ratingRank',
+      )
+      .addSelect(
+        `(SELECT COUNT(m2.id)
+          FROM milestones m2
+          WHERE m2.service_id = service.id
+            AND m2.deleted_at IS NULL
+            AND m2.feedback IS NOT NULL
+            AND TRIM(m2.feedback) <> '')`,
+        'reviewRank',
+      )
+      .orderBy('newRank', 'ASC')
+      .addOrderBy('ratingRank', 'DESC')
+      .addOrderBy('reviewRank', 'DESC')
+      .addOrderBy('service.approvedAt', 'DESC')
+      .addOrderBy('service.createdAt', 'DESC')
       .skip(skip)
       .take(limit)
       .getMany();
 
-    // Calculate averageRating from milestones for each service
+    // Calculate averageRating/reviewCount from released milestones for each service
     const serviceIds = data.map((s) => s.id);
-    const allMilestones = serviceIds.length === 0
+    const statsRaw = serviceIds.length === 0
       ? []
       : await this.milestoneRepository
           .createQueryBuilder('milestone')
-          .leftJoin('milestone.client', 'client')
-          .addSelect(this.publicUserSelect('client'))
+          .select('milestone.serviceId', 'serviceId')
+          .addSelect('AVG(milestone.rating)', 'averageRating')
+          .addSelect(
+            `SUM(CASE
+              WHEN milestone.feedback IS NOT NULL AND TRIM(milestone.feedback) <> '' THEN 1
+              ELSE 0
+            END)`,
+            'reviewCount',
+          )
           .where('milestone.serviceId IN (:...serviceIds)', { serviceIds })
           .andWhere('milestone.deletedAt IS NULL')
-          .getMany();
+          .groupBy('milestone.serviceId')
+          .getRawMany<{ serviceId: string; averageRating: string; reviewCount: string }>();
 
-    // Group milestones by serviceId and calculate averageRating
-    const serviceRatings = new Map<string, { sum: number; count: number }>();
-    allMilestones.forEach((milestone) => {
-      if (
-        milestone.status === MilestoneStatus.RELEASED &&
-        milestone.rating !== null &&
-        milestone.rating !== undefined
-      ) {
-        const serviceId = milestone.serviceId;
-        if (!serviceRatings.has(serviceId)) {
-          serviceRatings.set(serviceId, { sum: 0, count: 0 });
-        }
-        const current = serviceRatings.get(serviceId)!;
-        current.sum += Number(milestone.rating);
-        current.count += 1;
-        serviceRatings.set(serviceId, current);
-      }
+    const serviceRatings = new Map<string, { averageRating: number; reviewCount: number }>();
+    statsRaw.forEach((row) => {
+      serviceRatings.set(row.serviceId, {
+        averageRating: Math.round(Number(row.averageRating || 0) * 100) / 100,
+        reviewCount: Number(row.reviewCount || 0),
+      });
     });
 
-    // Add averageRating to each service
+    const nowTs = Date.now();
+    const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+
+    // Add computed list metadata
     const servicesWithRatings = data.map((service) => {
       const ratingData = serviceRatings.get(service.id);
-      const averageRating =
-        ratingData && ratingData.count > 0
-          ? Math.round((ratingData.sum / ratingData.count) * 100) / 100
-          : 0;
+      const fallbackRating =
+        typeof service.rating === 'number' ? service.rating : Number(service.rating || 0);
+      const averageRating = ratingData?.averageRating ?? fallbackRating ?? 0;
+      const reviewCount = ratingData?.reviewCount ?? 0;
+      const approvedAtDate = service.approvedAt ?? service.createdAt;
+      const isNew = approvedAtDate
+        ? nowTs - new Date(approvedAtDate).getTime() <= oneWeekMs
+        : false;
+      const isPopular = averageRating >= 4.5;
+
       return {
         ...service,
+        feedbackCount: reviewCount,
+        reviewCount,
         averageRating,
+        isNew,
+        isPopular,
       };
     });
 
@@ -324,6 +363,14 @@ export class ServiceService {
     }
     if (updateServiceDto.status) {
       service.status = updateServiceDto.status;
+    }
+
+    if (
+      oldStatus === ServiceStatus.DRAFT &&
+      updateServiceDto.status === ServiceStatus.ACTIVE &&
+      !service.approvedAt
+    ) {
+      service.approvedAt = new Date();
     }
 
     await this.serviceRepository.save(service);
