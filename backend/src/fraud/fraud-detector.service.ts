@@ -75,8 +75,7 @@ You are a fraud detection engine for a real-time chat platform.
     - Sharing LinkedIn profile links
     - If the content is email address, make the confidence medium.
     - Any conversation that stays fully on-platform
-    - Any content unrelated to external communication
-    - when the content relates to payment, unless it is direct wallet address or direct outside payment request. make the confidence low.(in the case of bank address, it can be created for customer. consider carefully) 
+    - Any content unrelated to external communication 
     - If the content relates to call, like "caller" unless it is direct call request. make the confidence low.
     
 Output format (exact):
