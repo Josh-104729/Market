@@ -264,6 +264,16 @@ function ServiceDetail() {
         : parseFloat(service.balance as any)
     return Number.isFinite(v) ? v : 0
   }, [service])
+
+  const feedbackCountValue = useMemo(() => {
+    if (!service) return 0
+    const source = service.feedbackCount ?? 0
+    const parsed = typeof source === "number" ? source : parseInt(String(source), 10)
+    if (!Number.isFinite(parsed) || parsed < 0) return 0
+    return parsed
+  }, [service])
+
+  const formatReviewLabel = (count: number) => `${count} ${count > 1 ? "reviews" : "review"}`
   const fetchCategories = async () => {
     try {
       const data = await categoryApi.getAll()
@@ -486,7 +496,7 @@ function ServiceDetail() {
                 <StarRating rating={ratingValue} />
                 <span className="text-sm text-muted-foreground">
                   {ratingValue > 0 ? ratingValue.toFixed(2) : "No ratings"}
-                  {service.feedbackCount ? ` • ${service.feedbackCount} reviews` : ""}
+                  {` • ${formatReviewLabel(feedbackCountValue)}`}
                 </span>
               </div>
               <Badge variant={service.status === "active" ? "secondary" : "outline"}>
@@ -859,7 +869,7 @@ function ServiceDetail() {
             <CardHeader>
               <CardTitle className="text-base">Customer feedback</CardTitle>
               <CardDescription>
-                {service.feedbackCount ? `${service.feedbackCount} reviews` : "No reviews yet"}
+                {formatReviewLabel(feedbackCountValue)}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">

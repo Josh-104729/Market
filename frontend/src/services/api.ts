@@ -145,6 +145,7 @@ export interface Service {
   paymentDuration?: 'hourly' | 'daily' | 'weekly' | 'monthly' | 'each_time';
   rating: number;
   status: 'draft' | 'active' | 'blocked';
+  approvedAt?: string | null;
   category?: Category;
   user?: {
     id: string;
@@ -158,6 +159,9 @@ export interface Service {
   totalMilestones?: number;
   completedMilestones?: number;
   averageRating?: number;
+  reviewCount?: number;
+  isNew?: boolean;
+  isPopular?: boolean;
   feedbackCount?: number;
   feedbacks?: Array<{
     id: string;

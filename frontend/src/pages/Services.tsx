@@ -54,7 +54,8 @@ import {
   Table as TableIcon, 
   Filter,
   Package,
-  StarHalf
+  StarHalf,
+  MessageSquareText
 } from "lucide-react"
 
 type ViewMode = 'card' | 'table'
@@ -189,7 +190,23 @@ function Services() {
         scope === "my"
           ? await serviceApi.getMyServices(params)
           : await serviceApi.getAllPaginated(params)
-      setServices(response.data)
+      const sortedServices = [...response.data].sort((a, b) => {
+        const aIsNew = isServiceNew(a) ? 1 : 0
+        const bIsNew = isServiceNew(b) ? 1 : 0
+        if (aIsNew !== bIsNew) return bIsNew - aIsNew
+
+        const ratingDiff = getServiceRating(b) - getServiceRating(a)
+        if (Math.abs(ratingDiff) > 0.0001) return ratingDiff
+
+        const reviewDiff = getServiceReviewCount(b) - getServiceReviewCount(a)
+        if (reviewDiff !== 0) return reviewDiff
+
+        const aCreated = new Date(a.createdAt).getTime()
+        const bCreated = new Date(b.createdAt).getTime()
+        return bCreated - aCreated
+      })
+
+      setServices(sortedServices)
       setTotal(response.total)
       setTotalPages(response.totalPages)
     } catch (error) {
@@ -197,6 +214,40 @@ function Services() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const getServiceRating = (service: Service) => {
+    const source = service.averageRating ?? service.rating ?? 0
+    const parsed = typeof source === 'number' ? source : parseFloat(String(source))
+    if (!Number.isFinite(parsed) || parsed < 0) return 0
+    return Math.min(parsed, 5)
+  }
+
+  const getServiceReviewCount = (service: Service) => {
+    const source = service.feedbackCount ?? service.reviewCount ?? 0
+    const parsed = typeof source === 'number' ? source : parseInt(String(source), 10)
+    if (!Number.isFinite(parsed) || parsed < 0) return 0
+    return parsed
+  }
+
+  const formatReviewLabel = (count: number) => `${count} ${count > 1 ? 'reviews' : 'review'}`
+
+  const isServiceNew = (service: Service) => {
+    if (service.isNew) return true
+
+    const dateSource = service.approvedAt || service.createdAt
+    if (!dateSource) return false
+
+    const approvedTs = new Date(dateSource).getTime()
+    if (!Number.isFinite(approvedTs)) return false
+
+    const oneWeekMs = 7 * 24 * 60 * 60 * 1000
+    return Date.now() - approvedTs <= oneWeekMs
+  }
+
+  const isServicePopular = (service: Service) => {
+    if (service.isPopular) return true
+    return getServiceRating(service) >= 4.5
   }
 
   return (
@@ -363,7 +414,21 @@ function Services() {
             ) : viewMode === 'card' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {services.map((service) => (
-                  <Card key={service.id} className="overflow-hidden group hover:border-primary/50 transition-all hover:shadow-md">
+                  <Card key={service.id} className="relative overflow-hidden group hover:border-primary/50 transition-all hover:shadow-md">
+                    {isServicePopular(service) && (
+                      <div className="pointer-events-none absolute left-2 top-2 z-[100]">
+                        <div className="-rotate-12 bg-emerald-600 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-lg [clip-path:polygon(0%_20%,14%_0%,34%_8%,50%_0%,66%_8%,86%_0%,100%_20%,92%_50%,100%_80%,86%_100%,66%_92%,50%_100%,34%_92%,14%_100%,0%_80%,8%_50%)]">
+                          Popular!
+                        </div>
+                      </div>
+                    )}
+                    {isServiceNew(service) && (
+                      <div className="pointer-events-none absolute right-2 top-2 z-[100]">
+                        <div className="rotate-12 bg-rose-600 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-lg [clip-path:polygon(0%_20%,14%_0%,34%_8%,50%_0%,66%_8%,86%_0%,100%_20%,92%_50%,100%_80%,86%_100%,66%_92%,50%_100%,34%_92%,14%_100%,0%_80%,8%_50%)]">
+                          New!
+                        </div>
+                      </div>
+                    )}
                     <Link to={`/services/${service.id}`}>
                       <div className="h-48 relative bg-muted/20 overflow-hidden">
                         <ImageWithLoader
@@ -389,8 +454,16 @@ function Services() {
                       <CardTitle className="text-lg line-clamp-1 group-hover:text-primary transition-colors">
                         <Link to={`/services/${service.id}`}>{service.title}</Link>
                       </CardTitle>
-                      <div className="pt-1">
-                        <StarRating rating={service.averageRating || service.rating || 0} />
+                      <div className="flex items-center gap-2 pt-1">
+                        <StarRating rating={getServiceRating(service)} />
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          {getServiceRating(service).toFixed(1)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">|</span>
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                          <MessageSquareText className="h-3.5 w-3.5" />
+                          {formatReviewLabel(getServiceReviewCount(service))}
+                        </span>
                       </div>
                     </CardHeader>
                     <CardContent className="p-5 pt-0">
@@ -440,7 +513,12 @@ function Services() {
                           <Badge variant="outline" className="font-medium text-[10px]">{service.category?.title || 'N/A'}</Badge>
                         </TableCell>
                         <TableCell>
-                          <StarRating rating={service.averageRating || service.rating || 0} />
+                          <div className="flex items-center gap-2">
+                            <StarRating rating={getServiceRating(service)} />
+                            <span className="text-xs text-muted-foreground">
+                              ({getServiceReviewCount(service)})
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell className="text-right font-bold text-primary">
                           ${typeof service.balance === 'number' ? service.balance.toFixed(2) : parseFloat(service.balance as any).toFixed(2)}{formatPaymentDurationSuffix(service.paymentDuration)}
